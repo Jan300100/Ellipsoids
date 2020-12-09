@@ -25,7 +25,7 @@ Compute::Compute(Pipeline* pPipeline, Win32Window* pWindow) : m_pPipeline{ pPipe
 		std::vector<float> data{};
 		for (size_t i = 1; i <= pWindow->GetDimensions().width; i++)
 		{
-			data.push_back(float(rand()% pWindow->GetDimensions().width) / pWindow->GetDimensions().width);
+			data.push_back(float(i) / pWindow->GetDimensions().width);
 		}
 
 		UINT64 byteSize = data.size() * sizeof(float);

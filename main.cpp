@@ -63,31 +63,24 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		0,1,0,0,
 		0,0,1,0,	
 		0,0,0,-1
-	}; //defines a sphere at the origin (xyzw-row * def *  xyzw-column to get resulting definition)
+	}; //defines a sphere at the origin (xyzw-row * def *  xyzw-column to get result)
 
 	XMMATRIX T_de{	XMMatrixLookAtLH( XMVectorSet(0,0,2,1),XMVectorSet(0,0,0,1), XMVectorSet(0,1,0,0)) }; //transforms camera to origin : transforms objects to camera space
 	XMMATRIX T_ep{ XMMatrixPerspectiveFovLH(XM_PIDIV2, float(w) / h, 0.1f, 100.0f) };
-
 	XMMATRIX T_dp{ T_de * T_ep };
-
 	XMMATRIX T_pd{ XMMatrixInverse(nullptr, T_dp) };
-
 	XMMATRIX Q_p{ T_pd * Q_d * XMMatrixTranspose(T_pd) };
 
-	XMFLOAT4X4 Q_p_temp;
-	XMStoreFloat4x4(&Q_p_temp, Q_p);
-	
 
 	//SHEAR == PER SPHERE
-
 	// to create T_sp -> we need Q_p
-
+	XMFLOAT4X4 Q_p_temp;
+	XMStoreFloat4x4(&Q_p_temp, Q_p);
 	float T_sp_col2[4];
 	for (size_t i = 0; i < 4; i++)
 	{
 		T_sp_col2[i] = -Q_p_temp(i, 2) / Q_p_temp(2, 2);
 	}
-
 
 	XMMATRIX T_sp
 	{
@@ -113,6 +106,8 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	};
 	XMMATRIX Q_tilde = XMLoadFloat3x3(&Q_tilde_temp);
 
+	//DRAWING
+
 	//and now we can put in pixel values (x, y) and calculate z
 
 	for (int i = 0; i < h; i++)
@@ -124,8 +119,6 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		}
 		std::cout << std::endl;
 	}
-
-
 
 	system("pause");
 }
