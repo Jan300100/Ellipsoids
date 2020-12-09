@@ -65,15 +65,16 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		0,0,0,-1
 	}; //defines a sphere at the origin (xyzw-row * def *  xyzw-column to get result)
 
+	//Precalculate in camera
 	XMMATRIX T_de{	XMMatrixLookAtLH( XMVectorSet(0,0,2,1),XMVectorSet(0,0,0,1), XMVectorSet(0,1,0,0)) }; //transforms camera to origin : transforms objects to camera space
 	XMMATRIX T_ep{ XMMatrixPerspectiveFovLH(XM_PIDIV2, float(w) / h, 0.1f, 100.0f) };
 	XMMATRIX T_dp{ T_de * T_ep };
 	XMMATRIX T_pd{ XMMatrixInverse(nullptr, T_dp) };
-	XMMATRIX Q_p{ T_pd * Q_d * XMMatrixTranspose(T_pd) };
-
 
 	//SHEAR == PER SPHERE
 	// to create T_sp -> we need Q_p
+	// needs to be calculated every frame --> equivalent of the vertex shader
+	XMMATRIX Q_p{ T_pd * Q_d * XMMatrixTranspose(T_pd) };
 	XMFLOAT4X4 Q_p_temp;
 	XMStoreFloat4x4(&Q_p_temp, Q_p);
 	float T_sp_col2[4];
@@ -88,16 +89,16 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		0,1,T_sp_col2[1],0,
 		0,0,T_sp_col2[2],0,
 		0,0,T_sp_col2[3],1
-	}; //defines a sphere at the origin (xyzw-row * def *  xyzw-column to get resulting definition)
+	};
 
 	XMMATRIX T_sd = T_sp * T_pd;
 
-	// now we can create Q_s
+	// now we can create Q_s sheared quadric
 
 	XMMATRIX Q_s{ (-1 / Q_p_temp(2, 2)) * (T_sp * Q_p * XMMatrixTranspose(T_sp))};
 	XMFLOAT4X4 Q_s_temp; XMStoreFloat4x4(&Q_s_temp, Q_s);
 	
-	//now we need to find Q_tilde -> a simplified version of Q_s
+	//now we need to find Q_tilde -> a simplified version of Q_s so its easier to find z
 	XMFLOAT3X3 Q_tilde_temp
 	{
 		Q_s_temp(0,0),Q_s_temp(0,1),Q_s_temp(0,3),
@@ -106,9 +107,9 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	};
 	XMMATRIX Q_tilde = XMLoadFloat3x3(&Q_tilde_temp);
 
-	//DRAWING
+	//DRAWING : "pixel shader"
 
-	//and now we can put in pixel values (x, y) and calculate z
+	//and at last we can put in pixel values (x, y) and calculate z
 
 	for (int i = 0; i < h; i++)
 	{
