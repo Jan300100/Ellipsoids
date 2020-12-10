@@ -40,7 +40,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 					0,1,0,0,
 					0,0,1,0,
 					0,0,0,-1 };
-	e.color = DirectX::XMFLOAT3{ 1,1,0 };
+	e.color = DirectX::XMFLOAT3{ 1,0,0 };
 
 	//LOOP
 	MSG msg = {};

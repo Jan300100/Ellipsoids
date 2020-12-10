@@ -17,6 +17,7 @@ struct OutEllipsoid
 {
 	OutEllipsoid(const Ellipsoid& input, class Camera* pCamera);
 	DirectX::XMMATRIX transform;
+	DirectX::XMMATRIX normalGenerator;
 	DirectX::XMFLOAT3 color;
 };
 

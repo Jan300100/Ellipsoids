@@ -6,7 +6,7 @@ using namespace DirectX;
 OutEllipsoid::OutEllipsoid(const Ellipsoid& input, Camera* pCamera)
 	:color{input.color}
 {
-	XMMATRIX viewProjInv = pCamera->GetViewProjectionInverse();
+	XMMATRIX viewProjInv = pCamera->GetViewProjectionInverse(); //T_pd
 
 	//SHEAR == PER SPHERE
 	// to create T_sp -> we need Q_p
@@ -26,14 +26,13 @@ OutEllipsoid::OutEllipsoid(const Ellipsoid& input, Camera* pCamera)
 		0,1,shearCol2[1],0,
 		0,0,shearCol2[2],0,
 		0,0,shearCol2[3],1
-	};
+	}; //T_sp
 
-	// now we can create Q_s sheared quadric
-
+	// now we can create sheared quadric
 	result = (-1 / temp(2, 2)) * (shearMatrix * result * XMMatrixTranspose(shearMatrix));
 	XMStoreFloat4x4(&temp, result);
 
-	//now we need to find Q_tilde -> a simplified version of Q_s so its easier to find z
+	//now we need to find Q_tilde -> a simplified version of the result so its easier to find z
 	XMFLOAT3X3 tr
 	{
 		temp(0,0),temp(0,1),temp(0,3),
@@ -42,4 +41,8 @@ OutEllipsoid::OutEllipsoid(const Ellipsoid& input, Camera* pCamera)
 	};
 
 	transform = XMLoadFloat3x3(&tr);
+
+	//planeGenerator
+	XMMATRIX Tsd{ shearMatrix * viewProjInv };
+	normalGenerator = Tsd * XMLoadFloat4x4(&input.transform) * XMMatrixTranspose( pCamera->GetViewInverse());
 }
