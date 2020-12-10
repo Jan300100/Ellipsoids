@@ -1,8 +1,9 @@
-#include "Win32Window.h"
+#include "Window.h"
 #include <cassert>
 #include <utility>
 
-HWND Win32Window::ConstructWindow(const wchar_t* windowClassName, HINSTANCE hInst, const wchar_t* windowTitle, uint32_t width, uint32_t height)
+
+HWND Window::ConstructWindow(const wchar_t* windowClassName, HINSTANCE hInst, const wchar_t* windowTitle, uint32_t width, uint32_t height)
 {
     int screenWidth = ::GetSystemMetrics(SM_CXSCREEN);
     int screenHeight = ::GetSystemMetrics(SM_CYSCREEN);
@@ -39,7 +40,7 @@ HWND Win32Window::ConstructWindow(const wchar_t* windowClassName, HINSTANCE hIns
     return hWnd;
 }
 
-void Win32Window::RegisterWindowClass(HINSTANCE hInst, const wchar_t* windowClassName)
+void Window::RegisterWindowClass(HINSTANCE hInst, const wchar_t* windowClassName)
 {
     // Register a window class for creating our render window with.
     WNDCLASSEXW windowClass = {};
@@ -61,15 +62,19 @@ void Win32Window::RegisterWindowClass(HINSTANCE hInst, const wchar_t* windowClas
     assert(atom > 0);
 }
 
-LRESULT Win32Window::WndProcStatic(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT Window::WndProcStatic(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    Win32Window* pThisWindow = reinterpret_cast<Win32Window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
-    if (pThisWindow) return pThisWindow->WndProc(hwnd, message, wParam, lParam);
+    Window* pThisWindow = reinterpret_cast<Window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+    if (pThisWindow) 
+    {
+       return pThisWindow->WndProc(hwnd, message, wParam, lParam);
+    }
     return DefWindowProcW(hwnd, message, wParam, lParam);
 }
 
-LRESULT Win32Window::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT Window::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    Input(hwnd, message, wParam, lParam);
     switch (message)
     {
         //input
@@ -79,8 +84,6 @@ LRESULT Win32Window::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
         {
         case VK_ESCAPE:
             ::PostQuitMessage(0);
-            break;
-        case VK_RETURN:
             break;
         case VK_F11:
             SetFullscreen(!m_Fullscreen);
@@ -102,7 +105,7 @@ LRESULT Win32Window::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
     return 0;
 }
 
-void Win32Window::SetFullscreen(bool fullscreen)
+void Window::SetFullscreen(bool fullscreen)
 {
     if (m_Fullscreen != fullscreen)
     {
@@ -151,7 +154,7 @@ void Win32Window::SetFullscreen(bool fullscreen)
     }
 }
 
-Win32Window::Win32Window(HINSTANCE hInstance, uint32_t width, uint32_t height)
+Window::Window(HINSTANCE hInstance, uint32_t width, uint32_t height)
     :m_Dimensions{width, height}
 {
     // Windows 10 Creators update adds Per Monitor V2 DPI awareness context.
@@ -173,12 +176,54 @@ Win32Window::Win32Window(HINSTANCE hInstance, uint32_t width, uint32_t height)
 }
 
 
-HWND Win32Window::GetHandle()
+HWND Window::GetHandle()
 {
     return m_Hwnd;
 }
 
-Dimensions<uint32_t> Win32Window::GetDimensions()
+Dimensions<uint32_t> Window::GetDimensions()
 {
     return m_Dimensions;
+}
+
+InputListener::~InputListener()
+{
+    if (m_pNextListener) m_pNextListener->m_pPreviousListener = m_pPreviousListener;
+    if (m_pPreviousListener) m_pPreviousListener->m_pNextListener = m_pNextListener;
+}
+
+void InputListener::AddListener(InputListener* pListener)
+{
+    if (pListener == nullptr) return;
+
+    if (m_pNextListener)
+    {
+        m_pNextListener->AddListener(pListener);
+    }
+    else
+    {
+        m_pNextListener = pListener;
+        pListener->m_pPreviousListener = this;
+    }
+}
+
+void InputListener::RemoveListener(InputListener* pListener)
+{
+    if (pListener && m_pNextListener == pListener)
+    {
+        m_pNextListener = m_pNextListener->m_pNextListener;
+        if (m_pNextListener)
+        {
+            m_pNextListener->m_pPreviousListener = this;
+        }
+    }
+}
+
+void InputListener::Input(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    HandleInput(hwnd, message, wParam, lParam);
+    if (m_pNextListener)
+    {
+        m_pNextListener->Input(hwnd, message, wParam, lParam);
+    }
 }

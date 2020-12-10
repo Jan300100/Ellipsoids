@@ -8,8 +8,23 @@ struct Dimensions
 	T width, height;
 };
 
-class Win32Window
+
+class InputListener
 {
+	InputListener* m_pNextListener = nullptr;
+	InputListener* m_pPreviousListener = nullptr;
+protected:
+	virtual void HandleInput(HWND, UINT, WPARAM, LPARAM) {};
+public:
+	virtual ~InputListener();
+	void AddListener(InputListener* pListener);
+	void RemoveListener(InputListener* pListener);
+	void Input(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+};
+
+class Window : public InputListener
+{
+private:
 	Dimensions<uint32_t> m_Dimensions;
 	// Window handle.
 	HWND m_Hwnd;
@@ -24,14 +39,15 @@ private:
 	LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 	void SetFullscreen(bool fullscreen);
 public:
-	Win32Window(HINSTANCE hInstance, uint32_t width = 1280, uint32_t height = 720);
-	Win32Window() = delete;
-	~Win32Window() = default;
-	Win32Window(const Win32Window&) = delete;
-	Win32Window(Win32Window&&) = delete;
-	Win32Window& operator=(const Win32Window&) = delete;
-	Win32Window& operator=(Win32Window&&) = delete;
+	Window(HINSTANCE hInstance, uint32_t width = 1280, uint32_t height = 720);
+	Window() = delete;
+	~Window() = default;
+	Window(const Window&) = delete;
+	Window(Window&&) = delete;
+	Window& operator=(const Window&) = delete;
+	Window& operator=(Window&&) = delete;
 public:
 	HWND GetHandle();
 	Dimensions<uint32_t> GetDimensions();
 };
+
