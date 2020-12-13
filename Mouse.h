@@ -10,9 +10,9 @@ public:
 	enum class Button { Left, Middle, Right };
 private:
 	bool m_Capturing = false;
-	POINT m_PrevMousePos;
-	POINT m_MousePos;
-	ButtonState m_MouseButtons[3];
+	POINT m_PrevMousePos{};
+	POINT m_MousePos{};
+	ButtonState m_MouseButtons[3]{ ButtonState::Up ,ButtonState::Up ,ButtonState::Up };
 	void CaptureButton(HWND hwnd, Button button, ButtonState state);
 protected:
 	virtual void HandleInput(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);

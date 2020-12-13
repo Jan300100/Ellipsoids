@@ -28,6 +28,8 @@ private:
 	ComPtr<ID3D12Resource> m_OutputTexture;
 	ComPtr<ID3D12Resource> m_InputEllipsoidBuffer; //ellipsoid data
 	ComPtr<ID3D12Resource> m_InputDataBuffer; //general data
+
+	OutEllipsoid Project(const Ellipsoid& e);
 public:
 	EllipsoidRenderer(DX12* pDX12, Camera* pCamera);
 	void SetCamera(Camera* pCamera) { m_pCamera = pCamera; }

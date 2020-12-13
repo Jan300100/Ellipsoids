@@ -36,7 +36,6 @@ void main(uint3 id : SV_DispatchThreadID)
     );
     
     pos.z = mul(mul(float3(pos), (float3x3) gEllipsoid.transform), float3(pos));
-    gOutputTexture[id.xy] = 0.25f;
     if (pos.z > 0) //this pixels covers the ellipsoid
     {
         pos.z = sqrt(pos.z);

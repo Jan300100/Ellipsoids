@@ -11,6 +11,56 @@
 
 using namespace DirectX;
 
+OutEllipsoid EllipsoidRenderer::Project(const Ellipsoid& e)
+{
+
+	OutEllipsoid out;
+	out.color = e.color;
+
+	XMMATRIX viewProjInv = m_pCamera->GetViewProjectionInverse(); //T_pd
+
+	//transformation
+	//XMMATRIX surface = XMLoadFloat4x4(&input.equation);
+	XMMATRIX surface = e.Transformed();
+
+	//SHEAR == PER SPHERE
+	// to create T_sp -> we need Q_p
+	// needs to be calculated every frame --> equivalent of the vertex shader
+	XMMATRIX result{ viewProjInv * surface * XMMatrixTranspose(viewProjInv) };
+
+	XMFLOAT4X4 temp; XMStoreFloat4x4(&temp, result);
+	float shearCol2[4];
+	for (size_t i = 0; i < 4; i++)
+	{
+		shearCol2[i] = -temp(i, 2) / temp(2, 2);
+	}
+
+	XMMATRIX shearMatrix
+	{
+		1,0,shearCol2[0],0,
+		0,1,shearCol2[1],0,
+		0,0,shearCol2[2],0,
+		0,0,shearCol2[3],1
+	}; //T_sp
+
+	// now we can create sheared quadric
+	result = (-1 / temp(2, 2)) * (shearMatrix * result * XMMatrixTranspose(shearMatrix));
+	XMStoreFloat4x4(&temp, result);
+
+	//now we need to find Q_tilde -> a simplified version of the result so its easier to find z
+	XMFLOAT3X3 tr
+	{
+		temp(0,0),temp(0,1),temp(0,3),
+		temp(1,0),temp(1,1),temp(1,3),
+		temp(3,0),temp(3,1),temp(3,3),
+	};
+
+	out.transform = XMLoadFloat3x3(&tr);
+	//XMLoadFloat4x4(&input.equation)
+	out.normalGenerator = (shearMatrix * viewProjInv) * surface * XMMatrixTranspose(m_pCamera->GetViewInverse());
+	return out;
+}
+
 EllipsoidRenderer::EllipsoidRenderer(DX12* pDX12, Camera* pCamera)
 	:m_pDX12{ pDX12 }, m_pCamera{pCamera}
 {
@@ -163,11 +213,26 @@ void EllipsoidRenderer::RenderStart()
 		pPipeline->currentRT,
 		m_pDX12->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
 
-	FLOAT col[4]{ 255,0,0,1 };
+
+	FLOAT col[4]{ 0.4f,0.4f,0.4f,1 };
 	pPipeline->commandList->ClearRenderTargetView(handle, col, 0, nullptr);
 
-	// Specify the buffers to render to.
-	pPipeline->commandList->OMSetRenderTargets(1, &handle, true, nullptr);
+
+	//copy backbuffer to the compute shadre
+	CD3DX12_RESOURCE_BARRIER transitions[2];
+	transitions[0] = CD3DX12_RESOURCE_BARRIER::Transition(m_OutputTexture.Get(),
+		D3D12_RESOURCE_STATE_COPY_SOURCE,D3D12_RESOURCE_STATE_COPY_DEST );
+	transitions[1] = { CD3DX12_RESOURCE_BARRIER::Transition(pPipeline->GetCurrentRenderTarget(),
+		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE) };
+	pPipeline->commandList->ResourceBarrier(2, transitions);
+
+
+	pPipeline->commandList->CopyResource(m_OutputTexture.Get(), pPipeline->GetCurrentRenderTarget());
+
+	// Transition to copy destination (we have to copy the resource to the rendertarget after rendering all compute ellipsoids)
+	transition = CD3DX12_RESOURCE_BARRIER::Transition(pPipeline->GetCurrentRenderTarget(),
+		D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST);
+	pPipeline->commandList->ResourceBarrier(1, &transition);
 
 	//
 	//SETUP COMPUTE
@@ -181,7 +246,6 @@ void EllipsoidRenderer::RenderStart()
 	FrameData data{};
 	data.windowSize = { (float)m_pDX12->GetWindow()->GetDimensions().width ,(float)m_pDX12->GetWindow()->GetDimensions().height, 0, 0 };
 	XMStoreFloat4( &data.lightDirection, XMVector4Normalize(XMVector4Transform(XMVectorSet(0.577f, -0.577f, 0.577f, 0), m_pCamera->GetView())));
-	//data.lightDirection = { 0.577f, -0.577f, 0.577f, 0 };
 
 	//update input data
 	BYTE* mapped = nullptr;
@@ -190,10 +254,7 @@ void EllipsoidRenderer::RenderStart()
 	memcpy(mapped, &data, sizeof(FrameData));
 	if (m_InputDataBuffer != nullptr)
 		m_InputDataBuffer->Unmap(0, nullptr);
-	pComList->SetComputeRootConstantBufferView(0, m_InputEllipsoidBuffer->GetGPUVirtualAddress());
-
 	pComList->SetComputeRootConstantBufferView(1, m_InputDataBuffer->GetGPUVirtualAddress());
-
 	pComList->SetComputeRootDescriptorTable(2, m_DescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
 }
@@ -203,13 +264,11 @@ void EllipsoidRenderer::RenderFinish()
 	DX12::Pipeline* pPipeline = m_pDX12->GetPipeline();
 
 	//BIND COMPUTE BUFFER AS RENDERTARGET BACKBUFFER
-
-	//COPY
-	// Prepare to copy blurred output to the back buffer.
-	auto transition{ CD3DX12_RESOURCE_BARRIER::Transition(pPipeline->GetCurrentRenderTarget(),
-		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST) };
+	auto transition = CD3DX12_RESOURCE_BARRIER::Transition(m_OutputTexture.Get(),
+		D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE);
 	pPipeline->commandList->ResourceBarrier(1, &transition);
 
+	//COPY
 	pPipeline->commandList->CopyResource(pPipeline->GetCurrentRenderTarget(), m_OutputTexture.Get());
 
 	// Transition to PRESENT state.
@@ -234,11 +293,7 @@ void EllipsoidRenderer::RenderFinish()
 
 void EllipsoidRenderer::Render(const Ellipsoid& e)
 {
-
-
-	auto window = m_pDX12->GetWindow()->GetDimensions();
-	
-	OutEllipsoid result { e, m_pCamera };
+	OutEllipsoid result {Project(e)};
 	
 	//rasterization on gpu
 	//update input data
@@ -248,8 +303,11 @@ void EllipsoidRenderer::Render(const Ellipsoid& e)
 	memcpy(mapped, &result, sizeof(OutEllipsoid));
 	if (m_InputEllipsoidBuffer != nullptr)
 		m_InputEllipsoidBuffer->Unmap(0, nullptr);
-
+	//THIS IS THE PROBLEM : ellipsoid input resource for each ellipsoid
 	auto pComList = m_pDX12->GetPipeline()->commandList;
 
+	pComList->SetComputeRootConstantBufferView(0, m_InputEllipsoidBuffer->GetGPUVirtualAddress());
+
+	auto window = m_pDX12->GetWindow()->GetDimensions();
 	pComList->Dispatch(window.width / 32 + 1, window.height / 32 + 1, 1); //these are the thread groups
 }
