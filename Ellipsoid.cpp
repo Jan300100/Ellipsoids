@@ -1,6 +1,8 @@
 #include "Ellipsoid.h"
 #include "Camera.h"
 
+#include <iostream>
+
 using namespace DirectX;
 
 OutEllipsoid::OutEllipsoid(const Ellipsoid& input, Camera* pCamera)
@@ -8,10 +10,14 @@ OutEllipsoid::OutEllipsoid(const Ellipsoid& input, Camera* pCamera)
 {
 	XMMATRIX viewProjInv = pCamera->GetViewProjectionInverse(); //T_pd
 
+	//transformation
+	//XMMATRIX surface = XMLoadFloat4x4(&input.equation);
+	XMMATRIX surface = input.Transformed();
+
 	//SHEAR == PER SPHERE
 	// to create T_sp -> we need Q_p
 	// needs to be calculated every frame --> equivalent of the vertex shader
-	XMMATRIX result{ viewProjInv * XMLoadFloat4x4(&input.transform) * XMMatrixTranspose(viewProjInv) };
+	XMMATRIX result{ viewProjInv * surface * XMMatrixTranspose(viewProjInv) };
 
 	XMFLOAT4X4 temp; XMStoreFloat4x4(&temp, result);
 	float shearCol2[4];
@@ -41,8 +47,22 @@ OutEllipsoid::OutEllipsoid(const Ellipsoid& input, Camera* pCamera)
 	};
 
 	transform = XMLoadFloat3x3(&tr);
+	//XMLoadFloat4x4(&input.equation)
+	normalGenerator = (shearMatrix * viewProjInv) * surface * XMMatrixTranspose(pCamera->GetViewInverse());
 
-	//planeGenerator
-	XMMATRIX Tsd{ shearMatrix * viewProjInv };
-	normalGenerator = Tsd * XMLoadFloat4x4(&input.transform) * XMMatrixTranspose( pCamera->GetViewInverse());
+	XMFLOAT3 pos{ 0,0,1 };
+	XMFLOAT3 zSquared;
+	XMStoreFloat3(&zSquared, XMVectorMultiply(XMLoadFloat3(&pos), XMVector3Transform(XMLoadFloat3(&pos), transform)));
+	if (zSquared.z > 0)
+	{
+		pos.z = sqrt(zSquared.z);
+		XMFLOAT3 normal; XMStoreFloat3(&normal, XMVector3Normalize(XMVector3Transform(XMLoadFloat3(&pos), normalGenerator)));
+	}
+}
+
+DirectX::XMMATRIX Ellipsoid::Transformed() const
+{
+	XMMATRIX tr =  XMMatrixAffineTransformation(XMLoadFloat3(&scale), XMVectorZero(), XMQuaternionRotationRollPitchYaw(rollPitchYaw.x,rollPitchYaw.y, rollPitchYaw.z), XMLoadFloat3(&position));
+	tr = XMMatrixInverse(nullptr, tr);
+	return tr * XMLoadFloat4x4(&equation) * XMMatrixTranspose(tr);
 }

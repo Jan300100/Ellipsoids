@@ -179,8 +179,9 @@ void EllipsoidRenderer::RenderStart()
 	pComList->SetDescriptorHeaps(_countof(descHeaps), descHeaps);
 
 	FrameData data{};
-	data.windowSize = { (float)m_pDX12->GetWindow()->GetDimensions().width ,(float)m_pDX12->GetWindow()->GetDimensions().height };
-	data.lightDirection = { 0.577f,-0.577f,0.577f };
+	data.windowSize = { (float)m_pDX12->GetWindow()->GetDimensions().width ,(float)m_pDX12->GetWindow()->GetDimensions().height, 0, 0 };
+	XMStoreFloat4( &data.lightDirection, XMVector4Normalize(XMVector4Transform(XMVectorSet(0.577f, -0.577f, 0.577f, 0), m_pCamera->GetView())));
+	//data.lightDirection = { 0.577f, -0.577f, 0.577f, 0 };
 
 	//update input data
 	BYTE* mapped = nullptr;
@@ -189,6 +190,7 @@ void EllipsoidRenderer::RenderStart()
 	memcpy(mapped, &data, sizeof(FrameData));
 	if (m_InputDataBuffer != nullptr)
 		m_InputDataBuffer->Unmap(0, nullptr);
+	pComList->SetComputeRootConstantBufferView(0, m_InputEllipsoidBuffer->GetGPUVirtualAddress());
 
 	pComList->SetComputeRootConstantBufferView(1, m_InputDataBuffer->GetGPUVirtualAddress());
 
@@ -232,6 +234,8 @@ void EllipsoidRenderer::RenderFinish()
 
 void EllipsoidRenderer::Render(const Ellipsoid& e)
 {
+
+
 	auto window = m_pDX12->GetWindow()->GetDimensions();
 	
 	OutEllipsoid result { e, m_pCamera };
@@ -247,7 +251,5 @@ void EllipsoidRenderer::Render(const Ellipsoid& e)
 
 	auto pComList = m_pDX12->GetPipeline()->commandList;
 
-	pComList->SetComputeRootConstantBufferView(0, m_InputEllipsoidBuffer->GetGPUVirtualAddress());
 	pComList->Dispatch(window.width / 32 + 1, window.height / 32 + 1, 1); //these are the thread groups
-	
 }

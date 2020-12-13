@@ -26,7 +26,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	freopen_s(&pDummy, "CONOUT$", "w", stderr);
 	freopen_s(&pDummy, "CONOUT$", "w", stdout);
 #endif
-	Window window{ hInstance, 800, 800 };
+	Window window{ hInstance, 920, 720 };
 	Mouse mouse{};
 	window.AddListener(&mouse);
 
@@ -35,23 +35,37 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	EllipsoidRenderer renderer{ &dx12, &camera };
 
 	Ellipsoid e{};
-	e.transform = DirectX::XMFLOAT4X4{
+	e.equation = DirectX::XMFLOAT4X4{
 					1,0,0,0,
 					0,1,0,0,
 					0,0,1,0,
 					0,0,0,-1 };
-	e.color = DirectX::XMFLOAT3{ 1,0,0 };
+	e.color = DirectX::XMFLOAT3{ 1,1,1 };
 
+	Ellipsoid e2{};
+
+
+
+	e2.equation = DirectX::XMFLOAT4X4{
+					1,0,0,0,
+					0,1,0,0,
+					0,0,1,0,
+					0,0,0,-1 };
+	e2.color = DirectX::XMFLOAT3{ 0.77f,0.64f,0 };
+	e2.position = {0,0,0};
+	e2.scale = {0.25f,0.8f,1.2f};
+	e2.rollPitchYaw = {DirectX::XM_PIDIV4, 0 ,DirectX::XM_PIDIV4 };
 	//LOOP
 	MSG msg = {};
 	auto start = std::chrono::high_resolution_clock::now();
 	float passed = 0.0f;
 	int framectr = 0;
+	float totalTime = 0.0f;
 	while (msg.message != WM_QUIT)
 	{
 
 		auto end = std::chrono::high_resolution_clock::now();
-		float delta = (float)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000000.0f;
+		float delta = (float)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1'000'000.0f;
 		if (delta > 0.01f) delta = 0.01f;
 		start = end;
 		framectr++;
@@ -63,6 +77,11 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 			framectr = 0;
 		}
 
+		totalTime += delta;
+
+		e2.rollPitchYaw.y += delta * 2;
+		e2.position.y = sin(totalTime);
+
 		mouse.Update();
 		while (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
@@ -71,8 +90,12 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		}
 
 		camera.Update(delta);
-		renderer.RenderStart(); 
-		renderer.Render(e);
+		//renderer.RenderStart(); 
+		//renderer.Render(e);
+		//renderer.RenderFinish();
+
+		renderer.RenderStart();
+		renderer.Render(e2);
 		renderer.RenderFinish();
 	}
 }

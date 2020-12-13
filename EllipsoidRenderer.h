@@ -6,8 +6,8 @@
 
 struct FrameData
 {
-	DirectX::XMFLOAT2 windowSize;
-	DirectX::XMFLOAT3 lightDirection;
+	DirectX::XMFLOAT4 windowSize;
+	DirectX::XMFLOAT4 lightDirection;
 };
 
 

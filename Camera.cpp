@@ -11,7 +11,8 @@ void Camera::ReCalculateView()
 
 	m_View = XMMatrixLookAtLH(XMLoadFloat3(&m_Position), XMVectorAdd(XMLoadFloat3(&m_Position), XMLoadFloat3(&m_Forward)), XMVectorSet(0, 1, 0, 0));
 	m_ViewInverse = XMMatrixInverse(nullptr, m_View);
-	m_ViewProjInverse =  XMMatrixInverse(nullptr, m_View * m_Projection);
+	m_ViewProj = m_View * m_Projection;
+	m_ViewProjInverse =  XMMatrixInverse(nullptr, m_ViewProj);
 
 }
 
@@ -39,7 +40,7 @@ void Camera::Update(float dt)
 	XMFLOAT3 translation{};
 	XMFLOAT3 rotation{};
 	float rotationSpeed = 4.0f;
-	float moveSpeed = 3.0f;
+	float moveSpeed = 4.0f;
 	if (m_pMouse->GetMouseButton(Mouse::Button::Right) == ButtonState::Down
 		&& m_pMouse->GetMouseButton(Mouse::Button::Left) == ButtonState::Down)
 	{
