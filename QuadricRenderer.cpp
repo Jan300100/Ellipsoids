@@ -1,4 +1,4 @@
-#include "EllipsoidRenderer.h"
+#include "QuadricRenderer.h"
 #include "DX12.h"
 #include "Helpers.h"
 #include "d3dx12.h"
@@ -11,10 +11,10 @@
 
 using namespace DirectX;
 
-OutEllipsoid EllipsoidRenderer::Project(const Ellipsoid& e)
+OutQuadric QuadricRenderer::Project(const Quadric& e)
 {
 
-	OutEllipsoid out;
+	OutQuadric out;
 	out.color = e.color;
 
 	XMMATRIX viewProjInv = m_pCamera->GetViewProjectionInverse(); //T_pd
@@ -61,7 +61,7 @@ OutEllipsoid EllipsoidRenderer::Project(const Ellipsoid& e)
 	return out;
 }
 
-EllipsoidRenderer::EllipsoidRenderer(DX12* pDX12, Camera* pCamera)
+QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
 	:m_pDX12{ pDX12 }, m_pCamera{pCamera}
 {
 	//pDX12->GetPipeline()->Flush();
@@ -69,7 +69,7 @@ EllipsoidRenderer::EllipsoidRenderer(DX12* pDX12, Camera* pCamera)
 	//Constant Buffer
 	//**************
 	auto properties{ CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD) };
-	auto desc{ CD3DX12_RESOURCE_DESC::Buffer((sizeof(OutEllipsoid) + 255) & ~255)};
+	auto desc{ CD3DX12_RESOURCE_DESC::Buffer((sizeof(OutQuadric) + 255) & ~255)};
 	m_pDX12->GetDevice()->CreateCommittedResource(
 		&properties,
 		D3D12_HEAP_FLAG_NONE,
@@ -195,7 +195,7 @@ EllipsoidRenderer::EllipsoidRenderer(DX12* pDX12, Camera* pCamera)
 	ThrowIfFailed(pDX12->GetDevice()->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&m_Pso)));
 }
 
-void EllipsoidRenderer::RenderStart()
+void QuadricRenderer::RenderStart()
 {
 	DX12::Pipeline* pPipeline = m_pDX12->GetPipeline();
 
@@ -259,7 +259,7 @@ void EllipsoidRenderer::RenderStart()
 
 }
 
-void EllipsoidRenderer::RenderFinish()
+void QuadricRenderer::RenderFinish()
 {
 	DX12::Pipeline* pPipeline = m_pDX12->GetPipeline();
 
@@ -291,16 +291,16 @@ void EllipsoidRenderer::RenderFinish()
 	pPipeline->Flush(); //wait for gpu to finish (== not ideal)
 }
 
-void EllipsoidRenderer::Render(const Ellipsoid& e)
+void QuadricRenderer::Render(const Quadric& e)
 {
-	OutEllipsoid result {Project(e)};
+	OutQuadric result {Project(e)};
 	
 	//rasterization on gpu
 	//update input data
 	BYTE* mapped = nullptr;
 	m_InputEllipsoidBuffer->Map(0, nullptr,
 		reinterpret_cast<void**>(&mapped));
-	memcpy(mapped, &result, sizeof(OutEllipsoid));
+	memcpy(mapped, &result, sizeof(OutQuadric));
 	if (m_InputEllipsoidBuffer != nullptr)
 		m_InputEllipsoidBuffer->Unmap(0, nullptr);
 	//THIS IS THE PROBLEM : ellipsoid input resource for each ellipsoid

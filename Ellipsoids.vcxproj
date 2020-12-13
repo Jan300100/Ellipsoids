@@ -21,8 +21,8 @@
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="DX12.cpp" />
-    <ClCompile Include="Ellipsoid.cpp" />
-    <ClCompile Include="EllipsoidRenderer.cpp" />
+    <ClCompile Include="Quadric.cpp" />
+    <ClCompile Include="QuadricRenderer.cpp" />
     <ClCompile Include="Helpers.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Mouse.cpp" />
@@ -31,8 +31,9 @@
   <ItemGroup>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="d3dx12.h" />
-    <ClInclude Include="Ellipsoid.h" />
-    <ClInclude Include="EllipsoidRenderer.h" />
+    <ClInclude Include="MultiQuadric.h" />
+    <ClInclude Include="Quadric.h" />
+    <ClInclude Include="QuadricRenderer.h" />
     <ClInclude Include="DX12.h" />
     <ClInclude Include="Helpers.h" />
     <ClInclude Include="Mouse.h" />

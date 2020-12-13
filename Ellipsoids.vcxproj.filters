@@ -12,15 +12,15 @@
     <Filter Include="General">
       <UniqueIdentifier>{a279192b-0b0c-479f-994d-548ac4156554}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Ellipsoids">
+      <UniqueIdentifier>{3d0973cc-a67d-4e50-9aba-d57ed67110a2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Helpers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DX12.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="EllipsoidRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp">
@@ -35,7 +35,10 @@
     <ClCompile Include="Mouse.cpp">
       <Filter>General</Filter>
     </ClCompile>
-    <ClCompile Include="Ellipsoid.cpp">
+    <ClCompile Include="Quadric.cpp">
+      <Filter>Ellipsoids</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadricRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -52,17 +55,20 @@
     <ClInclude Include="DX12.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Ellipsoid.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="EllipsoidRenderer.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="Window.h">
       <Filter>General</Filter>
     </ClInclude>
     <ClInclude Include="Mouse.h">
       <Filter>General</Filter>
+    </ClInclude>
+    <ClInclude Include="Quadric.h">
+      <Filter>Ellipsoids</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadricRenderer.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MultiQuadric.h">
+      <Filter>Ellipsoids</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

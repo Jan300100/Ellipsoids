@@ -7,7 +7,7 @@
 
 using namespace Microsoft::WRL;
 
-struct Ellipsoid
+struct Quadric
 {
 	DirectX::XMFLOAT4X4 equation;
 	DirectX::XMFLOAT3 position{0,0,0};
@@ -17,16 +17,9 @@ struct Ellipsoid
 	DirectX::XMMATRIX Transformed() const;
 };
 
-struct OutEllipsoid
+struct OutQuadric
 {
 	DirectX::XMMATRIX transform;
 	DirectX::XMMATRIX normalGenerator;
 	DirectX::XMFLOAT3 color;
-};
-
-class EllipsoidMesh
-{
-	std::vector<Ellipsoid> m_Ellipsoids; //data cpu
-	ComPtr<ID3D12Resource> m_InputBuffer; //original ellipsoids
-	ComPtr<ID3D12Resource> m_OutputBuffer; //output after projection
 };

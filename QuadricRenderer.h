@@ -1,5 +1,5 @@
 #pragma once
-#include "Ellipsoid.h" 
+#include "Quadric.h" 
 #include <dxgi1_6.h>
 #include <d3d12.h>
 #include <wrl.h>
@@ -14,7 +14,7 @@ struct FrameData
 
 class DX12;
 class Camera;
-class EllipsoidRenderer
+class QuadricRenderer
 {
 private:
 	DX12* m_pDX12;
@@ -29,12 +29,12 @@ private:
 	ComPtr<ID3D12Resource> m_InputEllipsoidBuffer; //ellipsoid data
 	ComPtr<ID3D12Resource> m_InputDataBuffer; //general data
 
-	OutEllipsoid Project(const Ellipsoid& e);
+	OutQuadric Project(const Quadric& e);
 public:
-	EllipsoidRenderer(DX12* pDX12, Camera* pCamera);
+	QuadricRenderer(DX12* pDX12, Camera* pCamera);
 	void SetCamera(Camera* pCamera) { m_pCamera = pCamera; }
 
 	void RenderStart();
 	void RenderFinish();
-	void Render(const Ellipsoid& e);
+	void Render(const Quadric& e);
 };

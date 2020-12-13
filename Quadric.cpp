@@ -1,11 +1,11 @@
-#include "Ellipsoid.h"
+#include "Quadric.h"
 #include "Camera.h"
 
 #include <iostream>
 
 using namespace DirectX;
 
-DirectX::XMMATRIX Ellipsoid::Transformed() const
+DirectX::XMMATRIX Quadric::Transformed() const
 {
 	XMMATRIX tr =  XMMatrixAffineTransformation(XMLoadFloat3(&scale), XMVectorZero(), XMQuaternionRotationRollPitchYaw(rollPitchYaw.x,rollPitchYaw.y, rollPitchYaw.z), XMLoadFloat3(&position));
 	tr = XMMatrixInverse(nullptr, tr);

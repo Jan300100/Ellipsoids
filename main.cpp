@@ -10,7 +10,7 @@
 #include "Window.h"
 #include "DX12.h"
 #include "d3dx12.h"
-#include "EllipsoidRenderer.h"
+#include "QuadricRenderer.h"
 #include "Camera.h"
 #include "Mouse.h"
 #include <chrono>
@@ -32,29 +32,19 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 	Camera camera{ &window, &mouse, {0,0,-4.f}, {0,0,1} };
 	DX12 dx12{&window};
-	EllipsoidRenderer renderer{ &dx12, &camera };
+	QuadricRenderer renderer{ &dx12, &camera };
 
-	Ellipsoid e{};
-	e.equation = DirectX::XMFLOAT4X4{
-					1,0,0,0,
-					0,1,0,0,
-					0,0,1,0,
-					0,0,0,-1 };
-	e.color = DirectX::XMFLOAT3{ 1,1,1 };
-
-	Ellipsoid e2{};
-
-
-
+	Quadric e2{};
 	e2.equation = DirectX::XMFLOAT4X4{
 					1,0,0,0,
 					0,1,0,0,
 					0,0,1,0,
 					0,0,0,-1 };
-	e2.color = DirectX::XMFLOAT3{ 0.77f,0.64f,0 };
+	e2.color = DirectX::XMFLOAT3{ 0.87f,0.7f,0.6f };
 	e2.position = {0,0,0};
-	e2.scale = {0.25f,0.8f,1.2f};
+	e2.scale = {0.8f,0.8f,1.1f};
 	e2.rollPitchYaw = {DirectX::XM_PIDIV4, 0 ,DirectX::XM_PIDIV4 };
+
 	//LOOP
 	MSG msg = {};
 	auto start = std::chrono::high_resolution_clock::now();
@@ -83,16 +73,14 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		e2.position.y = sin(totalTime);
 
 		mouse.Update();
+
 		while (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
 			::TranslateMessage(&msg);
 			::DispatchMessage(&msg);
 		}
-
 		camera.Update(delta);
-		//renderer.RenderStart(); 
-		//renderer.Render(e);
-		//renderer.RenderFinish();
+
 
 		renderer.RenderStart();
 		renderer.Render(e2);
