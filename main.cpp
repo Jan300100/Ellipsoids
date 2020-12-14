@@ -39,7 +39,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	Mouse mouse{};
 	window.AddListener(&mouse);
 
-	Camera* pCamera = new FreeCamera{ &window, &mouse, {0,0,-4.f}, {0,0,1} };
+	Camera* pCamera = new FreeCamera{ &window, &mouse, {0,0,-4.f}, {0,0,0} };
 
 	QuadricRenderer renderer{ &dx12, pCamera };
 
@@ -51,8 +51,6 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 					0,0,0,-1 };
 	e2.color = DirectX::XMFLOAT3{ 0.87f,0.7f,0.6f };
 	e2.position = {0,0,0};
-	e2.scale = {0.8f,0.8f,1.1f};
-	e2.rollPitchYaw = {DirectX::XM_PIDIV4, 0 ,DirectX::XM_PIDIV4 };
 
 	//LOOP
 	MSG msg = {};
@@ -76,24 +74,6 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 		ImGui::Begin("Ellipsoid");
 		ImGui::ColorPicker3("Color: ", &e2.color.x);
-
-		ImGui::DragFloat4("r1: ", &e2.equation._11, 0.1f);
-		ImGui::DragFloat4("r2: ", &e2.equation._21, 0.1f);
-		ImGui::DragFloat4("r3: ", &e2.equation._31, 0.1f);
-		ImGui::DragFloat4("r4: ", &e2.equation._41, 0.1f);
-
-		for (int i = 0; i < 4; i++)
-		{
-			for (int j = 0; j < 4; j++)
-			{
-				if (i < j)
-				{
-					e2.equation(j,i) = e2.equation(i, j);
-				}
-			}
-		}
-
-
 		ImGui::End();
 
 		auto end = std::chrono::high_resolution_clock::now();

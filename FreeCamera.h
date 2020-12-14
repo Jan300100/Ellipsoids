@@ -1,6 +1,6 @@
 #pragma once
-#include "Camera.h"
 #include <DirectXMath.h>
+#include "Camera.h"
 class Mouse;
 class Window;
 

@@ -1,7 +1,6 @@
 #pragma once
 #include <DirectXMath.h>
-#include "Window.h"
-
+class Window;
 class Camera
 {
 	//MATRICES
@@ -18,14 +17,16 @@ protected:
 	float m_NearPlane = 1.0f, m_FarPlane = 15.f;
 
 	DirectX::XMFLOAT3 m_Position;
-	DirectX::XMFLOAT3 m_Forward;
+	DirectX::XMFLOAT3 m_Rotation;
 public:
-	Camera(Window* pWindow, const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& lookDir);
+	Camera(Window* pWindow, const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& rotation);
 	virtual ~Camera() = default;
 	inline DirectX::XMMATRIX GetViewProjectionInverse() const { return m_ViewProjInverse; }
 	inline DirectX::XMMATRIX GetViewProjection() const { return m_ViewProj; }
 	inline DirectX::XMMATRIX GetViewInverse() const { return m_ViewInverse; }
 	inline DirectX::XMMATRIX GetView() const { return m_View; }
+	DirectX::XMVECTOR GetForward() const;
+	DirectX::XMVECTOR GetRight() const;
 	void Offset(const DirectX::XMFLOAT3& offset);
 	virtual void Update(float) {};
 };
