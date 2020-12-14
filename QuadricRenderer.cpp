@@ -14,7 +14,6 @@ using namespace DirectX;
 
 OutQuadric QuadricRenderer::Project(const Quadric& e)
 {
-
 	OutQuadric out;
 	out.color = e.color;
 
@@ -22,21 +21,21 @@ OutQuadric QuadricRenderer::Project(const Quadric& e)
 
 	//transformation
 	//XMMATRIX surface = XMLoadFloat4x4(&input.equation);
-	XMMATRIX surface = e.Transformed();
+	XMMATRIX surfaceWorld = e.Transformed();
 
 	//SHEAR == PER SPHERE
 	// to create T_sp -> we need Q_p
 	// needs to be calculated every frame --> equivalent of the vertex shader
-	XMMATRIX result{ viewProjInv * surface * XMMatrixTranspose(viewProjInv) };
+	XMMATRIX surfaceProjection{ viewProjInv * surfaceWorld * XMMatrixTranspose(viewProjInv) };
 
-	XMFLOAT4X4 temp; XMStoreFloat4x4(&temp, result);
+	XMFLOAT4X4 temp; XMStoreFloat4x4(&temp, surfaceProjection);
 	float shearCol2[4];
 	for (size_t i = 0; i < 4; i++)
 	{
 		shearCol2[i] = -temp(i, 2) / temp(2, 2);
 	}
 
-	XMMATRIX shearMatrix
+	XMMATRIX shearInv
 	{
 		1,0,shearCol2[0],0,
 		0,1,shearCol2[1],0,
@@ -45,30 +44,26 @@ OutQuadric QuadricRenderer::Project(const Quadric& e)
 	}; //T_sp
 
 	// now we can create sheared quadric
-	result = (-1 / temp(2, 2)) * (shearMatrix * result * XMMatrixTranspose(shearMatrix));
-	XMStoreFloat4x4(&temp, result);
+	XMMATRIX surfaceShear = (-1 / temp(2, 2)) * (shearInv * surfaceProjection * XMMatrixTranspose(shearInv));
+	XMStoreFloat4x4(&temp, surfaceShear);
 
 	//now we need to find Q_tilde -> a simplified version of the result so its easier to find z
-	XMFLOAT3X3 tr
+	XMFLOAT3X3 surfaceShearTemp
 	{
 		temp(0,0),temp(0,1),temp(0,3),
 		temp(1,0),temp(1,1),temp(1,3),
 		temp(3,0),temp(3,1),temp(3,3),
 	};
 
-	out.transform = XMLoadFloat3x3(&tr);
-	//XMLoadFloat4x4(&input.equation)
-	out.normalGenerator = (shearMatrix * viewProjInv) * surface * XMMatrixTranspose(m_pCamera->GetViewInverse());
+	out.transform = XMLoadFloat3x3(&surfaceShearTemp);
+	out.normalGenerator = (shearInv * viewProjInv) * surfaceWorld * XMMatrixTranspose(m_pCamera->GetViewInverse());
 	return out;
 }
 
 QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
 	:m_pDX12{ pDX12 }, m_pCamera{pCamera}
 {
-	//pDX12->GetPipeline()->Flush();
-
 	//Constant Buffer
-	//**************
 	auto properties{ CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD) };
 	auto desc{ CD3DX12_RESOURCE_DESC::Buffer((sizeof(OutQuadric) + 255) & ~255)};
 	m_pDX12->GetDevice()->CreateCommittedResource(
@@ -80,7 +75,6 @@ QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
 		IID_PPV_ARGS(&m_InputEllipsoidBuffer));
 
 	//Constant Buffer
-//**************
 	properties = { CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD) };
 	desc  ={ CD3DX12_RESOURCE_DESC::Buffer((sizeof(FrameData) + 255) & ~255) };
 	m_pDX12->GetDevice()->CreateCommittedResource(
@@ -92,7 +86,6 @@ QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
 		IID_PPV_ARGS(&m_InputDataBuffer));
 
 	//Output Texture
-	//***********
 	D3D12_RESOURCE_DESC texDesc;
 
 	ZeroMemory(&texDesc, sizeof(D3D12_RESOURCE_DESC));
