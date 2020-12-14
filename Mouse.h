@@ -15,7 +15,7 @@ private:
 	ButtonState m_MouseButtons[3]{ ButtonState::Up ,ButtonState::Up ,ButtonState::Up };
 	void CaptureButton(HWND hwnd, Button button, ButtonState state);
 protected:
-	virtual void HandleInput(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+	virtual bool HandleInput(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) override;
 public:
 	void Update();
 	ButtonState GetMouseButton(Button button) const { return m_MouseButtons[int(button)]; };

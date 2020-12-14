@@ -221,8 +221,8 @@ void InputListener::RemoveListener(InputListener* pListener)
 
 void InputListener::Input(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    HandleInput(hwnd, message, wParam, lParam);
-    if (m_pNextListener)
+    bool claimInput = HandleInput(hwnd, message, wParam, lParam);
+    if (!claimInput && m_pNextListener)
     {
         m_pNextListener->Input(hwnd, message, wParam, lParam);
     }

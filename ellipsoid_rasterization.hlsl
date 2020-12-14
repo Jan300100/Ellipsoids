@@ -1,7 +1,7 @@
 struct Data
 {
-    float4 windowDimensions;
-    float4 lDir;
+    float2 windowDimensions;
+    float3 lightDirection;
 };
 
 struct ProjectedEllipsoid
@@ -43,7 +43,7 @@ void main(uint3 id : SV_DispatchThreadID)
         
         float3 normal = -mul(gEllipsoid.normalGenerator, posS).xyz;
         normal = normalize(normal);
-        float3 lDir = gData.lDir.xyz; //make sure its normalized
+            float3 lDir = gData.lightDirection.xyz; //make sure its normalized
         float lambertDot = dot(normal, lDir);
         gOutputTexture[id.xy] = float4(gEllipsoid.color, 1) * (lambertDot);
     }

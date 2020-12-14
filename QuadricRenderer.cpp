@@ -7,6 +7,7 @@
 #include <d3dcompiler.h>
 #include <iostream>
 #include "Camera.h"
+#include <imgui_impl_dx12.h>
 
 
 using namespace DirectX;
@@ -198,26 +199,9 @@ QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
 void QuadricRenderer::RenderStart()
 {
 	DX12::Pipeline* pPipeline = m_pDX12->GetPipeline();
-
-	ThrowIfFailed(pPipeline->commandAllocator->Reset());
-	ThrowIfFailed(pPipeline->commandList->Reset(pPipeline->commandAllocator.Get(), m_Pso.Get()));
-
-	// Indicate a state transition on the resource usage.
-	auto transition{ CD3DX12_RESOURCE_BARRIER::Transition(pPipeline->GetCurrentRenderTarget(),
-		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET) };
-	pPipeline->commandList->ResourceBarrier(1, &transition);
-
-	// Clear the back buffer
-	auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(
-		pPipeline->rtvHeap->GetCPUDescriptorHandleForHeapStart(),
-		pPipeline->currentRT,
-		m_pDX12->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
-
-
-	FLOAT col[4]{ 0.4f,0.4f,0.4f,1 };
-	pPipeline->commandList->ClearRenderTargetView(handle, col, 0, nullptr);
-
-
+	//SET PSO
+	pPipeline->commandList->SetPipelineState(m_Pso.Get());
+	
 	//copy backbuffer to the compute shadre
 	CD3DX12_RESOURCE_BARRIER transitions[2];
 	transitions[0] = CD3DX12_RESOURCE_BARRIER::Transition(m_OutputTexture.Get(),
@@ -230,9 +214,9 @@ void QuadricRenderer::RenderStart()
 	pPipeline->commandList->CopyResource(m_OutputTexture.Get(), pPipeline->GetCurrentRenderTarget());
 
 	// Transition to copy destination (we have to copy the resource to the rendertarget after rendering all compute ellipsoids)
-	transition = CD3DX12_RESOURCE_BARRIER::Transition(pPipeline->GetCurrentRenderTarget(),
+	transitions[0] = CD3DX12_RESOURCE_BARRIER::Transition(pPipeline->GetCurrentRenderTarget(),
 		D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST);
-	pPipeline->commandList->ResourceBarrier(1, &transition);
+	pPipeline->commandList->ResourceBarrier(1, transitions);
 
 	//
 	//SETUP COMPUTE
@@ -271,24 +255,11 @@ void QuadricRenderer::RenderFinish()
 	//COPY
 	pPipeline->commandList->CopyResource(pPipeline->GetCurrentRenderTarget(), m_OutputTexture.Get());
 
-	// Transition to PRESENT state.
+	// Transition to Render target for any other draws that might happen.
 	transition = CD3DX12_RESOURCE_BARRIER::Transition(pPipeline->GetCurrentRenderTarget(),
-		D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PRESENT);
+		D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	pPipeline->commandList->ResourceBarrier(1, &transition);
 
-	// Done recording commands.
-	ThrowIfFailed(pPipeline->commandList->Close());
-
-	// Add the command list to the queue for execution.
-	ID3D12CommandList* cmdsLists[] = { pPipeline->commandList.Get() };
-	pPipeline->commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
-
-	// Swap the back and front buffers
-	ThrowIfFailed(pPipeline->swapChain->Present(0, 0));
-
-	pPipeline->currentRT = (pPipeline->currentRT + 1) % pPipeline->rtvCount;
-
-	pPipeline->Flush(); //wait for gpu to finish (== not ideal)
 }
 
 void QuadricRenderer::Render(const Quadric& e)

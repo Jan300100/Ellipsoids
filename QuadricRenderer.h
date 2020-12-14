@@ -3,14 +3,13 @@
 #include <dxgi1_6.h>
 #include <d3d12.h>
 #include <wrl.h>
+#include <imgui.h>
 
 struct FrameData
 {
 	DirectX::XMFLOAT4 windowSize;
 	DirectX::XMFLOAT4 lightDirection;
 };
-
-
 
 class DX12;
 class Camera;
@@ -30,6 +29,7 @@ private:
 	ComPtr<ID3D12Resource> m_InputDataBuffer; //general data
 
 	OutQuadric Project(const Quadric& e);
+
 public:
 	QuadricRenderer(DX12* pDX12, Camera* pCamera);
 	void SetCamera(Camera* pCamera) { m_pCamera = pCamera; }

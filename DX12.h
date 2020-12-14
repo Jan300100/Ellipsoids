@@ -2,6 +2,8 @@
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <wrl.h>
+#include "d3dx12.h"
+
 class Window;
 
 class DX12
@@ -18,6 +20,8 @@ public:
 	inline Pipeline* GetPipeline() const { return m_pGraphics; }
 	inline ID3D12Device2* GetDevice() const { return m_Device.Get(); }
 	inline Window* GetWindow() const { return m_pWindow; }
+	void Present();
+	void NewFrame();
 };
 
 struct DX12::Pipeline

@@ -14,7 +14,7 @@ class InputListener
 	InputListener* m_pNextListener = nullptr;
 	InputListener* m_pPreviousListener = nullptr;
 protected:
-	virtual void HandleInput(HWND, UINT, WPARAM, LPARAM) {};
+	virtual bool HandleInput(HWND, UINT, WPARAM, LPARAM) { return false; }
 public:
 	virtual ~InputListener();
 	void AddListener(InputListener* pListener);

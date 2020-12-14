@@ -11,10 +11,12 @@
 #include "DX12.h"
 #include "d3dx12.h"
 #include "QuadricRenderer.h"
-#include "Camera.h"
 #include "Mouse.h"
 #include <chrono>
 #include <iostream>
+#include "FreeCamera.h"
+#include <ImGuiRenderer.h>
+
 
 int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 {
@@ -26,13 +28,20 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	freopen_s(&pDummy, "CONOUT$", "w", stderr);
 	freopen_s(&pDummy, "CONOUT$", "w", stdout);
 #endif
-	Window window{ hInstance, 920, 720 };
+
+	Window window{ hInstance, 1600, 900 };
+
+	DX12 dx12{&window};
+
+	ImGuiRenderer imguiRenderer{ dx12.GetDevice(), window.GetHandle() };
+	window.AddListener(&imguiRenderer);
+
 	Mouse mouse{};
 	window.AddListener(&mouse);
 
-	Camera camera{ &window, &mouse, {0,0,-4.f}, {0,0,1} };
-	DX12 dx12{&window};
-	QuadricRenderer renderer{ &dx12, &camera };
+	Camera* pCamera = new FreeCamera{ &window, &mouse, {0,0,-4.f}, {0,0,1} };
+
+	QuadricRenderer renderer{ &dx12, pCamera };
 
 	Quadric e2{};
 	e2.equation = DirectX::XMFLOAT4X4{
@@ -53,6 +62,39 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	float totalTime = 0.0f;
 	while (msg.message != WM_QUIT)
 	{
+		mouse.Update();
+
+		while (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+		{
+			::TranslateMessage(&msg);
+			::DispatchMessage(&msg);
+		}
+
+		
+
+		imguiRenderer.NewFrame();
+
+		ImGui::Begin("Ellipsoid");
+		ImGui::ColorPicker3("Color: ", &e2.color.x);
+
+		ImGui::DragFloat4("r1: ", &e2.equation._11, 0.1f);
+		ImGui::DragFloat4("r2: ", &e2.equation._21, 0.1f);
+		ImGui::DragFloat4("r3: ", &e2.equation._31, 0.1f);
+		ImGui::DragFloat4("r4: ", &e2.equation._41, 0.1f);
+
+		for (int i = 0; i < 4; i++)
+		{
+			for (int j = 0; j < 4; j++)
+			{
+				if (i < j)
+				{
+					e2.equation(j,i) = e2.equation(i, j);
+				}
+			}
+		}
+
+
+		ImGui::End();
 
 		auto end = std::chrono::high_resolution_clock::now();
 		float delta = (float)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1'000'000.0f;
@@ -69,21 +111,18 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 		totalTime += delta;
 
-		e2.rollPitchYaw.y += delta * 2;
-		e2.position.y = sin(totalTime);
+		////e2.rollPitchYaw.y += delta * 2;
+		//e2.position.y = sin(totalTime);
 
-		mouse.Update();
+		pCamera->Update(delta);
 
-		while (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-		{
-			::TranslateMessage(&msg);
-			::DispatchMessage(&msg);
-		}
-		camera.Update(delta);
-
-
+		dx12.NewFrame();
 		renderer.RenderStart();
 		renderer.Render(e2);
 		renderer.RenderFinish();
+		imguiRenderer.Render(dx12.GetPipeline()->commandList.Get());
+		dx12.Present();
 	}
+
+	return 0;
 }
