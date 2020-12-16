@@ -10,51 +10,208 @@
 #include "Window.h"
 #include "DX12.h"
 #include "d3dx12.h"
-#include "EllipsoidRenderer.h"
-#include "Camera.h"
+#include "QuadricRenderer.h"
 #include "Mouse.h"
 #include <chrono>
 #include <iostream>
+#include "FreeCamera.h"
+#include <ImGuiRenderer.h>
+#include "Quadric.h"
+#include "QuadricMesh.h"
+
 
 int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 {
-#ifdef _DEBUG
 	//setup Console
 	AllocConsole();
 	FILE* pDummy;
 	freopen_s(&pDummy, "CONIN$", "r", stdin);
 	freopen_s(&pDummy, "CONOUT$", "w", stderr);
 	freopen_s(&pDummy, "CONOUT$", "w", stdout);
-#endif
-	Window window{ hInstance, 920, 720 };
+
+	Window window{ hInstance, 640, 480 };
+
+	DX12 dx12{&window};
+
+	ImGuiRenderer imguiRenderer{ dx12.GetDevice(), window.GetHandle() };
+	window.AddListener(&imguiRenderer);
+
 	Mouse mouse{};
 	window.AddListener(&mouse);
 
-	Camera camera{ &window, &mouse, {0,0,-4.f}, {0,0,1} };
-	DX12 dx12{&window};
-	EllipsoidRenderer renderer{ &dx12, &camera };
+	Transform cameraTransform{};
+	cameraTransform.position = { 0,0,-4.f };
+	Camera* pCamera = new FreeCamera{ &window, &mouse, cameraTransform };
 
-	Ellipsoid e{};
-	e.equation = DirectX::XMFLOAT4X4{
+	QuadricRenderer renderer{ &dx12, pCamera };
+
+
+	DirectX::XMFLOAT3 skinColor{ 1.0f,0.67f,0.45f }, tShirtColor{ 1,0,0 }, pantsColor{ 0,0,1 }, shoeColor{0.6f,0.4f,0.1f};
+	
+	Quadric head{};
+	head.equation = DirectX::XMFLOAT4X4{
 					1,0,0,0,
 					0,1,0,0,
 					0,0,1,0,
 					0,0,0,-1 };
-	e.color = DirectX::XMFLOAT3{ 1,1,1 };
+	head.color = skinColor;
+	head.transform.scale = { 1,1,1 };
+	head.transform.position = { 0,2,0 };
 
-	Ellipsoid e2{};
-
-
-
-	e2.equation = DirectX::XMFLOAT4X4{
+	Quadric body{};
+	body.equation = DirectX::XMFLOAT4X4{
 					1,0,0,0,
 					0,1,0,0,
 					0,0,1,0,
 					0,0,0,-1 };
-	e2.color = DirectX::XMFLOAT3{ 0.77f,0.64f,0 };
-	e2.position = {0,0,0};
-	e2.scale = {0.25f,0.8f,1.2f};
-	e2.rollPitchYaw = {DirectX::XM_PIDIV4, 0 ,DirectX::XM_PIDIV4 };
+	body.color = tShirtColor;
+	body.transform.scale = { 1,2,1 };
+	body.transform.position = { 0,0,0 };
+
+	Quadric upperArmRight;
+	upperArmRight.equation = DirectX::XMFLOAT4X4{
+					1,0,0,0,
+					0,1,0,0,
+					0,0,1,0,
+					0,0,0,-1 };
+	upperArmRight.color = tShirtColor;
+	upperArmRight.transform.scale = { 0.4f,1.0f,0.4f };
+	upperArmRight.transform.position = { 1.25f,0.6f,0 };
+	upperArmRight.transform.rotation = {0,0,1};
+
+	Quadric lowerArmRight;
+	lowerArmRight.equation = DirectX::XMFLOAT4X4{
+					1,0,0,0,
+					0,1,0,0,
+					0,0,1,0,
+					0,0,0,-1 };
+	lowerArmRight.color = skinColor;
+	lowerArmRight.transform.scale = { 0.3f,1.0f,0.3f };
+	lowerArmRight.transform.position = { 1.85f,-0.6f,0 };
+
+	Quadric handRight;
+	handRight.equation = DirectX::XMFLOAT4X4{
+					1,0,0,0,
+					0,1,0,0,
+					0,0,1,0,
+					0,0,0,-1 };
+	handRight.color = skinColor;
+	handRight.transform.scale = { 0.3f,0.5f,0.3f };
+	handRight.transform.position = { 1.85f,-1.5f,0 };
+
+	Quadric upperArmLeft;
+	upperArmLeft.equation = DirectX::XMFLOAT4X4{
+					1,0,0,0,
+					0,1,0,0,
+					0,0,1,0,
+					0,0,0,-1 };
+	upperArmLeft.color = tShirtColor;
+	upperArmLeft.transform.scale = { 0.4f,1.0f,0.4f };
+	upperArmLeft.transform.position = { -1.25f,0.6f,0 };
+	upperArmLeft.transform.rotation = { 0,0,-1 };
+
+	Quadric lowerArmLeft;
+	lowerArmLeft.equation = DirectX::XMFLOAT4X4{
+					1,0,0,0,
+					0,1,0,0,
+					0,0,1,0,
+					0,0,0,-1 };
+	lowerArmLeft.color = skinColor;
+	lowerArmLeft.transform.scale = { 0.3f,1.0f,0.3f };
+	lowerArmLeft.transform.position = { -1.85f,-0.6f,0 };
+
+	Quadric handLeft;
+	handLeft.equation = DirectX::XMFLOAT4X4{
+					1,0,0,0,
+					0,1,0,0,
+					0,0,1,0,
+					0,0,0,-1 };
+	handLeft.color = skinColor;
+	handLeft.transform.scale = { 0.3f,0.5f,0.3f };
+	handLeft.transform.position = { -1.85f,-1.5f,0 };
+
+	//leg
+	Quadric upperLegRight;
+	upperLegRight.equation = DirectX::XMFLOAT4X4{
+					1,0,0,0,
+					0,1,0,0,
+					0,0,1,0,
+					0,0,0,-1 };
+	upperLegRight.color = pantsColor;
+	upperLegRight.transform.scale = { 0.5f,1.5f,0.5f };
+	upperLegRight.transform.position = { 0.5f,-2.0f,0 };
+
+	Quadric lowerLegRight;
+	lowerLegRight.equation = DirectX::XMFLOAT4X4{
+					1,0,0,0,
+					0,1,0,0,
+					0,0,1,0,
+					0,0,0,-1 };
+	lowerLegRight.color = pantsColor;
+	lowerLegRight.transform.scale = { 0.5f,1.5f,0.5f };
+	lowerLegRight.transform.position = { 0.5f,-3.0f,0 };
+
+	Quadric shoeRight;
+	shoeRight.equation = DirectX::XMFLOAT4X4{
+					1,0,0,0,
+					0,1,0,0,
+					0,0,1,0,
+					0,0,0,-1 };
+	shoeRight.color = shoeColor;
+	shoeRight.transform.scale = { 0.5f,0.3f,0.75f };
+	shoeRight.transform.position = { 0.5f,-4.5f,-0.5f };
+
+	//leg
+	Quadric upperLegLeft;
+	upperLegLeft.equation = DirectX::XMFLOAT4X4{
+					1,0,0,0,
+					0,1,0,0,
+					0,0,1,0,
+					0,0,0,-1 };
+	upperLegLeft.color = pantsColor;
+	upperLegLeft.transform.scale = { 0.5f,1.5f,0.5f };
+	upperLegLeft.transform.position = { -0.5f,-2.0f,0 };
+
+	Quadric lowerLegLeft;
+	lowerLegLeft.equation = DirectX::XMFLOAT4X4{
+					1,0,0,0,
+					0,1,0,0,
+					0,0,1,0,
+					0,0,0,-1 };
+	lowerLegLeft.color = pantsColor;
+	lowerLegLeft.transform.scale = { 0.5f,1.5f,0.5f };
+	lowerLegLeft.transform.position = {- 0.5f,-3.0f,0 };
+
+	Quadric shoeLeft;
+	shoeLeft.equation = DirectX::XMFLOAT4X4{
+					1,0,0,0,
+					0,1,0,0,
+					0,0,1,0,
+					0,0,0,-1 };
+	shoeLeft.color = shoeColor;
+	shoeLeft.transform.scale = { 0.5f,0.3f,0.75f };
+	shoeLeft.transform.position = {- 0.5f,-4.5f,-0.5f };
+
+	std::vector<InQuadric> in{};
+	in.push_back(head.Transformed());
+	in.push_back(body.Transformed());
+	in.push_back(upperArmRight.Transformed());
+	in.push_back(lowerArmRight.Transformed());
+	in.push_back(handRight.Transformed());
+	in.push_back(upperArmLeft.Transformed());
+	in.push_back(lowerArmLeft.Transformed());
+	in.push_back(handLeft.Transformed());
+	in.push_back(upperLegRight.Transformed());
+	in.push_back(lowerLegRight.Transformed());
+	in.push_back(shoeRight.Transformed());
+	in.push_back(upperLegLeft.Transformed());
+	in.push_back(lowerLegLeft.Transformed());
+	in.push_back(shoeLeft.Transformed());
+	QuadricMesh mesh{ &dx12, in };
+	QuadricMesh mesh2{ &dx12, in };
+	mesh.GetTransform().position = {7,0,5};
+	mesh2.GetTransform().position = {-2,0,0 };
+
 	//LOOP
 	MSG msg = {};
 	auto start = std::chrono::high_resolution_clock::now();
@@ -63,6 +220,17 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	float totalTime = 0.0f;
 	while (msg.message != WM_QUIT)
 	{
+		mouse.Update();
+
+		while (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+		{
+			::TranslateMessage(&msg);
+			::DispatchMessage(&msg);
+		}
+		
+
+		imguiRenderer.NewFrame();
+
 
 		auto end = std::chrono::high_resolution_clock::now();
 		float delta = (float)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1'000'000.0f;
@@ -79,23 +247,23 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 		totalTime += delta;
 
-		e2.rollPitchYaw.y += delta * 2;
-		e2.position.y = sin(totalTime);
 
-		mouse.Update();
-		while (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-		{
-			::TranslateMessage(&msg);
-			::DispatchMessage(&msg);
-		}
+		mesh2.GetTransform().rotation.y += delta;
+		//float s = 1 + cosf(totalTime) / 2.0f;
+		//mesh.GetTransform().scale.y = s;
+		mesh.GetTransform().rotation.x += delta * 1.25f;
 
-		camera.Update(delta);
-		//renderer.RenderStart(); 
-		//renderer.Render(e);
-		//renderer.RenderFinish();
 
-		renderer.RenderStart();
-		renderer.Render(e2);
-		renderer.RenderFinish();
+		pCamera->Update(delta);
+		dx12.NewFrame();
+		
+		renderer.Render(&mesh);
+		renderer.Render(&mesh2);
+		
+		renderer.Render();
+		imguiRenderer.Render(dx12.GetPipeline()->commandList.Get());
+		dx12.Present();
 	}
+
+	return 0;
 }

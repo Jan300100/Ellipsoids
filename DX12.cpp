@@ -1,7 +1,6 @@
 #include "DX12.h"
 #include "Helpers.h"
 #include "Window.h"
-#include "d3dx12.h"
 
 using namespace Microsoft::WRL;
 
@@ -50,6 +49,50 @@ DX12::DX12(Window* pWindow)
 DX12::~DX12()
 {
 	delete m_pGraphics;
+}
+
+void DX12::Present()
+{
+	// Transition to PRESENT state.
+	CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(m_pGraphics->GetCurrentRenderTarget(),
+		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	m_pGraphics->commandList->ResourceBarrier(1, &transition);
+
+
+	// Done recording commands.
+	ThrowIfFailed(m_pGraphics->commandList->Close());
+
+	// Add the command list to the queue for execution.
+	ID3D12CommandList* cmdsLists[] = { m_pGraphics->commandList.Get() };
+	m_pGraphics->commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+
+	// Swap the back and front buffers
+	ThrowIfFailed(m_pGraphics->swapChain->Present(0, 0));
+
+	m_pGraphics->currentRT = (m_pGraphics->currentRT + 1) % m_pGraphics->rtvCount;
+	m_pGraphics->Flush(); //wait for gpu to finish (== not ideal)
+}
+
+void DX12::NewFrame()
+{
+	ThrowIfFailed(m_pGraphics->commandAllocator->Reset());
+	ThrowIfFailed(m_pGraphics->commandList->Reset(m_pGraphics->commandAllocator.Get(), nullptr));
+
+	// Indicate a state transition on the resource usage.
+	CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(m_pGraphics->GetCurrentRenderTarget(),
+		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	m_pGraphics->commandList->ResourceBarrier(1, &transition);
+
+	// Clear the back buffer
+	auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(
+		m_pGraphics->rtvHeap->GetCPUDescriptorHandleForHeapStart(),
+		m_pGraphics->currentRT,
+		m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
+
+
+	FLOAT col[4]{ 0.4f,0.4f,0.4f,1 };
+	m_pGraphics->commandList->ClearRenderTargetView(handle, col, 0, nullptr);
+	m_pGraphics->commandList->OMSetRenderTargets(1, &handle, FALSE, NULL);
 }
 
 DX12::Pipeline::Pipeline(ID3D12Device2* pDevice, IDXGIFactory4* pFactory, Window* pWindow)
@@ -140,3 +183,5 @@ void DX12::Pipeline::Flush()
 		CloseHandle(e);
 	}
 }
+
+

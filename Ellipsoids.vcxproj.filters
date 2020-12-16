@@ -12,6 +12,9 @@
     <Filter Include="General">
       <UniqueIdentifier>{a279192b-0b0c-479f-994d-548ac4156554}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Ellipsoids">
+      <UniqueIdentifier>{3d0973cc-a67d-4e50-9aba-d57ed67110a2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Helpers.cpp">
@@ -20,13 +23,7 @@
     <ClCompile Include="DX12.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="EllipsoidRenderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Window.cpp">
@@ -35,15 +32,48 @@
     <ClCompile Include="Mouse.cpp">
       <Filter>General</Filter>
     </ClCompile>
-    <ClCompile Include="Ellipsoid.cpp">
+    <ClCompile Include="Quadric.cpp">
+      <Filter>Ellipsoids</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadricRenderer.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_demo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_draw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_impl_dx12.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_impl_win32.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_tables.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_widgets.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\ImGuiRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>General</Filter>
+    </ClCompile>
+    <ClCompile Include="FreeCamera.cpp">
+      <Filter>General</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadricMesh.cpp">
+      <Filter>Ellipsoids</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Helpers.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Camera.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="d3dx12.h">
@@ -52,16 +82,37 @@
     <ClInclude Include="DX12.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Ellipsoid.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="EllipsoidRenderer.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="Window.h">
       <Filter>General</Filter>
     </ClInclude>
     <ClInclude Include="Mouse.h">
+      <Filter>General</Filter>
+    </ClInclude>
+    <ClInclude Include="Quadric.h">
+      <Filter>Ellipsoids</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadricRenderer.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imstb_truetype.h" />
+    <ClInclude Include="ImGui\imconfig.h" />
+    <ClInclude Include="ImGui\imgui.h" />
+    <ClInclude Include="ImGui\imgui_impl_dx12.h" />
+    <ClInclude Include="ImGui\imgui_impl_win32.h" />
+    <ClInclude Include="ImGui\imgui_internal.h" />
+    <ClInclude Include="ImGui\imstb_rectpack.h" />
+    <ClInclude Include="ImGui\imstb_textedit.h" />
+    <ClInclude Include="ImGui\ImGuiRenderer.h" />
+    <ClInclude Include="Camera.h">
+      <Filter>General</Filter>
+    </ClInclude>
+    <ClInclude Include="FreeCamera.h">
+      <Filter>General</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadricMesh.h">
+      <Filter>Ellipsoids</Filter>
+    </ClInclude>
+    <ClInclude Include="Transform.h">
       <Filter>General</Filter>
     </ClInclude>
   </ItemGroup>

@@ -45,7 +45,7 @@ void Mouse::CaptureButton(HWND hwnd, Button button, ButtonState state)
 
 }
 
-void Mouse::HandleInput(HWND hwnd, UINT message, WPARAM, LPARAM lParam)
+bool Mouse::HandleInput(HWND hwnd, UINT message, WPARAM, LPARAM lParam)
 {
 	switch (message)
 	{
@@ -71,6 +71,7 @@ void Mouse::HandleInput(HWND hwnd, UINT message, WPARAM, LPARAM lParam)
 		m_MousePos = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
 		break;
 	}
+	return false;
 }
 
 void Mouse::Update()
