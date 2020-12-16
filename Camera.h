@@ -1,5 +1,6 @@
 #pragma once
 #include <DirectXMath.h>
+#include "Transform.h"
 class Window;
 class Camera
 {
@@ -16,10 +17,9 @@ protected:
 	float m_Fov = DirectX::XM_PIDIV2;
 	float m_NearPlane = 1.0f, m_FarPlane = 15.f;
 
-	DirectX::XMFLOAT3 m_Position;
-	DirectX::XMFLOAT3 m_Rotation;
+	Transform m_Transform;
 public:
-	Camera(Window* pWindow, const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& rotation);
+	Camera(Window* pWindow, const Transform& transform);
 	virtual ~Camera() = default;
 	inline DirectX::XMMATRIX GetViewProjectionInverse() const { return m_ViewProjInverse; }
 	inline DirectX::XMMATRIX GetViewProjection() const { return m_ViewProj; }

@@ -93,6 +93,7 @@
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
       <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
     </ClCompile>
+    <ClCompile Include="QuadricMesh.cpp" />
     <ClCompile Include="Quadric.cpp" />
     <ClCompile Include="QuadricRenderer.cpp" />
     <ClCompile Include="Helpers.cpp" />
@@ -113,12 +114,13 @@
     <ClInclude Include="ImGui\imstb_rectpack.h" />
     <ClInclude Include="ImGui\imstb_textedit.h" />
     <ClInclude Include="ImGui\imstb_truetype.h" />
-    <ClInclude Include="MultiQuadric.h" />
+    <ClInclude Include="QuadricMesh.h" />
     <ClInclude Include="Quadric.h" />
     <ClInclude Include="QuadricRenderer.h" />
     <ClInclude Include="DX12.h" />
     <ClInclude Include="Helpers.h" />
     <ClInclude Include="Mouse.h" />
+    <ClInclude Include="Transform.h" />
     <ClInclude Include="Window.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

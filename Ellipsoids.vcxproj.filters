@@ -66,7 +66,10 @@
       <Filter>General</Filter>
     </ClCompile>
     <ClCompile Include="FreeCamera.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>General</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadricMesh.cpp">
+      <Filter>Ellipsoids</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -91,9 +94,6 @@
     <ClInclude Include="QuadricRenderer.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="MultiQuadric.h">
-      <Filter>Ellipsoids</Filter>
-    </ClInclude>
     <ClInclude Include="ImGui\imstb_truetype.h" />
     <ClInclude Include="ImGui\imconfig.h" />
     <ClInclude Include="ImGui\imgui.h" />
@@ -107,6 +107,12 @@
       <Filter>General</Filter>
     </ClInclude>
     <ClInclude Include="FreeCamera.h">
+      <Filter>General</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadricMesh.h">
+      <Filter>Ellipsoids</Filter>
+    </ClInclude>
+    <ClInclude Include="Transform.h">
       <Filter>General</Filter>
     </ClInclude>
   </ItemGroup>

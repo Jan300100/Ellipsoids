@@ -1,25 +1,32 @@
 #pragma once
 #include <DirectXMath.h>
-
+#include "Transform.h"
 #include <d3d12.h>
 #include <wrl.h>
 #include <vector>
 
 using namespace Microsoft::WRL;
 
+struct InQuadric
+{
+	DirectX::XMMATRIX transformed;
+	DirectX::XMFLOAT3 color;
+};
+
 struct Quadric
 {
 	DirectX::XMFLOAT4X4 equation;
-	DirectX::XMFLOAT3 position{0,0,0};
-	DirectX::XMFLOAT3 rollPitchYaw{0,0,0};
-	DirectX::XMFLOAT3 scale{1,1,1};
+	Transform transform;
 	DirectX::XMFLOAT3 color;
-	DirectX::XMMATRIX Transformed() const;
+	InQuadric Transformed() const;
 };
+
+
 
 struct OutQuadric
 {
-	DirectX::XMMATRIX transform;
+	DirectX::XMMATRIX shearToProj;
 	DirectX::XMMATRIX normalGenerator;
+	DirectX::XMMATRIX transform;
 	DirectX::XMFLOAT3 color;
 };

@@ -5,9 +5,14 @@
 
 using namespace DirectX;
 
-DirectX::XMMATRIX Quadric::Transformed() const
+InQuadric Quadric::Transformed() const
 {
-	XMMATRIX tr =  XMMatrixAffineTransformation(XMLoadFloat3(&scale), XMVectorZero(), XMQuaternionRotationRollPitchYaw(rollPitchYaw.x,rollPitchYaw.y, rollPitchYaw.z), XMLoadFloat3(&position));
+	InQuadric out;
+	XMMATRIX tr =  XMMatrixAffineTransformation(XMLoadFloat3(&transform.scale), XMVectorZero()
+		, XMQuaternionRotationRollPitchYawFromVector(XMLoadFloat3(&transform.rotation))
+		, XMLoadFloat3(&transform.position));
 	tr = XMMatrixInverse(nullptr, tr);
-	return tr * XMLoadFloat4x4(&equation) * XMMatrixTranspose(tr);
+	out.transformed = tr * XMLoadFloat4x4(&equation) * XMMatrixTranspose(tr);
+	out.color = color;
+	return out;
 }
