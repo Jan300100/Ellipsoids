@@ -2,6 +2,7 @@ struct Data
 {
     float4x4 viewProjInv;
     float4x4 viewInv;
+    float4x4 projInv;
     float2 windowDimensions;
     float3 lightDirection;
 };
@@ -18,6 +19,7 @@ struct ProjectedQuadric
     float4x4 normalGenerator;
     float3x3 transform;
     float3 color;
+    float2 yRange;
 };
 
 struct MeshData
@@ -33,6 +35,8 @@ ConstantBuffer<MeshData> gMeshData : register(b1);
 StructuredBuffer<InputQuadric> gInput : register(t0);
 //output
 RWStructuredBuffer<ProjectedQuadric> gOutput : register(u0);
+
+bool PosRange(float a, float b, float c, out float yMin, out float yMax);
 
 //transforms ellipsoids to the correct space
 [numthreads(32, 1, 1)]
@@ -65,10 +69,99 @@ void main(uint3 id : SV_DispatchThreadID)
         sheared[3][0], sheared[3][1], sheared[3][3]
     };
     
-    output.normalGenerator = mul(shearTransform, transpose(gData.viewProjInv));
-    output.normalGenerator = mul(output.normalGenerator, world);
+    float4x4 tsd = mul(shearTransform, transpose(gData.viewProjInv));
+    output.normalGenerator = mul(tsd, world);
     output.normalGenerator = mul(output.normalGenerator, gData.viewInv);
     
     output.transform = simplified;
+    //calculate yRange
+
+    //calc QTilde Inverse elements we need
+    float qStar22 = simplified[0][0] * simplified[1][1] - simplified[0][1] * simplified[1][0];
+    float qStar12 = simplified[0][1] * simplified[2][0] - simplified[0][0] * simplified[2][1];
+    float qStar11 = simplified[0][0] * simplified[2][2] - simplified[0][2] * simplified[2][0];
+    
+    //calc a, b, c
+    float a = -qStar22;
+    float b = 2 * qStar12;
+    float c = -qStar11;
+    float yMin = 0, yMax = 0;
+    if (PosRange(a,b,c, yMin, yMax))
+    {
+        if (yMin > yMax)
+        {
+            if (simplified[0][0] == 0.0f)
+            {
+                return; //sphere not visible
+            }
+            float xMin = -(simplified[0][1] * yMin + simplified[0][2]) / simplified[0][0];
+            if (xMin * tsd[0][3] + yMin * tsd[1][3] + tsd[3][3] < 0)
+            {
+                yMin = -32000;
+            }
+            else
+            {
+                yMax = 32000;
+            }
+
+        }
+        output.yRange = float2(yMin, yMax);
+    }
+    
+    
+    //
     gOutput[id.x] = output;
+    
+    
+    
+}
+
+
+bool PosRange(float a, float b, float c, out float yMin, out float yMax)
+{
+    
+    if (a != 0.0f)
+    {
+        float ba = b / (2 * a);
+        float ca = c / a;
+        float discr = ba * ba - ca;
+        if (discr < 0)
+        {
+            //nothing
+            if (c < 0)
+                return false;
+            //entire screen
+            yMin = -32000;
+            yMax = 32000;
+            return true;
+        }
+        float d = sqrt(discr);
+        if (a > 0)
+        {
+            d = -d; //signal that its hyperbolic
+        }
+        yMax = -ba + d;
+        yMin = -ba - d;
+        return true;
+    }
+    if (b!=0.0f)
+    {
+        if (b > 0)
+        {
+            yMin = -c / b;
+            yMax = 32000;
+        }
+        else
+        {
+            yMin = -32000;
+            yMax = -c / b;
+        }
+        return true;
+    }
+    if (c < 0)
+        return false;
+        
+    yMin = -32000;
+    yMax = 32000;
+    return true;
 }

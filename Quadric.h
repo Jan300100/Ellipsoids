@@ -29,4 +29,5 @@ struct OutQuadric
 	DirectX::XMMATRIX normalGenerator;
 	DirectX::XMMATRIX transform;
 	DirectX::XMFLOAT3 color;
+	DirectX::XMFLOAT2 yRange;
 };

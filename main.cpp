@@ -29,7 +29,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	freopen_s(&pDummy, "CONOUT$", "w", stderr);
 	freopen_s(&pDummy, "CONOUT$", "w", stdout);
 
-	Window window{ hInstance, 640, 480 };
+	Window window{ hInstance, 960, 640 };
 
 	DX12 dx12{&window};
 
@@ -40,7 +40,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	window.AddListener(&mouse);
 
 	Transform cameraTransform{};
-	cameraTransform.position = { 0,0,-4.f };
+	cameraTransform.position = { 0,4.5,-4.f };
 	Camera* pCamera = new FreeCamera{ &window, &mouse, cameraTransform };
 
 	QuadricRenderer renderer{ &dx12, pCamera };
@@ -209,8 +209,25 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	in.push_back(shoeLeft.Transformed());
 	QuadricMesh mesh{ &dx12, in };
 	QuadricMesh mesh2{ &dx12, in };
-	mesh.GetTransform().position = {7,0,5};
-	mesh2.GetTransform().position = {-2,0,0 };
+	mesh.GetTransform().position = {7,4.5f,5};
+	mesh2.GetTransform().position = {-2,4.5f,0 };
+
+
+	Quadric world;
+	float range = 1000;
+	world.equation = DirectX::XMFLOAT4X4{
+					1,0,0,0,
+					0,1,0,0,
+					0,0,1,0,
+					0,0,0,-1 };
+	world.color = { 75 / 255.0f,168 / 255.0f,59 / 255.0f };
+	world.transform.scale = { range,range,range };
+	world.transform.position = { 0,-range,0 };
+
+	std::vector<InQuadric> groundInput{};
+	groundInput.push_back(world.Transformed());
+	QuadricMesh ground{ &dx12, groundInput };
+
 
 	//LOOP
 	MSG msg = {};
@@ -259,6 +276,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		
 		renderer.Render(&mesh);
 		renderer.Render(&mesh2);
+		renderer.Render(&ground);
 		
 		renderer.Render();
 		imguiRenderer.Render(dx12.GetPipeline()->commandList.Get());

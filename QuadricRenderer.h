@@ -15,6 +15,7 @@ struct FrameData
 {
 	DirectX::XMMATRIX viewProjInv;
 	DirectX::XMMATRIX viewInv;
+	DirectX::XMMATRIX projInv;
 	DirectX::XMFLOAT4 windowSize;
 	DirectX::XMFLOAT4 lightDirection;
 };
