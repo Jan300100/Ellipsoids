@@ -86,6 +86,8 @@ void main(uint3 id : SV_DispatchThreadID)
     float b = 2 * qStar12;
     float c = -qStar11;
     float yMin = 0, yMax = 0;
+    
+    
     if (PosRange(a,b,c, yMin, yMax))
     {
         if (yMin > yMax)

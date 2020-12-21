@@ -207,14 +207,23 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	in.push_back(upperLegLeft.Transformed());
 	in.push_back(lowerLegLeft.Transformed());
 	in.push_back(shoeLeft.Transformed());
-	QuadricMesh mesh{ &dx12, in };
-	QuadricMesh mesh2{ &dx12, in };
-	mesh.GetTransform().position = {7,4.5f,5};
-	mesh2.GetTransform().position = {-2,4.5f,0 };
+
+
+	const size_t length = 5;
+	std::vector<QuadricMesh> dudes{};
+	for (size_t i = 0; i < length; i++)
+	{
+		for (size_t j = 0; j < length; j++)
+		{
+			dudes.emplace_back(&dx12, in);
+			dudes.back().GetTransform().position = { (float)i * 5.0f, 4.5f, (float)j * 5.0f };
+		}
+	}
+
 
 
 	Quadric world;
-	float range = 1000;
+	float range = 10000;
 	world.equation = DirectX::XMFLOAT4X4{
 					1,0,0,0,
 					0,1,0,0,
@@ -251,7 +260,6 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 		auto end = std::chrono::high_resolution_clock::now();
 		float delta = (float)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1'000'000.0f;
-		if (delta > 0.01f) delta = 0.01f;
 		start = end;
 		framectr++;
 		passed += delta;
@@ -265,17 +273,14 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		totalTime += delta;
 
 
-		mesh2.GetTransform().rotation.y += delta;
-		//float s = 1 + cosf(totalTime) / 2.0f;
-		//mesh.GetTransform().scale.y = s;
-		mesh.GetTransform().rotation.x += delta * 1.25f;
-
-
 		pCamera->Update(delta);
 		dx12.NewFrame();
-		
-		renderer.Render(&mesh);
-		renderer.Render(&mesh2);
+
+		for (size_t i = 0; i < dudes.size(); i++)
+		{
+			dudes[i].GetTransform().rotation.y += delta * i;
+			renderer.Render(&dudes[i]);
+		}
 		renderer.Render(&ground);
 		
 		renderer.Render();
