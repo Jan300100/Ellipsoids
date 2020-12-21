@@ -281,8 +281,8 @@ void QuadricRenderer::RasterizationStage()
 		pComList->SetComputeRootShaderResourceView(1, pQMesh->GetProjectedBuffer()->GetGPUVirtualAddress());
 		pComList->Dispatch(windowDim.width / 32 + 1, windowDim.height / 32 + 1, pQMesh->QuadricsAmount()); //these are the thread groups
 		//USE BARRIER to protect UAV texture
-		CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::UAV(m_OutputTexture.Get());
-		pComList->ResourceBarrier(1, &barrier);
+		//CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::UAV(m_OutputTexture.Get());
+		//pComList->ResourceBarrier(1, &barrier);
 	}
 
 }
@@ -376,6 +376,7 @@ void QuadricRenderer::Render()
 	XMStoreFloat4(&m_FrameData.lightDirection, XMVector4Normalize(XMVector4Transform(XMVectorSet(0.577f, -0.577f, 0.577f, 0), m_pCamera->GetView())));
 	m_FrameData.viewProjInv = m_pCamera->GetViewProjectionInverse();
 	m_FrameData.viewInv = m_pCamera->GetViewInverse();
+	m_FrameData.projInv = XMMatrixInverse(nullptr, m_pCamera->GetViewProjection());
 
 	BYTE* mapped = nullptr;
 	m_FrameDataBuffer->Map(0, nullptr,
@@ -390,7 +391,7 @@ void QuadricRenderer::Render()
 	auto gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_DescriptorHeapShaderVisible->GetGPUDescriptorHandleForHeapStart());
 	UINT incrementSize = m_pDX12->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-	FLOAT col[4]{ 0.4f,0.4f,0.4f,1 };
+	FLOAT col[4]{ 66 / 255.0f,135 / 255.0f,245 / 255.0f,0 };
 	m_pDX12->GetPipeline()->commandList->ClearUnorderedAccessViewFloat(gpuHandle, cpuHandle, m_OutputTexture.Get(), col, 0, nullptr);
 	col[0] = FLT_MAX; //max DEPTH
 	m_pDX12->GetPipeline()->commandList->ClearUnorderedAccessViewFloat(gpuHandle.Offset(incrementSize), cpuHandle.Offset(incrementSize), m_DepthTexture.Get(), col, 0, nullptr);

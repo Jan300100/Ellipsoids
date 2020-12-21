@@ -115,5 +115,8 @@
     <ClInclude Include="Transform.h">
       <Filter>General</Filter>
     </ClInclude>
+    <ClInclude Include="Scene.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
