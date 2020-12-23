@@ -1,4 +1,7 @@
 //runs per quadric
+
+
+
 [numthreads(32, 1, 1)]
 void Projection( uint3 DTid : SV_DispatchThreadID )
 {
@@ -10,15 +13,13 @@ void Projection( uint3 DTid : SV_DispatchThreadID )
     
     //X MIN&MAX
     //find the two planes,
-        //perpendicular to polar plane (parallel to CAMERA-FORWARD // polar plane normal)
-        //normal of these planes is parallel to CAMERA-RIGHT (so is equal to) == (WRONG)
+        //normal of these planes is (XPlaneNormal = polar plane normal X worldUP)
         //with 1 intersection point w the Quadric
         //transform intersection points to projection space to find bounding box max&min X
         
     //Y MIN&MAX
     //find the two planes,
-        //perpendicular to polar plane (parallel to CAMERA-FORWARD // polar plane normal)
-        //normal of these planes is parallel to CAMERA-UP (so is equal to) == (WRONG)
+        //normal of these planes is (YPlaneNormal = polar plane normal X XPlaneNormal)
         //with 1 intersection point w the Quadric
         //transform intersection points to projection space to find bounding box max&min Y
     
