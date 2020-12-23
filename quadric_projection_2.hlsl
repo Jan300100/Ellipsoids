@@ -1,3 +1,7 @@
+//**********
+//PROJECTION
+//**********
+
 struct Data
 {
     float4x4 viewProjInv;
@@ -7,20 +11,25 @@ struct Data
     float3 lightDirection;
 };
 
-struct InputQuadric
+struct InQuadric
 {
     float4x4 transformed;
     float4 color;
 };
 
-struct ProjectedQuadric
+struct OutQuadric
 {
     float4x4 shearToProj;
     float4x4 normalGenerator;
     float3x3 transform;
     float3 color;
+    //bounding box
     float2 yRange;
     float2 xRange;
+    //
+    uint2 startPixel;
+    uint numPatches;
+    uint numHorizontalPatches;
 };
 
 struct MeshData
@@ -28,14 +37,14 @@ struct MeshData
     float4x4 transform;
 };
 
-
 //input
 ConstantBuffer<Data> gData : register(b0);
 ConstantBuffer<MeshData> gMeshData : register(b1);
 
-StructuredBuffer<InputQuadric> gInput : register(t0);
+StructuredBuffer<InQuadric> gInput : register(t0);
 //output
-RWStructuredBuffer<ProjectedQuadric> gOutput : register(u0);
+RWStructuredBuffer<OutQuadric> gOutput : register(u0);
+RWStructuredBuffer<uint> gNumPatches : register(u1);
 
 bool PosRange(float a, float b, float c, out float yMin, out float yMax);
 
@@ -45,21 +54,21 @@ bool PosRange(float a, float b, float c, out float yMin, out float yMax);
 [numthreads(32, 1, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
-    InputQuadric input = gInput[id.x];
-    ProjectedQuadric output = (ProjectedQuadric) 0;
+    InQuadric input = gInput[id.x];
+    OutQuadric output = (OutQuadric) 0;
     output.color = input.color.rgb;
     
     float4x4 world = input.transformed;
-    world = mul(mul(transpose(gMeshData.transform), input.transformed), gMeshData.transform);
+    world = mul(mul(transpose(gMeshData.transform), input.transformed),gMeshData.transform);
     
     float4x4 projected = mul(mul(transpose(gData.viewProjInv), world), gData.viewProjInv);
 
     float4x4 shearTransform =
     {
-        1, 0, -projected[0][2] / projected[2][2], 0,
-        0, 1, -projected[1][2] / projected[2][2], 0,
+        1, 0, - projected[0][2] / projected[2][2], 0,
+        0, 1, - projected[1][2] / projected[2][2], 0,
         0, 0, -1, 0,
-        0, 0, -projected[3][2] / projected[2][2], 1
+        0, 0, - projected[3][2] / projected[2][2], 1
     };
     output.shearToProj = shearTransform;
     
@@ -92,7 +101,7 @@ void main(uint3 id : SV_DispatchThreadID)
     float c = -qStar11;
     float yMin = 0, yMax = 0;
     
-    if (PosRange(a, b, c, yMin, yMax))
+    if (PosRange(a,b,c, yMin, yMax))
     {
         if (yMin > yMax)
         {
@@ -155,8 +164,8 @@ bool PosRange(float a, float b, float c, out float yMin, out float yMax)
             if (c < 0)
                 return false;
             //entire screen
-            yMin = -32000;
-            yMax = 32000;
+            yMin = -boundingBoxRange;
+            yMax = boundingBoxRange;
             return true;
         }
         float d = sqrt(discr);
@@ -173,11 +182,11 @@ bool PosRange(float a, float b, float c, out float yMin, out float yMax)
         if (b > 0)
         {
             yMin = -c / b;
-            yMax = 32000;
+            yMax = boundingBoxRange;
         }
         else
         {
-            yMin = -32000;
+            yMin = -boundingBoxRange;
             yMax = -c / b;
         }
         return true;
@@ -185,7 +194,8 @@ bool PosRange(float a, float b, float c, out float yMin, out float yMax)
     if (c < 0)
         return false;
         
-    yMin = -32000;
-    yMax = 32000;
+    yMin = -boundingBoxRange;
+    yMax = boundingBoxRange;
+    
     return true;
 }

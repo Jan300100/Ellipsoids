@@ -17,7 +17,7 @@ struct Quadric
 {
 	DirectX::XMFLOAT4X4 equation;
 	Transform transform;
-	DirectX::XMFLOAT3 color;
+	DirectX::XMFLOAT3 color = {1,1,1};
 	InQuadric Transformed() const;
 };
 
@@ -30,4 +30,5 @@ struct OutQuadric
 	DirectX::XMMATRIX transform;
 	DirectX::XMFLOAT3 color;
 	DirectX::XMFLOAT2 yRange;
+	DirectX::XMFLOAT2 xRange;
 };

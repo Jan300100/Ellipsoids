@@ -14,6 +14,7 @@ struct ProjectedEllipsoid
     float3x3 transform;
     float3 color;
     float2 yRange;
+    float2 xRange;
 };
 
 
@@ -38,7 +39,8 @@ void main(uint3 id : SV_DispatchThreadID)
     , 1
     );
     
-    if (pos.y < input.yRange.x|| pos.y > input.yRange.y)
+    if (pos.y < input.yRange.x || pos.y > input.yRange.y
+         || pos.x < input.xRange.x || pos.x > input.xRange.y)
     {
         return;
     }

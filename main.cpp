@@ -19,6 +19,9 @@
 #include "Quadric.h"
 #include "QuadricMesh.h"
 
+int main() {
+	return 0;
+}
 
 int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 {
@@ -29,7 +32,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	freopen_s(&pDummy, "CONOUT$", "w", stderr);
 	freopen_s(&pDummy, "CONOUT$", "w", stdout);
 
-	Window window{ hInstance, 960, 640 };
+	Window window{ hInstance, 640, 480 };
 
 	DX12 dx12{&window};
 
@@ -193,6 +196,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	shoeLeft.transform.position = {- 0.5f,-4.5f,-0.5f };
 
 	std::vector<InQuadric> in{};
+
 	in.push_back(head.Transformed());
 	in.push_back(body.Transformed());
 	in.push_back(upperArmRight.Transformed());
@@ -208,8 +212,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	in.push_back(lowerLegLeft.Transformed());
 	in.push_back(shoeLeft.Transformed());
 
-
-	const size_t length = 5;
+	const size_t length = 3;
 	std::vector<QuadricMesh> dudes{};
 	for (size_t i = 0; i < length; i++)
 	{
@@ -219,7 +222,12 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 			dudes.back().GetTransform().position = { (float)i * 5.0f, 4.5f, (float)j * 5.0f };
 		}
 	}
-
+	Quadric ellipsoid{};
+	ellipsoid.equation = DirectX::XMFLOAT4X4{
+					1,0,0,0,
+					0,1,0,0,
+					0,0,1,0,
+					0,0,0,-1 };
 
 
 	Quadric world;
