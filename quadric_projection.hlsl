@@ -155,8 +155,8 @@ bool PosRange(float a, float b, float c, out float yMin, out float yMax)
             if (c < 0)
                 return false;
             //entire screen
-            yMin = -32000;
-            yMax = 32000;
+            yMin = -boundingBoxRange;
+            yMax = boundingBoxRange;
             return true;
         }
         float d = sqrt(discr);
@@ -173,11 +173,11 @@ bool PosRange(float a, float b, float c, out float yMin, out float yMax)
         if (b > 0)
         {
             yMin = -c / b;
-            yMax = 32000;
+            yMax = boundingBoxRange;
         }
         else
         {
-            yMin = -32000;
+            yMin = -boundingBoxRange;
             yMax = -c / b;
         }
         return true;
@@ -185,7 +185,7 @@ bool PosRange(float a, float b, float c, out float yMin, out float yMax)
     if (c < 0)
         return false;
         
-    yMin = -32000;
-    yMax = 32000;
+    yMin = -boundingBoxRange;
+    yMax = boundingBoxRange;
     return true;
 }

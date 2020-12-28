@@ -29,6 +29,23 @@ struct OutQuadric
 	DirectX::XMMATRIX normalGenerator;
 	DirectX::XMMATRIX transform;
 	DirectX::XMFLOAT3 color;
-	DirectX::XMFLOAT2 yRange;
-	DirectX::XMFLOAT2 xRange;
+	///
+	DirectX::XMUINT2 startPixel;
+	unsigned int startPatch;
+	unsigned int numPatches;
+	unsigned int numHorizontalPatches;
 };
+
+
+//struct OutQuadric
+//{
+//	float4x4 shearToProj;
+//	float4x4 covariantTensor;
+//	float3x3 transform;
+//	float3 color;
+//	/////
+//	uint2 startPixel;
+//	uint startPatch;
+//	uint numPatches;
+//	uint numHorizontalPatches;
+//};

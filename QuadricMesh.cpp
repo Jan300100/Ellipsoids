@@ -8,15 +8,19 @@ using namespace DirectX;
 
 void QuadricMesh::UpdateMeshData()
 {
-    XMMATRIX tr = XMMatrixAffineTransformation(XMLoadFloat3(&m_Transform.scale), XMVectorZero()
+    MeshData data{};
+    
+
+    data.transform = XMMatrixAffineTransformation(XMLoadFloat3(&m_Transform.scale), XMVectorZero()
         , XMQuaternionRotationRollPitchYawFromVector(XMLoadFloat3(&m_Transform.rotation))
         , XMLoadFloat3(&m_Transform.position));
-    tr = XMMatrixInverse(nullptr, tr);
+    data.transform = XMMatrixInverse(nullptr, data.transform);
 
     BYTE* mapped = nullptr;
     m_MeshDataBuffer->Map(0, nullptr,
         reinterpret_cast<void**>(&mapped));
-    memcpy(mapped, &tr, sizeof(XMMATRIX));
+
+    memcpy(mapped, &data, sizeof(MeshData));
     if (m_MeshDataBuffer != nullptr)
         m_MeshDataBuffer->Unmap(0, nullptr);
 }
