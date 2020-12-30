@@ -129,6 +129,9 @@
     <ClInclude Include="ProjectionStage.h">
       <Filter>Pipeline\Projection</Filter>
     </ClInclude>
+    <ClInclude Include="Tile.h">
+      <Filter>Pipeline</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Structs.hlsl">

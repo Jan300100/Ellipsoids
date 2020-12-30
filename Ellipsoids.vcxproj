@@ -122,6 +122,7 @@
     <ClInclude Include="DX12.h" />
     <ClInclude Include="Helpers.h" />
     <ClInclude Include="Mouse.h" />
+    <ClInclude Include="Tile.h" />
     <ClInclude Include="Transform.h" />
     <ClInclude Include="Window.h" />
   </ItemGroup>
