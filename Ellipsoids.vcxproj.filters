@@ -35,12 +35,6 @@
     <ClCompile Include="Mouse.cpp">
       <Filter>General</Filter>
     </ClCompile>
-    <ClCompile Include="Quadric.cpp">
-      <Filter>Ellipsoids</Filter>
-    </ClCompile>
-    <ClCompile Include="QuadricRenderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ImGui\imgui.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -80,6 +74,9 @@
     <ClCompile Include="ProjectionStage.cpp">
       <Filter>Pipeline\Projection</Filter>
     </ClCompile>
+    <ClCompile Include="QuadricRenderer.cpp">
+      <Filter>Pipeline</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Helpers.h">
@@ -96,12 +93,6 @@
     </ClInclude>
     <ClInclude Include="Mouse.h">
       <Filter>General</Filter>
-    </ClInclude>
-    <ClInclude Include="Quadric.h">
-      <Filter>Ellipsoids</Filter>
-    </ClInclude>
-    <ClInclude Include="QuadricRenderer.h">
-      <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="ImGui\imstb_truetype.h" />
     <ClInclude Include="ImGui\imconfig.h" />
@@ -129,7 +120,10 @@
     <ClInclude Include="ProjectionStage.h">
       <Filter>Pipeline\Projection</Filter>
     </ClInclude>
-    <ClInclude Include="Tile.h">
+    <ClInclude Include="QuadricRenderer.h">
+      <Filter>Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Structs.h">
       <Filter>Pipeline</Filter>
     </ClInclude>
   </ItemGroup>
@@ -139,6 +133,9 @@
     </FxCompile>
     <FxCompile Include="ProjectionShader.hlsl">
       <Filter>Pipeline\Projection</Filter>
+    </FxCompile>
+    <FxCompile Include="Helpers.hlsl">
+      <Filter>Pipeline</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

@@ -35,29 +35,17 @@ struct ShaderOutput
     uint numPatches;
 };
 
-struct Patch
+struct ScreenTile
 {
-    uint quadricIndex;
+    uint tileIndex;
+    uint numQuadrics; //counter
 };
 
-uint NDCToScreen(float ndc, float dimension)
+struct Tile
 {
-    return (ndc / 2.0f + 0.5f) * dimension;
-}
-
-uint2 NDCToScreen(float2 ndc, float2 windowDimensions)
-{
-    return uint2(NDCToScreen(ndc.x, windowDimensions.x),
-     NDCToScreen(-ndc.y, windowDimensions.y));
-}
-
-float ScreenToNDC(uint screen, float dimension)
-{
-    return (screen / dimension - 0.5f) * 2.0f;
-}
-
-float2 ScreenToNDC(uint2 screen, float2 windowDimensions)
-{
-    return float2(ScreenToNDC(screen.x, windowDimensions.x),
-     -ScreenToNDC(screen.y, windowDimensions.y));
-}
+    uint screenTileIndex; //indicates position on the screen
+    uint quadricStartIndex;
+    uint quadricsReserved; //set by screentile
+    uint quadricCtr; //used by quadrics that want to add themselves to this buffer
+    uint nextTileIndex; //if this Tile is saturated with quadrics, they should be added here.
+};

@@ -123,7 +123,7 @@ QuadricMesh::QuadricMesh(DX12* pDX12, const std::vector<InQuadric>& quadrics, co
             nullptr,
             IID_PPV_ARGS(&m_ShaderOutputUploadBuffer)));
 
-        ShaderOutput initial{ { UINT_MAX, UINT_MAX, 0,0 } ,0 };
+        ShaderOutput initial{ 0 };
         ShaderOutput* mapped = nullptr;
         m_ShaderOutputUploadBuffer->Map(0, nullptr,
             reinterpret_cast<void**>(&mapped));

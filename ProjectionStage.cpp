@@ -4,6 +4,7 @@
 #include "DX12.h"
 #include "QuadricMesh.h"
 
+using namespace Microsoft::WRL;
 
 Stage::Projection::Projection(DX12* pDX12)
 	:m_pDX12{pDX12}

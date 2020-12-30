@@ -1,4 +1,5 @@
 #include "Structs.hlsl"
+#include "Helpers.hlsl"
 
 //input
 ConstantBuffer<AppData> gAppData : register(b0);

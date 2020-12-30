@@ -16,7 +16,7 @@
 #include <iostream>
 #include "FreeCamera.h"
 #include <ImGuiRenderer.h>
-#include "Quadric.h"
+#include "Structs.h"
 #include "QuadricMesh.h"
 
 int main() {
