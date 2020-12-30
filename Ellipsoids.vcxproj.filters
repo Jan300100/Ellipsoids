@@ -15,6 +15,12 @@
     <Filter Include="Ellipsoids">
       <UniqueIdentifier>{3d0973cc-a67d-4e50-9aba-d57ed67110a2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Pipeline">
+      <UniqueIdentifier>{56c47b70-75bd-400d-9f12-aad5a0e802e7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Pipeline\Projection">
+      <UniqueIdentifier>{4143995b-c756-4e60-a366-c80b5e5bc978}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Helpers.cpp">
@@ -56,9 +62,6 @@
     <ClCompile Include="ImGui\imgui_widgets.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ImGui\ImGuiRenderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Camera.cpp">
       <Filter>General</Filter>
     </ClCompile>
@@ -70,6 +73,12 @@
     </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\ImGuiRenderer.cpp">
+      <Filter>General</Filter>
+    </ClCompile>
+    <ClCompile Include="ProjectionStage.cpp">
+      <Filter>Pipeline\Projection</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -102,7 +111,6 @@
     <ClInclude Include="ImGui\imgui_internal.h" />
     <ClInclude Include="ImGui\imstb_rectpack.h" />
     <ClInclude Include="ImGui\imstb_textedit.h" />
-    <ClInclude Include="ImGui\ImGuiRenderer.h" />
     <ClInclude Include="Camera.h">
       <Filter>General</Filter>
     </ClInclude>
@@ -115,8 +123,19 @@
     <ClInclude Include="Transform.h">
       <Filter>General</Filter>
     </ClInclude>
-    <ClInclude Include="Scene.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="ImGui\ImGuiRenderer.h">
+      <Filter>General</Filter>
     </ClInclude>
+    <ClInclude Include="ProjectionStage.h">
+      <Filter>Pipeline\Projection</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Structs.hlsl">
+      <Filter>Pipeline</Filter>
+    </FxCompile>
+    <FxCompile Include="ProjectionShader.hlsl">
+      <Filter>Pipeline\Projection</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

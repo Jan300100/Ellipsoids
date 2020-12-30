@@ -6,17 +6,18 @@
 #include <imgui.h>
 #include <DirectXMath.h>
 #include "d3dx12.h"
+#include "ProjectionStage.h"
 
 #include "Quadric.h"
 
 class QuadricMesh;
 
-struct FrameData
+struct AppData
 {
 	DirectX::XMMATRIX viewProjInv;
 	DirectX::XMMATRIX viewInv;
 	DirectX::XMMATRIX projInv;
-	DirectX::XMFLOAT4 windowSize;
+	DirectX::XMUINT4 windowSize;
 	DirectX::XMFLOAT4 lightDirection;
 };
 
@@ -28,26 +29,23 @@ private:
 	DX12* m_pDX12;
 	Camera* m_pCamera;
 	//
-	enum class Stage {Projection, Rasterization, NumStages};
 
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_RootSignature[int(Stage::NumStages)];
-	Microsoft::WRL::ComPtr<ID3DBlob> m_Shader[int(Stage::NumStages)];
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_Pso[int(Stage::NumStages)];
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_RootSignature;
+	Microsoft::WRL::ComPtr<ID3DBlob> m_Shader;
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_Pso;
 	//DATA
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DescriptorHeap;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DescriptorHeapShaderVisible;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_OutputTexture;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_DepthTexture;
-	FrameData m_FrameData;
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_FrameDataBuffer; //general data (for both stages?)
-
+	AppData m_AppData;
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_AppDataBuffer; //general data (for both stages?)
 	//Initialization
 	void InitResources();
-	void InitProjectionStage();
 	void InitRasterizationStage();
 
 	//RENDER
-	void ProjectionStage();
+	Stage::Projection m_ProjStage;
 	void RasterizationStage();
 	void CopyToBackBuffer();
 	

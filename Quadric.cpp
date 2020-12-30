@@ -5,14 +5,11 @@
 
 using namespace DirectX;
 
-InQuadric Quadric::Transformed() const
+InQuadric::InQuadric(const Quadric& src)
+	:transformed{}, color{src.color}
 {
-	InQuadric out;
-	XMMATRIX tr =  XMMatrixAffineTransformation(XMLoadFloat3(&transform.scale), XMVectorZero()
-		, XMQuaternionRotationRollPitchYawFromVector(XMLoadFloat3(&transform.rotation))
-		, XMLoadFloat3(&transform.position));
-	tr = XMMatrixInverse(nullptr, tr);
-	out.transformed = tr * XMLoadFloat4x4(&equation) * XMMatrixTranspose(tr);
-	out.color = color;
-	return out;
+	XMMATRIX tr = XMMatrixInverse(nullptr, XMMatrixAffineTransformation(XMLoadFloat3(&src.transform.scale), XMVectorZero()
+		, XMQuaternionRotationRollPitchYawFromVector(XMLoadFloat3(&src.transform.rotation))
+		, XMLoadFloat3(&src.transform.position)));
+	transformed = tr * XMLoadFloat4x4(&src.equation) * XMMatrixTranspose(tr);
 }

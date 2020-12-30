@@ -48,8 +48,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 	QuadricRenderer renderer{ &dx12, pCamera };
 
-
-	DirectX::XMFLOAT3 skinColor{ 1.0f,0.67f,0.45f }, tShirtColor{ 1,0,0 }, pantsColor{ 0,0,1 }, shoeColor{0.6f,0.4f,0.1f};
+	DirectX::XMFLOAT3 skinColor{ 1.0f,0.67f,0.45f }, tShirtColor{ 1,0,0 }, pantsColor{0,0,1}, shoeColor{0.6f,0.4f,0.1f};
 	
 	Quadric head{};
 	head.equation = DirectX::XMFLOAT4X4{
@@ -197,22 +196,22 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 	std::vector<InQuadric> in{};
 
-	in.push_back(head.Transformed());
-	in.push_back(body.Transformed());
-	in.push_back(upperArmRight.Transformed());
-	in.push_back(lowerArmRight.Transformed());
-	in.push_back(handRight.Transformed());
-	in.push_back(upperArmLeft.Transformed());
-	in.push_back(lowerArmLeft.Transformed());
-	in.push_back(handLeft.Transformed());
-	in.push_back(upperLegRight.Transformed());
-	in.push_back(lowerLegRight.Transformed());
-	in.push_back(shoeRight.Transformed());
-	in.push_back(upperLegLeft.Transformed());
-	in.push_back(lowerLegLeft.Transformed());
-	in.push_back(shoeLeft.Transformed());
+	in.push_back(head);
+	in.push_back(body);
+	in.push_back(upperArmRight);
+	in.push_back(lowerArmRight);
+	in.push_back(handRight);
+	in.push_back(upperArmLeft);
+	in.push_back(lowerArmLeft);
+	in.push_back(handLeft);
+	in.push_back(upperLegRight);
+	in.push_back(lowerLegRight);
+	in.push_back(shoeRight);
+	in.push_back(upperLegLeft);
+	in.push_back(lowerLegLeft);
+	in.push_back(shoeLeft);
 
-	const size_t length = 3;
+	const size_t length = 10;
 	std::vector<QuadricMesh> dudes{};
 	for (size_t i = 0; i < length; i++)
 	{
@@ -231,7 +230,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 
 	Quadric world;
-	float range = 10000;
+	float range = 1000;
 	world.equation = DirectX::XMFLOAT4X4{
 					1,0,0,0,
 					0,1,0,0,
@@ -242,9 +241,8 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	world.transform.position = { 0,-range,0 };
 
 	std::vector<InQuadric> groundInput{};
-	groundInput.push_back(world.Transformed());
+	groundInput.push_back(world);
 	QuadricMesh ground{ &dx12, groundInput };
-
 
 	//LOOP
 	MSG msg = {};
@@ -274,22 +272,23 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		if (passed > 1.0f)
 		{
 			passed -= 1.0f;
-			std::cout << "FPS: " << framectr << std::endl;
+			std::cout << "FPS: " << framectr << "\t\r";
 			framectr = 0;
 		}
+		ground.GetShaderOutput();
 
 		totalTime += delta;
 
 
 		pCamera->Update(delta);
 		dx12.NewFrame();
+		renderer.Render(&ground);
 
 		for (size_t i = 0; i < dudes.size(); i++)
 		{
-			dudes[i].GetTransform().rotation.y += delta * i;
+			dudes[i].GetTransform().rotation.y += delta * i / 100.0f;
 			renderer.Render(&dudes[i]);
 		}
-		renderer.Render(&ground);
 		
 		renderer.Render();
 		imguiRenderer.Render(dx12.GetPipeline()->commandList.Get());

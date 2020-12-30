@@ -5,18 +5,23 @@
 #include <iostream>
 
 using namespace DirectX;
+ID3D12Resource* QuadricMesh::m_ShaderOutputUploadBuffer{nullptr};
+unsigned int QuadricMesh::m_NrMeshes{};
 
 void QuadricMesh::UpdateMeshData()
 {
-    XMMATRIX tr = XMMatrixAffineTransformation(XMLoadFloat3(&m_Transform.scale), XMVectorZero()
+    MeshData m{};
+
+    m.transform = XMMatrixAffineTransformation(XMLoadFloat3(&m_Transform.scale), XMVectorZero()
         , XMQuaternionRotationRollPitchYawFromVector(XMLoadFloat3(&m_Transform.rotation))
         , XMLoadFloat3(&m_Transform.position));
-    tr = XMMatrixInverse(nullptr, tr);
+    m.transform = XMMatrixInverse(nullptr, m.transform);
+    m.numQuadrics = (unsigned int)m_Quadrics.size();
 
     BYTE* mapped = nullptr;
     m_MeshDataBuffer->Map(0, nullptr,
         reinterpret_cast<void**>(&mapped));
-    memcpy(mapped, &tr, sizeof(XMMATRIX));
+    memcpy(mapped, &m, sizeof(MeshData));
     if (m_MeshDataBuffer != nullptr)
         m_MeshDataBuffer->Unmap(0, nullptr);
 }
@@ -24,6 +29,7 @@ void QuadricMesh::UpdateMeshData()
 QuadricMesh::QuadricMesh(DX12* pDX12, const std::vector<InQuadric>& quadrics, const Transform& transform)
     :m_Quadrics{quadrics},  m_Transform{transform}
 {
+    m_NrMeshes++;
 
     size_t byteSize = sizeof(InQuadric) * m_Quadrics.size();
     CD3DX12_HEAP_PROPERTIES properties{ CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT) };
@@ -49,6 +55,9 @@ QuadricMesh::QuadricMesh(DX12* pDX12, const std::vector<InQuadric>& quadrics, co
         nullptr,
         IID_PPV_ARGS(m_InputUploadBuffer.GetAddressOf())));
     
+    UpdateBuffers(pDX12);
+
+
     // Create the buffer that will be a UAV with outputquadrics
     byteSize = sizeof(OutQuadric) * m_Quadrics.size();
     properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
@@ -62,13 +71,10 @@ QuadricMesh::QuadricMesh(DX12* pDX12, const std::vector<InQuadric>& quadrics, co
         IID_PPV_ARGS(&m_OutputProjectedBuffer)));
 
 
-    UpdateBuffers(pDX12);
-
-
     //create transform data
     //Constant Buffer
     properties = { CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD) };
-    desc = { CD3DX12_RESOURCE_DESC::Buffer((sizeof(XMMATRIX) + 255) & ~255) };
+    desc = { CD3DX12_RESOURCE_DESC::Buffer((sizeof(MeshData) + 255) & ~255) };
     pDX12->GetDevice()->CreateCommittedResource(
         &properties,
         D3D12_HEAP_FLAG_NONE,
@@ -79,6 +85,72 @@ QuadricMesh::QuadricMesh(DX12* pDX12, const std::vector<InQuadric>& quadrics, co
 
     //set data
     UpdateMeshData();
+
+
+    //create shaderoutputBuffer
+    byteSize = sizeof(ShaderOutput);
+    properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+    desc = CD3DX12_RESOURCE_DESC::Buffer(byteSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    ThrowIfFailed(pDX12->GetDevice()->CreateCommittedResource(
+        &properties,
+        D3D12_HEAP_FLAG_NONE,
+        &desc,
+        D3D12_RESOURCE_STATE_COPY_DEST,
+        nullptr,
+        IID_PPV_ARGS(&m_ShaderOutputBuffer)));
+    m_ShaderOutputBuffer->SetName(LPCWSTR(L"ShaderOutputBuffer"));
+
+    //create shaderoutputBuffer : readback
+    properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_READBACK);
+    desc = CD3DX12_RESOURCE_DESC::Buffer(byteSize,D3D12_RESOURCE_FLAG_NONE);
+    ThrowIfFailed(pDX12->GetDevice()->CreateCommittedResource(
+        &properties,
+        D3D12_HEAP_FLAG_NONE,
+        &desc,
+        D3D12_RESOURCE_STATE_COPY_DEST,
+        nullptr,
+        IID_PPV_ARGS(&m_ShaderOutputReadbackBuffer)));
+    m_ShaderOutputReadbackBuffer->SetName(LPCWSTR(L"ShaderOutputReadBackBuffer"));
+
+    if (m_ShaderOutputUploadBuffer == nullptr)
+    {
+        properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD);
+        ThrowIfFailed(pDX12->GetDevice()->CreateCommittedResource(
+            &properties,
+            D3D12_HEAP_FLAG_NONE,
+            &desc,
+            D3D12_RESOURCE_STATE_GENERIC_READ,
+            nullptr,
+            IID_PPV_ARGS(&m_ShaderOutputUploadBuffer)));
+
+        ShaderOutput initial{ { UINT_MAX, UINT_MAX, 0,0 } ,0 };
+        ShaderOutput* mapped = nullptr;
+        m_ShaderOutputUploadBuffer->Map(0, nullptr,
+            reinterpret_cast<void**>(&mapped));
+        memcpy(mapped, &initial, sizeof(ShaderOutput));
+        if (m_ShaderOutputUploadBuffer != nullptr)
+            m_ShaderOutputUploadBuffer->Unmap(0, nullptr);
+    }
+}
+
+QuadricMesh::~QuadricMesh()
+{
+    if (--m_NrMeshes == 0)
+    {
+        m_ShaderOutputUploadBuffer->Release();
+        m_ShaderOutputUploadBuffer = nullptr;
+    }
+}
+
+ShaderOutput QuadricMesh::GetShaderOutput()
+{
+    ShaderOutput* mapped = nullptr;
+    m_ShaderOutputReadbackBuffer->Map(0, nullptr,
+        reinterpret_cast<void**>(&mapped));
+    m_Output = *mapped;
+    if (m_ShaderOutputReadbackBuffer != nullptr)
+        m_ShaderOutputReadbackBuffer->Unmap(0, nullptr);
+    return m_Output;
 }
 
 void QuadricMesh::UpdateBuffers(DX12* pDX12)

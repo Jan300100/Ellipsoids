@@ -7,21 +7,20 @@
 
 using namespace Microsoft::WRL;
 
-struct InQuadric
-{
-	DirectX::XMMATRIX transformed;
-	DirectX::XMFLOAT3 color;
-};
 
 struct Quadric
 {
 	DirectX::XMFLOAT4X4 equation;
 	Transform transform;
 	DirectX::XMFLOAT3 color = {1,1,1};
-	InQuadric Transformed() const;
 };
 
-
+struct InQuadric
+{
+	DirectX::XMMATRIX transformed;
+	DirectX::XMFLOAT3 color;
+	InQuadric(const Quadric& src);
+};
 
 struct OutQuadric
 {

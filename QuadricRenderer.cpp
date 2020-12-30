@@ -16,14 +16,14 @@ void QuadricRenderer::InitResources()
 {
 	//Constant Buffer
 	CD3DX12_HEAP_PROPERTIES properties = { CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD) };
-	CD3DX12_RESOURCE_DESC desc = { CD3DX12_RESOURCE_DESC::Buffer((sizeof(FrameData) + 255) & ~255) };
+	CD3DX12_RESOURCE_DESC desc = { CD3DX12_RESOURCE_DESC::Buffer((sizeof(AppData) + 255) & ~255) };
 	m_pDX12->GetDevice()->CreateCommittedResource(
 		&properties,
 		D3D12_HEAP_FLAG_NONE,
 		&desc,
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
-		IID_PPV_ARGS(&m_FrameDataBuffer));
+		IID_PPV_ARGS(&m_AppDataBuffer));
 
 	//Output Texture
 	D3D12_RESOURCE_DESC texDesc;
@@ -111,64 +111,6 @@ void QuadricRenderer::InitResources()
 	pPipeline->Flush();
 }
 
-void QuadricRenderer::InitProjectionStage()
-{
-	//ROOT SIGNATURE
-	CD3DX12_ROOT_PARAMETER slotRootParameter[4];
-
-	slotRootParameter[0].InitAsConstantBufferView(0);
-	slotRootParameter[1].InitAsConstantBufferView(1);
-    slotRootParameter[2].InitAsShaderResourceView(0);
-    slotRootParameter[3].InitAsUnorderedAccessView(0);
-
-	// A root signature is an array of root parameters.
-	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(4, slotRootParameter,
-		0, nullptr,
-		D3D12_ROOT_SIGNATURE_FLAG_NONE);
-
-	ComPtr<ID3DBlob> serializedRootSig = nullptr;
-	ComPtr<ID3DBlob> errorBlob = nullptr;
-	HRESULT hr = D3D12SerializeRootSignature(&rootSigDesc, D3D_ROOT_SIGNATURE_VERSION_1,
-		serializedRootSig.GetAddressOf(), errorBlob.GetAddressOf());
-
-	if (errorBlob != nullptr)
-	{
-		::OutputDebugStringA((char*)errorBlob->GetBufferPointer());
-	}
-	ThrowIfFailed(hr);
-
-	ThrowIfFailed(m_pDX12->GetDevice()->CreateRootSignature(
-		0,
-		serializedRootSig->GetBufferPointer(),
-		serializedRootSig->GetBufferSize(),
-		IID_PPV_ARGS(m_RootSignature[(int)Stage::Projection].GetAddressOf())));
-
-
-	//SHADER
-	UINT compileFlags = 0;
-#if defined(DEBUG) || defined(_DEBUG)  
-	compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-#endif
-
-	hr = D3DCompileFromFile(L"quadric_projection.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-		"main", "cs_5_1", compileFlags, 0, &m_Shader[(int)Stage::Projection], &errorBlob);
-
-	if (errorBlob != nullptr)
-		OutputDebugStringA((char*)errorBlob->GetBufferPointer());
-	ThrowIfFailed(hr);
-
-	//PSO
-	D3D12_COMPUTE_PIPELINE_STATE_DESC computePsoDesc{};
-	computePsoDesc.pRootSignature = m_RootSignature[(int)Stage::Projection].Get();
-	computePsoDesc.CS =
-	{
-		reinterpret_cast<BYTE*>(m_Shader[(int)Stage::Projection]->GetBufferPointer()),
-		m_Shader[(int)Stage::Projection]->GetBufferSize()
-	};
-	computePsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-	ThrowIfFailed(m_pDX12->GetDevice()->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&m_Pso[(int)Stage::Projection])));
-}
-
 void QuadricRenderer::InitRasterizationStage()
 {
 	//ROOT SIGNATURE
@@ -202,7 +144,7 @@ void QuadricRenderer::InitRasterizationStage()
 		0,
 		serializedRootSig->GetBufferPointer(),
 		serializedRootSig->GetBufferSize(),
-		IID_PPV_ARGS(m_RootSignature[(int)Stage::Rasterization].GetAddressOf())));
+		IID_PPV_ARGS(m_RootSignature.GetAddressOf())));
 
 	//SHADER
 	UINT compileFlags = 0;
@@ -210,8 +152,8 @@ void QuadricRenderer::InitRasterizationStage()
 	compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif
 
-	hr = D3DCompileFromFile(L"quadric_rasterization.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-		"main", "cs_5_1", compileFlags, 0, &m_Shader[(int)Stage::Rasterization], &errorBlob);
+	hr = D3DCompileFromFile(L"Shaders/quadric_rasterization.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		"main", "cs_5_1", compileFlags, 0, &m_Shader, &errorBlob);
 
 	if (errorBlob != nullptr)
 		OutputDebugStringA((char*)errorBlob->GetBufferPointer());
@@ -219,45 +161,14 @@ void QuadricRenderer::InitRasterizationStage()
 
 	//PSO
 	D3D12_COMPUTE_PIPELINE_STATE_DESC computePsoDesc{};
-	computePsoDesc.pRootSignature = m_RootSignature[(int)Stage::Rasterization].Get();
+	computePsoDesc.pRootSignature = m_RootSignature.Get();
 	computePsoDesc.CS =
 	{
-		reinterpret_cast<BYTE*>(m_Shader[(int)Stage::Rasterization]->GetBufferPointer()),
-		m_Shader[(int)Stage::Rasterization]->GetBufferSize()
+		reinterpret_cast<BYTE*>(m_Shader->GetBufferPointer()),
+		m_Shader->GetBufferSize()
 	};
 	computePsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-	ThrowIfFailed(m_pDX12->GetDevice()->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&m_Pso[(int)Stage::Rasterization])));
-}
-
-void QuadricRenderer::ProjectionStage()
-{
-	DX12::Pipeline* pPipeline = m_pDX12->GetPipeline();
-	auto pComList = pPipeline->commandList;
-
-	//PROJECTION:
-
-	//SET PSO and ROOT SIGN
-	pComList->SetPipelineState(m_Pso[int(Stage::Projection)].Get());
-	pComList->SetComputeRootSignature(m_RootSignature[int(Stage::Projection)].Get());
-	pComList->SetComputeRootConstantBufferView(0, m_FrameDataBuffer->GetGPUVirtualAddress());
-
-	//DISPATCH
-	for (QuadricMesh* pQMesh : m_ToRender)
-	{
-		//Set root variables : meshdata, input buffer and outputbuffer
-		pComList->SetComputeRootConstantBufferView(1, pQMesh->GetMeshDataBuffer()->GetGPUVirtualAddress());
-		pComList->SetComputeRootShaderResourceView(2, pQMesh->GetInputBuffer()->GetGPUVirtualAddress());
-		pComList->SetComputeRootUnorderedAccessView(3, pQMesh->GetProjectedBuffer()->GetGPUVirtualAddress());
-		pComList->Dispatch((pQMesh->QuadricsAmount() / 32) + 1, 1, 1); //these are the thread groups
-	}
-
-	//make sure they are all finished before continuing to the rasterization stage
-	std::vector<D3D12_RESOURCE_BARRIER> barriers;
-	for (QuadricMesh* pQMesh : m_ToRender)
-	{
-		barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pQMesh->GetProjectedBuffer()));
-	}
-	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
+	ThrowIfFailed(m_pDX12->GetDevice()->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&m_Pso)));
 }
 
 void QuadricRenderer::RasterizationStage()
@@ -270,16 +181,21 @@ void QuadricRenderer::RasterizationStage()
 	pComList->SetDescriptorHeaps(_countof(descHeaps), descHeaps);
 
 	//SET PSO and ROOT SIGN
-	pComList->SetPipelineState(m_Pso[int(Stage::Rasterization)].Get());
-	pComList->SetComputeRootSignature(m_RootSignature[int(Stage::Rasterization)].Get());
-	pComList->SetComputeRootConstantBufferView(0, m_FrameDataBuffer->GetGPUVirtualAddress());
+	pComList->SetPipelineState(m_Pso.Get());
+	pComList->SetComputeRootSignature(m_RootSignature.Get());
+	pComList->SetComputeRootConstantBufferView(0, m_AppDataBuffer->GetGPUVirtualAddress());
 	pComList->SetComputeRootDescriptorTable(2, m_DescriptorHeapShaderVisible->GetGPUDescriptorHandleForHeapStart());
 
 	//DISPATCH
 	for (QuadricMesh* pQMesh : m_ToRender)
 	{
+		auto bb = pQMesh->GetShaderOutput().boundingBox;
+		unsigned int height = min(bb.z - bb.x, windowDim.height);
+		unsigned int width = min(bb.w - bb.y, windowDim.width);
+		
+
 		pComList->SetComputeRootShaderResourceView(1, pQMesh->GetProjectedBuffer()->GetGPUVirtualAddress());
-		pComList->Dispatch(windowDim.width / 32 + 1, windowDim.height / 32 + 1, pQMesh->QuadricsAmount()); //these are the thread groups
+		pComList->Dispatch(width / 32 + 1, height / 32 + 1, pQMesh->QuadricsAmount()); //these are the thread groups
 		//USE BARRIER to protect UAV texture
 		//CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::UAV(m_OutputTexture.Get());
 		//pComList->ResourceBarrier(1, &barrier);
@@ -319,7 +235,7 @@ OutQuadric QuadricRenderer::Project(const Quadric& e)
 
 	//transformation
 	//XMMATRIX surface = XMLoadFloat4x4(&input.equation);
-	XMMATRIX surfaceWorld = e.Transformed().transformed;
+	XMMATRIX surfaceWorld = InQuadric(e).transformed;
 
 	//SHEAR == PER SPHERE
 	// to create T_sp -> we need Q_p
@@ -359,12 +275,11 @@ OutQuadric QuadricRenderer::Project(const Quadric& e)
 }
 
 QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
-	:m_pDX12{ pDX12 }, m_pCamera{ pCamera }, m_FrameData{}
+	:m_pDX12{ pDX12 }, m_pCamera{ pCamera }, m_AppData{},m_ProjStage{pDX12}
 {
-	m_FrameData.windowSize = { (float)m_pDX12->GetWindow()->GetDimensions().width ,(float)m_pDX12->GetWindow()->GetDimensions().height, 0, 0 };
+	m_AppData.windowSize = { m_pDX12->GetWindow()->GetDimensions().width ,m_pDX12->GetWindow()->GetDimensions().height, 0, 0 };
 
 	InitResources();
-	InitProjectionStage();
 	InitRasterizationStage();
 
 	
@@ -373,17 +288,17 @@ QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
 void QuadricRenderer::Render()
 {
 	//update input data : In separate update function ?
-	XMStoreFloat4(&m_FrameData.lightDirection, XMVector4Normalize(XMVector4Transform(XMVectorSet(0.577f, -0.577f, 0.577f, 0), m_pCamera->GetView())));
-	m_FrameData.viewProjInv = m_pCamera->GetViewProjectionInverse();
-	m_FrameData.viewInv = m_pCamera->GetViewInverse();
-	m_FrameData.projInv = XMMatrixInverse(nullptr, m_pCamera->GetViewProjection());
+	XMStoreFloat4(&m_AppData.lightDirection, XMVector4Normalize(XMVector4Transform(XMVectorSet(0.577f, -0.577f, 0.577f, 0), m_pCamera->GetView())));
+	m_AppData.viewProjInv = m_pCamera->GetViewProjectionInverse();
+	m_AppData.viewInv = m_pCamera->GetViewInverse();
+	m_AppData.projInv = XMMatrixInverse(nullptr, m_pCamera->GetViewProjection());
 
 	BYTE* mapped = nullptr;
-	m_FrameDataBuffer->Map(0, nullptr,
+	m_AppDataBuffer->Map(0, nullptr,
 		reinterpret_cast<void**>(&mapped));
-	memcpy(mapped, &m_FrameData, sizeof(FrameData));
-	if (m_FrameDataBuffer != nullptr)
-		m_FrameDataBuffer->Unmap(0, nullptr);
+	memcpy(mapped, &m_AppData, sizeof(AppData));
+	if (m_AppDataBuffer != nullptr)
+		m_AppDataBuffer->Unmap(0, nullptr);
 
 	// Clear the buffers
 	// https://www.gamedev.net/forums/topic/672063-d3d12-clearunorderedaccessviewfloat-fails/
@@ -396,8 +311,8 @@ void QuadricRenderer::Render()
 	col[0] = FLT_MAX; //max DEPTH
 	m_pDX12->GetPipeline()->commandList->ClearUnorderedAccessViewFloat(gpuHandle.Offset(incrementSize), cpuHandle.Offset(incrementSize), m_DepthTexture.Get(), col, 0, nullptr);
 
-
-	ProjectionStage();
+	m_ProjStage.Project(m_AppDataBuffer, m_ToRender);
+	//ProjectionStage();
 	RasterizationStage();
 	CopyToBackBuffer();
 
