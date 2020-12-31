@@ -52,7 +52,6 @@ void QuadricRenderer::InitResources()
 	//depth Texture
 	texDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
 
-	properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	ThrowIfFailed(m_pDX12->GetDevice()->CreateCommittedResource(
 		&properties,
 		D3D12_HEAP_FLAG_NONE,
@@ -60,6 +59,28 @@ void QuadricRenderer::InitResources()
 		D3D12_RESOURCE_STATE_COMMON,
 		nullptr,
 		IID_PPV_ARGS(&m_DepthTexture)));
+
+	//tile G buffers
+
+	texDesc.Width = (UINT)(m_pDX12->GetWindow()->GetDimensions().width * m_AppData.multiplier);
+	texDesc.Height = (UINT)(m_pDX12->GetWindow()->GetDimensions().height * m_AppData.multiplier);
+	texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	ThrowIfFailed(m_pDX12->GetDevice()->CreateCommittedResource(
+		&properties,
+		D3D12_HEAP_FLAG_NONE,
+		&texDesc,
+		D3D12_RESOURCE_STATE_COMMON,
+		nullptr,
+		IID_PPV_ARGS(&m_TileGBuffers[GBuffer::Color])));
+
+	texDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+	ThrowIfFailed(m_pDX12->GetDevice()->CreateCommittedResource(
+		&properties,
+		D3D12_HEAP_FLAG_NONE,
+		&texDesc,
+		D3D12_RESOURCE_STATE_COMMON,
+		nullptr,
+		IID_PPV_ARGS(&m_TileGBuffers[GBuffer::Depth])));
 
 	//descriptors
 	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
@@ -70,7 +91,7 @@ void QuadricRenderer::InitResources()
 	//DESCRIPTOR HEAP
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
 	
-	srvHeapDesc.NumDescriptors = 2;
+	srvHeapDesc.NumDescriptors = 4;
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	ThrowIfFailed(m_pDX12->GetDevice()->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&m_DescriptorHeapShaderVisible)));
@@ -226,10 +247,12 @@ QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
 	, m_ProjStage{pDX12}
 	, m_TileSelectionStage{pDX12}
 	, m_BinningStage{pDX12}
+	, m_RasterizationStage{pDX12}
 {
 	m_AppData.windowSize = { m_pDX12->GetWindow()->GetDimensions().width ,m_pDX12->GetWindow()->GetDimensions().height, 0, 0 };
 	m_AppData.tileDimensions = m_TileDimensions;
 	m_AppData.quadricsPerTile = m_QuadricsPerTile;
+	m_AppData.multiplier = 1.0f;
 	InitResources();
 }
 
@@ -258,17 +281,15 @@ void QuadricRenderer::Render()
 	m_pDX12->GetPipeline()->commandList->ClearUnorderedAccessViewFloat(gpuHandle, cpuHandle, m_OutputTexture.Get(), col, 0, nullptr);
 	col[0] = FLT_MAX; //max DEPTH
 	m_pDX12->GetPipeline()->commandList->ClearUnorderedAccessViewFloat(gpuHandle.Offset(incrementSize), cpuHandle.Offset(incrementSize), m_DepthTexture.Get(), col, 0, nullptr);
-
-	unsigned int horizontalTiles{ (m_pDX12->GetWindow()->GetDimensions().width / m_TileDimensions.width) + 1 }
-		, verticalTiles{ (m_pDX12->GetWindow()->GetDimensions().height / m_TileDimensions.height) + 1 }
-	, nrTiles{ horizontalTiles * verticalTiles };	
 	
-	for (QuadricMesh* pQMesh : m_ToRender)
+	
+	for (QuadricMesh* pMesh : m_ToRender)
 	{
 		InitDrawCall();
-		m_ProjStage.Project(m_AppDataBuffer, m_ScreenTileBuffer, *pQMesh);
-		m_TileSelectionStage.Execute(m_AppDataBuffer.Get(), m_ScreenTileBuffer.Get(), m_TileBuffer.Get(), nrTiles);
-		m_BinningStage.Execute(m_AppDataBuffer.Get(), m_ScreenTileBuffer.Get(), m_TileBuffer.Get(), m_QuadricDistributionBuffer.Get(), *pQMesh);
+		m_ProjStage.Execute(this, pMesh);
+		m_TileSelectionStage.Execute(this);
+		m_BinningStage.Execute(this, pMesh);
+		m_RasterizationStage.Execute(this, pMesh);
 	}
 
 	CopyToBackBuffer();

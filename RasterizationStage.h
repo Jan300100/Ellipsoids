@@ -3,14 +3,13 @@
 #include <d3d12.h>
 #include "Stage.h"
 
-class QuadricMesh;
 class DX12;
 namespace Stage
 {
-	class Binning : public Stage
+	class Rasterization : public Stage
 	{
 	public:
-		Binning(DX12* pDX12);
+		Rasterization(DX12* pDX12);
 		virtual void Execute(QuadricRenderer* pRenderer, QuadricMesh* pMesh) const override;
 	};
 }

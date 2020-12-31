@@ -11,6 +11,7 @@
 #include "Window.h"
 #include "TileSelectionStage.h"
 #include "BinningStage.h"
+#include "RasterizationStage.h"
 
 class QuadricMesh;
 class DX12;
@@ -21,6 +22,8 @@ private:
 	DX12* m_pDX12;
 	Camera* m_pCamera;
 
+
+
 	//DATA
 	AppData m_AppData;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_AppDataBuffer; //general data (for both stages?)
@@ -29,7 +32,11 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DescriptorHeapShaderVisible;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_OutputTexture;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_DepthTexture;
-
+	enum GBuffer : unsigned int
+	{
+		Depth = 0, Color, NumBuffers
+	};
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_TileGBuffers[GBuffer::NumBuffers];
 	//TODO:
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_ScreenTileBuffer; //uav buffer
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_TileBuffer; //uav buffer, flexible(resize when not big enough?)
@@ -41,10 +48,16 @@ private:
 	//Initialization
 	void InitResources();
 
-	//RENDER
+	//RENDER STAGES
+	friend class Stage::Projection;
+	friend class Stage::TileSelection;
+	friend class Stage::Binning;
+	friend class Stage::Rasterization;
+
 	Stage::Projection m_ProjStage;
 	Stage::TileSelection m_TileSelectionStage;
 	Stage::Binning m_BinningStage;
+	Stage::Rasterization m_RasterizationStage;
 	void CopyToBackBuffer();
 	
 	std::vector<QuadricMesh*> m_ToRender;

@@ -3,11 +3,12 @@
 #include <d3dcompiler.h>
 #include "DX12.h"
 #include "QuadricMesh.h"
+#include "QuadricRenderer.h"
 
 using namespace Microsoft::WRL;
 
 Stage::Projection::Projection(DX12* pDX12)
-	:m_pDX12{pDX12}
+	:Stage{pDX12}
 {
 	//ROOT SIGNATURE
 	CD3DX12_ROOT_PARAMETER slotRootParameter[5];
@@ -66,23 +67,24 @@ Stage::Projection::Projection(DX12* pDX12)
 	ThrowIfFailed(pDX12->GetDevice()->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&m_Pso)));
 }
 
-void Stage::Projection::Project(Microsoft::WRL::ComPtr<ID3D12Resource> appDataBuffer, Microsoft::WRL::ComPtr<ID3D12Resource> screenTileBuffer, const QuadricMesh& mesh) const
+void Stage::Projection::Execute(QuadricRenderer* pRenderer, QuadricMesh* pMesh) const
 {
 	DX12::Pipeline* pPipeline = m_pDX12->GetPipeline();
 	auto pComList = pPipeline->commandList;
 	pComList->SetPipelineState(m_Pso.Get());
 	pComList->SetComputeRootSignature(m_RootSignature.Get());
-	pComList->SetComputeRootConstantBufferView(0, appDataBuffer->GetGPUVirtualAddress());
-	pComList->SetComputeRootConstantBufferView(1, mesh.GetMeshDataBuffer()->GetGPUVirtualAddress());
-	pComList->SetComputeRootShaderResourceView(2, mesh.GetInputBuffer()->GetGPUVirtualAddress());
-	pComList->SetComputeRootUnorderedAccessView(3, mesh.GetProjectedBuffer()->GetGPUVirtualAddress());
-	pComList->SetComputeRootUnorderedAccessView(4, screenTileBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootConstantBufferView(0, pRenderer->m_AppDataBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootConstantBufferView(1, pMesh->GetMeshDataBuffer()->GetGPUVirtualAddress());
+	pComList->SetComputeRootShaderResourceView(2, pMesh->GetInputBuffer()->GetGPUVirtualAddress());
+	pComList->SetComputeRootUnorderedAccessView(3, pMesh->GetProjectedBuffer()->GetGPUVirtualAddress());
+	pComList->SetComputeRootUnorderedAccessView(4, pRenderer->m_ScreenTileBuffer->GetGPUVirtualAddress());
 
-	pComList->Dispatch((mesh.QuadricsAmount() / 32) + 1 * ((mesh.QuadricsAmount() % 32) > 0), 1, 1);
+	pComList->Dispatch((pMesh->QuadricsAmount() / 32) + 1 * ((pMesh->QuadricsAmount() % 32) > 0), 1, 1);
 
-	auto barrier = CD3DX12_RESOURCE_BARRIER::UAV(mesh.GetProjectedBuffer());
+	auto barrier = CD3DX12_RESOURCE_BARRIER::UAV(pMesh->GetProjectedBuffer());
 	pComList->ResourceBarrier(1, &barrier);
 }
+
 //
 //void Stage::Projection::Project(ComPtr<ID3D12Resource> appDataBuffer, const std::vector<QuadricMesh*> meshes) const
 //{

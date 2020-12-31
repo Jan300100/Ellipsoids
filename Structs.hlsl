@@ -7,6 +7,7 @@ struct AppData
     float3 lightDirection;
     uint2 tileDimensions;
     uint quadricsPerTile;
+    float multiplier;
 };
 
 struct InQuadric

@@ -43,6 +43,7 @@ struct AppData
 	DirectX::XMFLOAT4 lightDirection;
 	Dimensions<unsigned int> tileDimensions;
 	unsigned int quadricsPerTile;
+	float multiplier;
 };
 
 struct MeshData

@@ -4,11 +4,12 @@
 #include <d3dcompiler.h>
 #include "DX12.h"
 #include "QuadricMesh.h"
+#include "QuadricRenderer.h"
 
 using namespace Microsoft::WRL;
 
 Stage::Binning::Binning(DX12* pDX12)
-	: m_pDX12{pDX12} 
+	: Stage{pDX12} 
 {
 	//ROOT SIGNATURE
 	CD3DX12_ROOT_PARAMETER slotRootParameter[6];
@@ -68,7 +69,7 @@ Stage::Binning::Binning(DX12* pDX12)
 	ThrowIfFailed(pDX12->GetDevice()->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&m_Pso)));
 }
 
-void Stage::Binning::Execute(ID3D12Resource* appDataBuffer, ID3D12Resource* screenTileBuffer, ID3D12Resource* tileBuffer, ID3D12Resource* quadricIndexBuffer, const QuadricMesh& mesh)
+void Stage::Binning::Execute(QuadricRenderer* pRenderer, QuadricMesh* pMesh) const
 {
 	DX12::Pipeline* pPipeline = m_pDX12->GetPipeline();
 	auto pComList = pPipeline->commandList;
@@ -76,15 +77,15 @@ void Stage::Binning::Execute(ID3D12Resource* appDataBuffer, ID3D12Resource* scre
 	pComList->SetPipelineState(m_Pso.Get());
 	pComList->SetComputeRootSignature(m_RootSignature.Get());
 
-	pComList->SetComputeRootConstantBufferView(0, appDataBuffer->GetGPUVirtualAddress());
-	pComList->SetComputeRootConstantBufferView(1, mesh.GetMeshDataBuffer()->GetGPUVirtualAddress());
-	pComList->SetComputeRootShaderResourceView(2, mesh.GetProjectedBuffer()->GetGPUVirtualAddress());
-	pComList->SetComputeRootShaderResourceView(3, screenTileBuffer->GetGPUVirtualAddress());
-	pComList->SetComputeRootUnorderedAccessView(4, quadricIndexBuffer->GetGPUVirtualAddress());
-	pComList->SetComputeRootUnorderedAccessView(5, tileBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootConstantBufferView(0, pRenderer->m_AppDataBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootConstantBufferView(1, pMesh->GetMeshDataBuffer()->GetGPUVirtualAddress());
+	pComList->SetComputeRootShaderResourceView(2, pMesh->GetProjectedBuffer()->GetGPUVirtualAddress());
+	pComList->SetComputeRootShaderResourceView(3, pRenderer->m_ScreenTileBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootUnorderedAccessView(4, pRenderer->m_QuadricDistributionBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootUnorderedAccessView(5, pRenderer->m_TileBuffer->GetGPUVirtualAddress());
 	
-	pComList->Dispatch((mesh.QuadricsAmount() / 32) + 1 * ((mesh.QuadricsAmount() % 32) > 0), 1, 1);
+	pComList->Dispatch((pMesh->QuadricsAmount() / 32) + 1 * ((pMesh->QuadricsAmount() % 32) > 0), 1, 1);
 
-	/*CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::UAV(quadricIndexBuffer);
-	pComList->ResourceBarrier(1, &barrier);*/
+	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_QuadricDistributionBuffer.Get());
+	pComList->ResourceBarrier(1, &barrier);
 }
