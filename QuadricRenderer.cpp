@@ -9,7 +9,6 @@
 #include "Camera.h"
 #include "QuadricMesh.h"
 
-
 using namespace DirectX;
 
 void QuadricRenderer::InitResources()
@@ -91,19 +90,90 @@ void QuadricRenderer::InitResources()
 	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_DepthTexture.Get(), nullptr, &uavDesc, srvHeapHandle);
 	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_DepthTexture.Get(), nullptr, &uavDesc, srvHeapShaderVisibleHandle);
 
+	//BUFFERS
+	unsigned int horizontalTiles{( m_pDX12->GetWindow()->GetDimensions().width / m_TileDimensions.width) + 1}
+	, verticalTiles{ (m_pDX12->GetWindow()->GetDimensions().height / m_TileDimensions.height) + 1 }
+	, nrTiles{ horizontalTiles * verticalTiles };
+	// Create the buffer that will be a UAV with screenTiles
+	auto byteSize = sizeof(ScreenTile) * nrTiles;
+	properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+	desc = CD3DX12_RESOURCE_DESC::Buffer(byteSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+	ThrowIfFailed(m_pDX12->GetDevice()->CreateCommittedResource(
+		&properties,
+		D3D12_HEAP_FLAG_NONE,
+		&desc,
+		D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+		nullptr,
+		IID_PPV_ARGS(&m_ScreenTileBuffer)));
+
+	//uploadBuffer
+	properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD);
+	desc = CD3DX12_RESOURCE_DESC::Buffer(byteSize);
+	ThrowIfFailed(m_pDX12->GetDevice()->CreateCommittedResource(
+		&properties,
+		D3D12_HEAP_FLAG_NONE,
+		&desc,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&m_ScreenTileUploadBuffer)));
+
+	ScreenTile initialScreenTile{ UINT_MAX, 0 };
+	ScreenTile* screenTiles = new ScreenTile[nrTiles];
+	for (size_t i = 0; i < nrTiles; i++)
+	{
+		screenTiles[i] = initialScreenTile;
+	}
+	ScreenTile* mapped = nullptr;
+	m_ScreenTileUploadBuffer->Map(0, nullptr,
+		reinterpret_cast<void**>(&mapped));
+	memcpy(mapped, screenTiles, sizeof(ScreenTile) * nrTiles);
+	if (m_ScreenTileUploadBuffer != nullptr)
+		m_ScreenTileUploadBuffer->Unmap(0, nullptr);
+
+	delete[] screenTiles;
+
+	// Create the buffer that will be a UAV with tiles : initial size is the same as screentiles
+	byteSize = sizeof(Tile) * nrTiles;
+	properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+	desc = CD3DX12_RESOURCE_DESC::Buffer(byteSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+	ThrowIfFailed(m_pDX12->GetDevice()->CreateCommittedResource(
+		&properties,
+		D3D12_HEAP_FLAG_NONE,
+		&desc,
+		D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+		nullptr,
+		IID_PPV_ARGS(&m_TileBuffer)));
+
+	//quadricDistribution
+	byteSize = sizeof(unsigned int) * nrTiles * m_QuadricsPerTile;
+	properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+	desc = CD3DX12_RESOURCE_DESC::Buffer(byteSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+	ThrowIfFailed(m_pDX12->GetDevice()->CreateCommittedResource(
+		&properties,
+		D3D12_HEAP_FLAG_NONE,
+		&desc,
+		D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+		nullptr,
+		IID_PPV_ARGS(&m_QuadricDistributionBuffer)));
+
 	//init resources
+	m_ScreenTileBuffer->SetName(L"m_ScreenTileBuffer");
+	m_TileBuffer->SetName(L"m_TileBuffer");
+	m_ScreenTileUploadBuffer->SetName(L"m_ScreenTileUploadBuffer");
+	m_QuadricDistributionBuffer->SetName(L"m_QuadricDistributionBuffer");
+
+
 	auto pPipeline = m_pDX12->GetPipeline();
 	ThrowIfFailed(pPipeline->commandAllocator->Reset());
 	ThrowIfFailed(pPipeline->commandList->Reset(pPipeline->commandAllocator.Get(), nullptr));
 
-	CD3DX12_RESOURCE_BARRIER transitions[2]
-	{
-		CD3DX12_RESOURCE_BARRIER::Transition(m_OutputTexture.Get(),
-		D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
-		CD3DX12_RESOURCE_BARRIER::Transition(m_DepthTexture.Get(),
-		D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
-	};
-	pPipeline->commandList->ResourceBarrier(2, transitions);
+	std::vector< CD3DX12_RESOURCE_BARRIER>transitions{};
+	transitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_OutputTexture.Get(),
+		D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+	transitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_DepthTexture.Get(),
+		D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+
+	pPipeline->commandList->ResourceBarrier((UINT)transitions.size(), transitions.data());
 
 	ThrowIfFailed(pPipeline->commandList->Close());
 	ID3D12CommandList* cmdsLists[] = { pPipeline->commandList.Get() };
@@ -134,10 +204,32 @@ void QuadricRenderer::CopyToBackBuffer()
 	pComList->ResourceBarrier(2, transitions);
 }
 
+void QuadricRenderer::InitDrawCall()
+{
+	auto pPipeline = m_pDX12->GetPipeline();
+	auto pComList = pPipeline->commandList;
+	CD3DX12_RESOURCE_BARRIER transition{
+		CD3DX12_RESOURCE_BARRIER::Transition(m_ScreenTileBuffer.Get(),
+		D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_DEST),
+	};
+	pComList->ResourceBarrier(1, &transition);
+
+	pPipeline->commandList->CopyResource(m_ScreenTileBuffer.Get(), m_ScreenTileUploadBuffer.Get());
+
+	transition = CD3DX12_RESOURCE_BARRIER::Transition(m_ScreenTileBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST
+		, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	pComList->ResourceBarrier(1, &transition);
+}
+
 QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
-	:m_pDX12{ pDX12 }, m_pCamera{ pCamera }, m_AppData{}, m_ProjStage{pDX12}
+	:m_pDX12{ pDX12 }, m_pCamera{ pCamera }, m_AppData{}
+	, m_ProjStage{pDX12}
+	, m_TileSelectionStage{pDX12}
+	, m_BinningStage{pDX12}
 {
 	m_AppData.windowSize = { m_pDX12->GetWindow()->GetDimensions().width ,m_pDX12->GetWindow()->GetDimensions().height, 0, 0 };
+	m_AppData.tileDimensions = m_TileDimensions;
+	m_AppData.quadricsPerTile = m_QuadricsPerTile;
 	InitResources();
 }
 
@@ -167,7 +259,18 @@ void QuadricRenderer::Render()
 	col[0] = FLT_MAX; //max DEPTH
 	m_pDX12->GetPipeline()->commandList->ClearUnorderedAccessViewFloat(gpuHandle.Offset(incrementSize), cpuHandle.Offset(incrementSize), m_DepthTexture.Get(), col, 0, nullptr);
 
-	m_ProjStage.Project(m_AppDataBuffer, m_ToRender);
+	unsigned int horizontalTiles{ (m_pDX12->GetWindow()->GetDimensions().width / m_TileDimensions.width) + 1 }
+		, verticalTiles{ (m_pDX12->GetWindow()->GetDimensions().height / m_TileDimensions.height) + 1 }
+	, nrTiles{ horizontalTiles * verticalTiles };	
+	
+	for (QuadricMesh* pQMesh : m_ToRender)
+	{
+		InitDrawCall();
+		m_ProjStage.Project(m_AppDataBuffer, m_ScreenTileBuffer, *pQMesh);
+		m_TileSelectionStage.Execute(m_AppDataBuffer.Get(), m_ScreenTileBuffer.Get(), m_TileBuffer.Get(), nrTiles);
+		m_BinningStage.Execute(m_AppDataBuffer.Get(), m_ScreenTileBuffer.Get(), m_TileBuffer.Get(), m_QuadricDistributionBuffer.Get(), *pQMesh);
+	}
+
 	CopyToBackBuffer();
 
 	//reset for next frame

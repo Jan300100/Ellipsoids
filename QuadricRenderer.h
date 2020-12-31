@@ -8,6 +8,9 @@
 #include "d3dx12.h"
 #include "ProjectionStage.h"
 #include "Structs.h"
+#include "Window.h"
+#include "TileSelectionStage.h"
+#include "BinningStage.h"
 
 class QuadricMesh;
 class DX12;
@@ -28,24 +31,25 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_DepthTexture;
 
 	//TODO:
-	enum GBuffers : unsigned int
-	{
-		Depth = 0, Normals, Color, Amount
-	};
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_GBuffers[GBuffers::Amount]; //depth, normals, color
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_ScreenTileBuffer;
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_TileBuffer;
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_QuadricDistributionBuffer;
-
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_ScreenTileBuffer; //uav buffer
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_TileBuffer; //uav buffer, flexible(resize when not big enough?)
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_ScreenTileUploadBuffer; //upload buffer
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_QuadricDistributionBuffer; //uav buffer
+	unsigned int m_QuadricsPerTile = 256;
+	Dimensions<unsigned int> m_TileDimensions = {64,64};
 	
 	//Initialization
 	void InitResources();
 
 	//RENDER
 	Stage::Projection m_ProjStage;
+	Stage::TileSelection m_TileSelectionStage;
+	Stage::Binning m_BinningStage;
 	void CopyToBackBuffer();
 	
 	std::vector<QuadricMesh*> m_ToRender;
+
+	void InitDrawCall();
 
 public:
 	QuadricRenderer(DX12* pDX12, Camera* pCamera);

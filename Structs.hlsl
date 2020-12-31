@@ -5,6 +5,8 @@ struct AppData
     row_major float4x4 projInv;
     uint2 windowDimensions;
     float3 lightDirection;
+    uint2 tileDimensions;
+    uint quadricsPerTile;
 };
 
 struct InQuadric
@@ -31,8 +33,7 @@ struct MeshData
 
 struct ShaderOutput
 {
-    uint4 boundingBox;
-    uint numPatches;
+    uint numRelevantTiles;
 };
 
 struct ScreenTile

@@ -5,15 +5,12 @@
 ConstantBuffer<AppData> gAppData : register(b0);
 ConstantBuffer<MeshData> gMeshData : register(b1);
 
-StructuredBuffer<InQuadric> gQaudricsIn : register(t0);
+StructuredBuffer<InQuadric> gQuadricsIn : register(t0);
 //output
-RWStructuredBuffer<OutQuadric> gQaudricsOut : register(u0);
-RWStructuredBuffer<ShaderOutput> gShaderOutput : register(u1);
-
+RWStructuredBuffer<OutQuadric> gQuadricsOut : register(u0);
+RWStructuredBuffer<ScreenTile> gScreenTiles : register(u1);
 
 bool SolveQuadratic(float a, float b, float c, out float yMin, out float yMax);
-
-#define ShaderOutput  gShaderOutput[0]
 
 [numthreads(32, 1, 1)]
 void main( uint3 DTid : SV_DispatchThreadID )
@@ -21,7 +18,7 @@ void main( uint3 DTid : SV_DispatchThreadID )
     if (DTid.x >= gMeshData.numQuadrics)
         return;
     
-    InQuadric input = gQaudricsIn[DTid.x];
+    InQuadric input = gQuadricsIn[DTid.x];
     OutQuadric output = (OutQuadric) 0;
     output.color = input.color.rgb;
     
@@ -80,38 +77,21 @@ void main( uint3 DTid : SV_DispatchThreadID )
         }
         output.xRange = float2(xMin, xMax);
     }
-    gQaudricsOut[DTid.x] = output;
+    gQuadricsOut[DTid.x] = output;
 
-    uint2 leftTop = NDCToScreen(float2(output.xRange.x, output.yRange.y), gAppData.windowDimensions);
-    uint2 rightBottom = NDCToScreen(float2(output.xRange.y, output.yRange.x), gAppData.windowDimensions);
-   
-    //TOP
-    uint current = ShaderOutput.boundingBox.x;
-    while (leftTop.y < current)
+        //////// set tiles
+    uint2 numTiles = uint2((gAppData.windowDimensions / gAppData.tileDimensions) + 1);
+    uint2 start = NDCToScreen(float2(output.xRange.x, output.yRange.y), gAppData.windowDimensions) / gAppData.tileDimensions;
+    start = uint2(max(start.x, 0), max(start.y, 0));
+    uint2 end = NDCToScreen(float2(output.xRange.y, output.yRange.x), gAppData.windowDimensions) / gAppData.tileDimensions;
+    end = uint2(max(end.x, numTiles.x), max(end.y, numTiles.y));
+    for (uint x = start.x; x < end.x; x++)
     {
-        InterlockedCompareStore(ShaderOutput.boundingBox.x, current, leftTop.y);
-        current = ShaderOutput.boundingBox.x;
-    }
-    //LEFT
-    current = ShaderOutput.boundingBox.y;
-    while (leftTop.x < current)
-    {
-        InterlockedCompareStore(ShaderOutput.boundingBox.y, current, leftTop.x);
-        current = ShaderOutput.boundingBox.y;
-    }
-    //BOTTOM
-    current = ShaderOutput.boundingBox.z;
-    while (rightBottom.y > current)
-    {
-        InterlockedCompareStore(ShaderOutput.boundingBox.z, current, rightBottom.y);
-        current = ShaderOutput.boundingBox.z;
-    }
-    ////RIGHT
-    current = ShaderOutput.boundingBox.w;
-    while (rightBottom.x > current)
-    {
-        InterlockedCompareStore(ShaderOutput.boundingBox.w, current, rightBottom.x);
-        current = ShaderOutput.boundingBox.w;
+        for (uint y = start.y; y < end.y; y++)
+        {
+            uint index = y * numTiles.x + x;
+            InterlockedAdd(gScreenTiles[index].numQuadrics, 1);
+        }
     }
 }
 

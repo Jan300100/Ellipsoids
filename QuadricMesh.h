@@ -16,25 +16,17 @@ class QuadricMesh
 	///PER MESH DATA : //contains the transformation matrix for the entire mesh
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_MeshDataBuffer = nullptr;
 	//per mesh data : //Shader results needed on the cpu, per mesh : numRelevantTiles
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_ShaderOutputBuffer = nullptr;
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_ShaderOutputReadbackBuffer = nullptr;
-	static ID3D12Resource* m_ShaderOutputUploadBuffer;
-	static unsigned int m_NrMeshes;
 
-	ShaderOutput m_Output;
 	Transform m_Transform;
-	void UpdateMeshData();
+	void UpdateMeshData() const;
+
 public:
+
 	QuadricMesh(DX12* pDX12, const std::vector<InQuadric>& quadrics, const Transform& transform = {});
-	~QuadricMesh();
-	ID3D12Resource* GetInputBuffer() { return m_InputBuffer.Get(); }
-	ID3D12Resource* GetProjectedBuffer() { return m_OutputProjectedBuffer.Get(); }
-	ID3D12Resource* GetMeshDataBuffer() { UpdateMeshData();  return m_MeshDataBuffer.Get(); }
-	ID3D12Resource* GetShaderOutputBuffer() { return m_ShaderOutputBuffer.Get(); }
-	ID3D12Resource* GetShaderOutputReadbackBuffer() { return m_ShaderOutputReadbackBuffer.Get(); }
-	ID3D12Resource* GetShaderOutputUploadBuffer() { return m_ShaderOutputUploadBuffer; }
-	ShaderOutput GetShaderOutput();
-	UINT QuadricsAmount() { return (UINT)m_Quadrics.size(); }
+	ID3D12Resource* GetInputBuffer() const { return m_InputBuffer.Get(); }
+	ID3D12Resource* GetProjectedBuffer() const { return m_OutputProjectedBuffer.Get(); }
+	ID3D12Resource* GetMeshDataBuffer() const { UpdateMeshData();  return m_MeshDataBuffer.Get(); }
+	UINT QuadricsAmount() const { return (UINT)m_Quadrics.size(); }
 	void UpdateBuffers(DX12* pDX12);
 	Transform& GetTransform() { return m_Transform; }
 };

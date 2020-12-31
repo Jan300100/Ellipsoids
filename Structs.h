@@ -1,6 +1,7 @@
 #pragma once
 #include <DirectXMath.h>
 #include "Transform.h"
+#include "Window.h"
 #include <d3d12.h>
 
 struct Quadric
@@ -40,11 +41,8 @@ struct AppData
 	DirectX::XMMATRIX projInv;
 	DirectX::XMUINT4 windowSize;
 	DirectX::XMFLOAT4 lightDirection;
-};
-
-struct ShaderOutput
-{
-	unsigned int numRelevantTiles;
+	Dimensions<unsigned int> tileDimensions;
+	unsigned int quadricsPerTile;
 };
 
 struct MeshData

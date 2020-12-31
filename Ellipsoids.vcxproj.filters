@@ -21,6 +21,15 @@
     <Filter Include="Pipeline\Projection">
       <UniqueIdentifier>{4143995b-c756-4e60-a366-c80b5e5bc978}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Pipeline\TileSelection">
+      <UniqueIdentifier>{1f23428b-086d-4075-a89b-861832b39d68}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Pipeline\Helpers">
+      <UniqueIdentifier>{f2de1de0-7489-49a2-8943-b5f303a3f028}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Pipeline\Binning">
+      <UniqueIdentifier>{c3118e92-762a-4b3b-918f-12c8693a318a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Helpers.cpp">
@@ -77,6 +86,12 @@
     <ClCompile Include="QuadricRenderer.cpp">
       <Filter>Pipeline</Filter>
     </ClCompile>
+    <ClCompile Include="TileSelectionStage.cpp">
+      <Filter>Pipeline\TileSelection</Filter>
+    </ClCompile>
+    <ClCompile Include="BinningStage.cpp">
+      <Filter>Pipeline\Binning</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Helpers.h">
@@ -124,18 +139,30 @@
       <Filter>Pipeline</Filter>
     </ClInclude>
     <ClInclude Include="Structs.h">
-      <Filter>Pipeline</Filter>
+      <Filter>Pipeline\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="TileSelectionStage.h">
+      <Filter>Pipeline\TileSelection</Filter>
+    </ClInclude>
+    <ClInclude Include="BinningStage.h">
+      <Filter>Pipeline\Binning</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Structs.hlsl">
-      <Filter>Pipeline</Filter>
-    </FxCompile>
     <FxCompile Include="ProjectionShader.hlsl">
       <Filter>Pipeline\Projection</Filter>
     </FxCompile>
     <FxCompile Include="Helpers.hlsl">
-      <Filter>Pipeline</Filter>
+      <Filter>Pipeline\Helpers</Filter>
+    </FxCompile>
+    <FxCompile Include="Structs.hlsl">
+      <Filter>Pipeline\Helpers</Filter>
+    </FxCompile>
+    <FxCompile Include="TileSelectionShader.hlsl">
+      <Filter>Pipeline\TileSelection</Filter>
+    </FxCompile>
+    <FxCompile Include="BinningShader.hlsl">
+      <Filter>Pipeline\Binning</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

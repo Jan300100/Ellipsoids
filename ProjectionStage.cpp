@@ -66,52 +66,73 @@ Stage::Projection::Projection(DX12* pDX12)
 	ThrowIfFailed(pDX12->GetDevice()->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&m_Pso)));
 }
 
-void Stage::Projection::Project(ComPtr<ID3D12Resource> appDataBuffer, const std::vector<QuadricMesh*> meshes) const
+void Stage::Projection::Project(Microsoft::WRL::ComPtr<ID3D12Resource> appDataBuffer, Microsoft::WRL::ComPtr<ID3D12Resource> screenTileBuffer, const QuadricMesh& mesh) const
 {
 	DX12::Pipeline* pPipeline = m_pDX12->GetPipeline();
 	auto pComList = pPipeline->commandList;
-
-	//reset shaderoutput
-	std::vector<D3D12_RESOURCE_BARRIER> barriers{};
-	for (QuadricMesh* pQMesh : meshes)
-	{
-		pComList->CopyResource(pQMesh->GetShaderOutputBuffer(), pQMesh->GetShaderOutputUploadBuffer());
-		barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(pQMesh->GetShaderOutputBuffer(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-	}
-	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
-
-
-	//SET PSO and ROOT SIGN
 	pComList->SetPipelineState(m_Pso.Get());
 	pComList->SetComputeRootSignature(m_RootSignature.Get());
 	pComList->SetComputeRootConstantBufferView(0, appDataBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootConstantBufferView(1, mesh.GetMeshDataBuffer()->GetGPUVirtualAddress());
+	pComList->SetComputeRootShaderResourceView(2, mesh.GetInputBuffer()->GetGPUVirtualAddress());
+	pComList->SetComputeRootUnorderedAccessView(3, mesh.GetProjectedBuffer()->GetGPUVirtualAddress());
+	pComList->SetComputeRootUnorderedAccessView(4, screenTileBuffer->GetGPUVirtualAddress());
 
-	//DISPATCH
-	for (QuadricMesh* pQMesh : meshes)
-	{
-		//Set root variables : meshdata, input buffer and outputbuffer
-		pComList->SetComputeRootConstantBufferView(1, pQMesh->GetMeshDataBuffer()->GetGPUVirtualAddress());
-		pComList->SetComputeRootShaderResourceView(2, pQMesh->GetInputBuffer()->GetGPUVirtualAddress());
-		pComList->SetComputeRootUnorderedAccessView(3, pQMesh->GetProjectedBuffer()->GetGPUVirtualAddress());
-		pComList->SetComputeRootUnorderedAccessView(4, pQMesh->GetShaderOutputBuffer()->GetGPUVirtualAddress());
-		pComList->Dispatch((pQMesh->QuadricsAmount() / 32) + 1 * ((pQMesh->QuadricsAmount() % 32) > 0), 1, 1); //these are the thread groups
-	}
+	pComList->Dispatch((mesh.QuadricsAmount() / 32) + 1 * ((mesh.QuadricsAmount() % 32) > 0), 1, 1);
 
-	//make sure they are all finished before continuing
-	barriers.clear();
-	for (QuadricMesh* pQMesh : meshes)
-	{
-		barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pQMesh->GetProjectedBuffer()));
-		barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pQMesh->GetShaderOutputBuffer()));
-		barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(pQMesh->GetShaderOutputBuffer(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE));
-	}
-	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
-
-	barriers.clear();
-	for (QuadricMesh* pQMesh : meshes)
-	{
-		pComList->CopyResource(pQMesh->GetShaderOutputReadbackBuffer(), pQMesh->GetShaderOutputBuffer());
-		barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(pQMesh->GetShaderOutputBuffer(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST));
-	}
-	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
+	auto barrier = CD3DX12_RESOURCE_BARRIER::UAV(mesh.GetProjectedBuffer());
+	pComList->ResourceBarrier(1, &barrier);
 }
+//
+//void Stage::Projection::Project(ComPtr<ID3D12Resource> appDataBuffer, const std::vector<QuadricMesh*> meshes) const
+//{
+//	DX12::Pipeline* pPipeline = m_pDX12->GetPipeline();
+//	auto pComList = pPipeline->commandList;
+//
+//
+//	//DO THIS ALL AT ONCE IN QUADRIC RENDERER
+//
+//	////reset shaderoutput
+//	std::vector<D3D12_RESOURCE_BARRIER> barriers{};
+//	for (QuadricMesh* pQMesh : meshes)
+//	{
+//		pComList->CopyResource(pQMesh->GetShaderOutputBuffer(), pQMesh->GetShaderOutputUploadBuffer());
+//		barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(pQMesh->GetShaderOutputBuffer(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+//	}
+//	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
+//
+//
+//	//SET PSO and ROOT SIGN
+//	pComList->SetPipelineState(m_Pso.Get());
+//	pComList->SetComputeRootSignature(m_RootSignature.Get());
+//	pComList->SetComputeRootConstantBufferView(0, appDataBuffer->GetGPUVirtualAddress());
+//
+//	//DISPATCH
+//	for (QuadricMesh* pQMesh : meshes)
+//	{
+//		//Set root variables : meshdata, input buffer and outputbuffer
+//		pComList->SetComputeRootConstantBufferView(1, pQMesh->GetMeshDataBuffer()->GetGPUVirtualAddress());
+//		pComList->SetComputeRootShaderResourceView(2, pQMesh->GetInputBuffer()->GetGPUVirtualAddress());
+//		pComList->SetComputeRootUnorderedAccessView(3, pQMesh->GetProjectedBuffer()->GetGPUVirtualAddress());
+//		pComList->SetComputeRootUnorderedAccessView(4, pQMesh->GetShaderOutputBuffer()->GetGPUVirtualAddress());
+//		pComList->Dispatch((pQMesh->QuadricsAmount() / 32) + 1 * ((pQMesh->QuadricsAmount() % 32) > 0), 1, 1); //these are the thread groups
+//	}
+//
+//	//make sure they are all finished before continuing
+//	barriers.clear();
+//	for (QuadricMesh* pQMesh : meshes)
+//	{
+//		barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pQMesh->GetProjectedBuffer()));
+//		barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pQMesh->GetShaderOutputBuffer()));
+//		barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(pQMesh->GetShaderOutputBuffer(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE));
+//	}
+//	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
+//
+//	barriers.clear();
+//	for (QuadricMesh* pQMesh : meshes)
+//	{
+//		pComList->CopyResource(pQMesh->GetShaderOutputReadbackBuffer(), pQMesh->GetShaderOutputBuffer());
+//		barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(pQMesh->GetShaderOutputBuffer(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST));
+//	}
+//	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
+//}

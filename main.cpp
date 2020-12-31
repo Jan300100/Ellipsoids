@@ -211,16 +211,8 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	in.push_back(lowerLegLeft);
 	in.push_back(shoeLeft);
 
-	const size_t length = 10;
-	std::vector<QuadricMesh> dudes{};
-	for (size_t i = 0; i < length; i++)
-	{
-		for (size_t j = 0; j < length; j++)
-		{
-			dudes.emplace_back(&dx12, in);
-			dudes.back().GetTransform().position = { (float)i * 5.0f, 4.5f, (float)j * 5.0f };
-		}
-	}
+	QuadricMesh dude{ &dx12, in };
+
 	Quadric ellipsoid{};
 	ellipsoid.equation = DirectX::XMFLOAT4X4{
 					1,0,0,0,
@@ -275,7 +267,6 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 			std::cout << "FPS: " << framectr << "\t\r";
 			framectr = 0;
 		}
-		ground.GetShaderOutput();
 
 		totalTime += delta;
 
@@ -284,12 +275,8 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		dx12.NewFrame();
 		renderer.Render(&ground);
 
-		for (size_t i = 0; i < dudes.size(); i++)
-		{
-			dudes[i].GetTransform().rotation.y += delta * i / 100.0f;
-			renderer.Render(&dudes[i]);
-		}
-		
+		renderer.Render(&dude);
+
 		renderer.Render();
 		imguiRenderer.Render(dx12.GetPipeline()->commandList.Get());
 		dx12.Present();
