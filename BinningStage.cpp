@@ -83,8 +83,8 @@ void Stage::Binning::Execute(ID3D12Resource* appDataBuffer, ID3D12Resource* scre
 	pComList->SetComputeRootUnorderedAccessView(4, quadricIndexBuffer->GetGPUVirtualAddress());
 	pComList->SetComputeRootUnorderedAccessView(5, tileBuffer->GetGPUVirtualAddress());
 	
-	//pComList->Dispatch((mesh.QuadricsAmount() / 32) + 1 * ((mesh.QuadricsAmount() % 32) > 0), 1, 1);
+	pComList->Dispatch((mesh.QuadricsAmount() / 32) + 1 * ((mesh.QuadricsAmount() % 32) > 0), 1, 1);
 
-	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::UAV(quadricIndexBuffer);
-	pComList->ResourceBarrier(1, &barrier);
+	/*CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::UAV(quadricIndexBuffer);
+	pComList->ResourceBarrier(1, &barrier);*/
 }

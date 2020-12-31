@@ -79,12 +79,12 @@ void main( uint3 DTid : SV_DispatchThreadID )
     }
     gQuadricsOut[DTid.x] = output;
 
-        //////// set tiles
+    //////// set tiles
     uint2 numTiles = uint2((gAppData.windowDimensions / gAppData.tileDimensions) + 1);
     uint2 start = NDCToScreen(float2(output.xRange.x, output.yRange.y), gAppData.windowDimensions) / gAppData.tileDimensions;
     start = uint2(max(start.x, 0), max(start.y, 0));
     uint2 end = NDCToScreen(float2(output.xRange.y, output.yRange.x), gAppData.windowDimensions) / gAppData.tileDimensions;
-    end = uint2(max(end.x, numTiles.x), max(end.y, numTiles.y));
+    end = uint2(min(end.x, numTiles.x), min(end.y, numTiles.y));
     for (uint x = start.x; x < end.x; x++)
     {
         for (uint y = start.y; y < end.y; y++)

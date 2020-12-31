@@ -25,7 +25,7 @@ void main( uint3 DTid : SV_DispatchThreadID )
     uint2 start = NDCToScreen(float2(input.xRange.x, input.yRange.y), gAppData.windowDimensions) / gAppData.tileDimensions;
     start = uint2(max(start.x, 0), max(start.y, 0));
     uint2 end = NDCToScreen(float2(input.xRange.y, input.yRange.x), gAppData.windowDimensions) / gAppData.tileDimensions;
-    end = uint2(max(end.x, numTiles.x), max(end.y, numTiles.y));
+    end = uint2(min(end.x, numTiles.x), min(end.y, numTiles.y));
 
     for (uint x = start.x; x < end.x; x++)
     {
@@ -36,6 +36,7 @@ void main( uint3 DTid : SV_DispatchThreadID )
             uint tileIdx = gScreenTiles[index].tileIndex;
             uint currentCtr;
             uint quadricIndex = 0xffffffff;
+            uint loops = 0;
             do
             {
                 currentCtr = gRelevantTiles[tileIdx].quadricCtr;
@@ -48,9 +49,10 @@ void main( uint3 DTid : SV_DispatchThreadID )
                     tileIdx = gRelevantTiles[tileIdx].nextTileIndex;
                 }
                 
-            } while (currentCtr != quadricIndex);
+            } while (currentCtr != quadricIndex && tileIdx != 0xffffffff);
             
-            gQuadricIndices[gRelevantTiles[tileIdx].quadricStartIndex + quadricIndex] = DTid.x;
+            uint finalIndex = gRelevantTiles[tileIdx].quadricStartIndex;
+            gQuadricIndices[finalIndex + quadricIndex] = DTid.x;
         }
     }
 }

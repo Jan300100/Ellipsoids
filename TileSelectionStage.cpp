@@ -99,7 +99,9 @@ Stage::TileSelection::TileSelection(DX12* pDX12)
 		D3D12_RESOURCE_STATE_COPY_DEST,
 		nullptr,
 		IID_PPV_ARGS(&m_CountersReadbackResource)));
-		m_CountersReadbackResource->SetName(LPCWSTR(L"countersReadbackResource"));
+	m_CountersReadbackResource->SetName(LPCWSTR(L"m_CountersReadbackResource"));
+	m_CountersUploadResource->SetName(LPCWSTR(L"m_CountersUploadResource"));
+	m_CountersResource->SetName(LPCWSTR(L"m_CountersResource"));
 }
 
 void Stage::TileSelection::Execute(ID3D12Resource* appDataBuffer, ID3D12Resource* screenTileBuffer, ID3D12Resource* tileBuffer, unsigned int numScreenTiles)
