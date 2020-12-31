@@ -35,25 +35,20 @@ void main( uint3 DTid : SV_DispatchThreadID )
             
             uint tileIdx = gScreenTiles[index].tileIndex;
             uint currentCtr;
-            uint quadricIndex;
-            bool foundIndex = false;
+            uint quadricIndex = 0xffffffff;
             do
             {
                 currentCtr = gRelevantTiles[tileIdx].quadricCtr;
                 if (currentCtr < gRelevantTiles[tileIdx].quadricsReserved)
                 {
                     InterlockedCompareExchange(gRelevantTiles[tileIdx].quadricCtr, currentCtr, currentCtr + 1, quadricIndex);
-                    if (currentCtr == quadricIndex)
-                    {
-                        foundIndex = true;
-                    }
                 }
                 else
                 {
                     tileIdx = gRelevantTiles[tileIdx].nextTileIndex;
                 }
                 
-            } while (!foundIndex);
+            } while (currentCtr != quadricIndex);
             
             gQuadricIndices[gRelevantTiles[tileIdx].quadricStartIndex + quadricIndex] = DTid.x;
         }
