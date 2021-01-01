@@ -96,6 +96,7 @@ unsigned int Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, std:
 		outputQuadricsCount += pMesh->GetMeshOutput().numOutputQuadrics;
 		if (pMesh->GetMeshOutput().overflowed)
 		{
+			if (lastMesh == start) throw "Not enough Rasterizers, Mesh is too big";
 			break;
 		}
 		lastMesh++;

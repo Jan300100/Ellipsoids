@@ -19,9 +19,6 @@
 #include "Structs.h"
 #include "QuadricMesh.h"
 
-int main() {
-	return 0;
-}
 
 int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 {
