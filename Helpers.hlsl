@@ -60,3 +60,11 @@ bool SolveQuadratic(float a, float b, float c, out float minValue, out float max
     }
     return !(c < 0);
 }
+
+uint2 GetScreenLeftTop(uint index, uint2 textureDimensions, uint2 rasterizerDimensions)
+{
+    uint2 screenLeftTop;
+    screenLeftTop.x = (index % (textureDimensions.x / rasterizerDimensions.x + 1)) * rasterizerDimensions.x;
+    screenLeftTop.y = (index / (textureDimensions.x / rasterizerDimensions.x + 1)) * rasterizerDimensions.y;
+    return screenLeftTop;
+}

@@ -50,7 +50,7 @@ Stage::GeometryProcessing::GeometryProcessing(DX12* pDX12)
 	compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif
 
-	hr = D3DCompileFromFile(L"GeometryProcessing.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+	hr = D3DCompileFromFile(L"GeometryProcessingShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"main", "cs_5_1", compileFlags, 0, &m_Shader, &errorBlob);
 
 	if (errorBlob != nullptr)

@@ -72,7 +72,7 @@ void QuadricRenderer::InitResources()
 		D3D12_RESOURCE_STATE_COMMON,
 		nullptr,
 		IID_PPV_ARGS(&m_RasterizerGBuffers[GBUFFER::Color])));
-
+	m_RasterizerGBuffers[GBUFFER::Color]->SetName(L"GBuffer-Color");
 	texDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
 	ThrowIfFailed(m_pDX12->GetDevice()->CreateCommittedResource(
 		&properties,
@@ -81,6 +81,7 @@ void QuadricRenderer::InitResources()
 		D3D12_RESOURCE_STATE_COMMON,
 		nullptr,
 		IID_PPV_ARGS(&m_RasterizerGBuffers[GBUFFER::Depth])));
+	m_RasterizerGBuffers[GBUFFER::Depth]->SetName(L"GBuffer-Depth");
 
 	//descriptors
 	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
@@ -250,6 +251,8 @@ void QuadricRenderer::CopyToBackBuffer()
 	pComList->ResourceBarrier(2, transitions);
 
 	pComList->CopyResource(pPipeline->GetCurrentRenderTarget(), m_OutputTexture.Get());
+	//pComList->CopyResource(pPipeline->GetCurrentRenderTarget(), m_RasterizerGBuffers[GBUFFER::Color].Get());
+
 	// Transition to Render target for any other draws that might happen.
 	transitions[0] = CD3DX12_RESOURCE_BARRIER::Transition(pPipeline->GetCurrentRenderTarget(),
 		D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -320,6 +323,7 @@ QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
 	:m_pDX12{ pDX12 }, m_pCamera{ pCamera }, m_AppData{}
 	, m_GPStage{pDX12}
 	,m_RStage{pDX12}
+	,m_MStage{pDX12}
 {
 	m_AppData.windowSize = { m_pDX12->GetWindow()->GetDimensions().width ,m_pDX12->GetWindow()->GetDimensions().height, 0, 0 };
 	m_AppData.tileDimensions = {64,64};
@@ -363,6 +367,7 @@ void QuadricRenderer::Render()
 		InitDrawCall();
 		rendered = m_GPStage.Execute(this, m_ToRender, (UINT)rendered);
 		m_RStage.Execute(this);
+		m_MStage.Execute(this);
 	}
 
 	CopyToBackBuffer();

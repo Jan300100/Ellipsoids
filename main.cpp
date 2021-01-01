@@ -229,7 +229,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 
 	Quadric world;
-	float range = 1000;
+	float range = 100;
 	world.equation = DirectX::XMFLOAT4X4{
 					1,0,0,0,
 					0,1,0,0,

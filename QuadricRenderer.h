@@ -10,6 +10,7 @@
 #include "Window.h"
 #include "RasterizationStage.h"
 #include "GeometryProcessingStage.h"
+#include "MergeStage.h"
 
 class QuadricMesh;
 class DX12;
@@ -54,9 +55,11 @@ private:
 
 	friend class Stage::GeometryProcessing;
 	friend class Stage::Rasterization;
+	friend class Stage::Merge;
 
 	Stage::GeometryProcessing m_GPStage;
 	Stage::Rasterization m_RStage;
+	Stage::Merge m_MStage;
 
 
 	void CopyToBackBuffer();
