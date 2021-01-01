@@ -319,11 +319,14 @@ void QuadricRenderer::PrepareMeshes()
 QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
 	:m_pDX12{ pDX12 }, m_pCamera{ pCamera }, m_AppData{}
 	, m_GPStage{pDX12}
+	,m_RStage{pDX12}
 {
 	m_AppData.windowSize = { m_pDX12->GetWindow()->GetDimensions().width ,m_pDX12->GetWindow()->GetDimensions().height, 0, 0 };
 	m_AppData.tileDimensions = {64,64};
-	m_AppData.quadricsPerRasterizer = 128;
-	m_AppData.numRasterizers = 100;
+	m_AppData.quadricsPerRasterizer = 64;
+
+	m_AppData.numRasterizers = (m_pDX12->GetWindow()->GetDimensions().width / m_AppData.tileDimensions.width + 1) * (m_pDX12->GetWindow()->GetDimensions().height / m_AppData.tileDimensions.height + 1) * 2;
+
 	InitResources();
 }
 

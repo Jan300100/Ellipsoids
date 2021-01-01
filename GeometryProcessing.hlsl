@@ -30,20 +30,29 @@ void main( uint3 DTid : SV_DispatchThreadID )
     //FILL RASTERIZERS
     uint2 numTiles = uint2((gAppData.windowDimensions / gAppData.tileDimensions) + 1);
     uint2 start = NDCToScreen(float2(projected.xRange.x, projected.yRange.y), gAppData.windowDimensions) / gAppData.tileDimensions;
-    start = uint2(max(start.x, 0), max(start.y, 0));
     uint2 end = NDCToScreen(float2(projected.xRange.y, projected.yRange.x), gAppData.windowDimensions) / gAppData.tileDimensions;
-    end = uint2(min(end.x, numTiles.x), min(end.y, numTiles.y));
-    for (uint x = start.x; x < end.x; x++)
+    
+    if (start.x > numTiles.x || end.x < 0 || start.y > numTiles.y || end.y < 0)
+        return;
+    
+    start.x = clamp(start.x, 0, numTiles.x);
+    start.y = clamp(start.y, 0, numTiles.y);
+    end.x = clamp(end.x, 0, numTiles.x);
+    end.y = clamp(end.y, 0, numTiles.y);
+    
+    uint total = (end.x - start.x + 1) * (end.y - start.y + 1);
+    InterlockedAdd(MeshOutput.numOutputQuadrics, total);
+    for (uint x = start.x; x <= end.x; x++)
     {
-        for (uint y = start.y; y < end.y; y++)
+        for (uint y = start.y; y <= end.y; y++)
         {
-            InterlockedAdd(MeshOutput.numOutputQuadrics, 1);
-            if (MeshOutput.overflowed == false)
-            {
-                AddQuadric(y * numTiles.x + x, projected);
-            }
+
+            AddQuadric(y * numTiles.x + x, projected);
+            if (MeshOutput.overflowed)
+                return;
         }
     }
+    
 }
 
 void AddQuadric(uint screenTileIdx, OutQuadric quadric)

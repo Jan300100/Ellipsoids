@@ -79,7 +79,7 @@ QuadricMesh::QuadricMesh(DX12* pDX12, const std::vector<InQuadric>& quadrics, co
     MeshOutputData* mapped = nullptr;
     m_MeshOutputResetBuffer->Map(0, nullptr,
         reinterpret_cast<void**>(&mapped));
-    mapped->numOutputQuadrics = (UINT)m_Quadrics.size();
+    mapped->numOutputQuadrics = 0;
     mapped->overflowed = false;
     if (m_MeshOutputResetBuffer != nullptr)
         m_MeshOutputResetBuffer->Unmap(0, nullptr);

@@ -211,7 +211,6 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	in.push_back(lowerLegLeft);
 	in.push_back(shoeLeft);
 
-
 	size_t count = 1;
 	std::vector< QuadricMesh> dudes{};
 	for (size_t i = 0; i < count; i++)

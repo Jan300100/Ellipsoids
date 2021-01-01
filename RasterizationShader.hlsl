@@ -4,15 +4,14 @@
 
 //input
 ConstantBuffer<AppData> gAppData : register(b0);
-StructuredBuffer<Tile> gTiles : register(t0);
-StructuredBuffer<uint> gQuadricIndices : register(t1);
+StructuredBuffer<Rasterizer> gRasterizers : register(t0);
 StructuredBuffer<OutQuadric> gQuadrics : register(t2);
 
 //output
 RWTexture2D<float> gDepthBuffer : register(u0);
 RWTexture2D<float4> gColorBuffer : register(u1);
 
-uint2 GetScreenLeftTop(uint index, uint2 textureDimensions, uint2 tileDimensions);
+uint2 GetScreenLeftTop(uint index, uint2 textureDimensions, uint2 rasterizerDimensions);
 
 [numthreads(32, 1, 1)]
 void main( uint3 DTid : SV_DispatchThreadID )
@@ -21,19 +20,19 @@ void main( uint3 DTid : SV_DispatchThreadID )
     if (scanline >= gAppData.tileDimensions.y)
         return;
     
-    //TILE INFO
-    uint tileIndex = DTid.y;
-    Tile tile = gTiles[tileIndex];
+    //rasterizer INFO
+    uint rasterizerIndex = DTid.y;
+    Rasterizer rasterizer = gRasterizers[rasterizerIndex];
     float2 delta = float2(2.0f / gAppData.windowDimensions); //width and height of 1 pixel in NDC
-    uint2 screenLeftTop = GetScreenLeftTop(tile.screenTileIndex, gAppData.windowDimensions, gAppData.tileDimensions);
-    uint2 virtualTextureLeftTop = GetScreenLeftTop(tileIndex, gAppData.windowDimensions * gAppData.multiplier, gAppData.tileDimensions);
+    uint2 screenLeftTop = GetScreenLeftTop(rasterizer.screenTileIdx, gAppData.windowDimensions, gAppData.tileDimensions);
+    uint2 virtualTextureLeftTop = GetScreenLeftTop(rasterizerIndex, gAppData.tileDimensions * uint(sqrt((float) gAppData.numRasterizers) + 1.0f), gAppData.tileDimensions);
     float ndcLeft = ScreenToNDC(screenLeftTop.x, gAppData.windowDimensions.x);
     float ndcRight = ndcLeft + gAppData.tileDimensions.x * delta.x;
     
     //PER QUADRIC
-    for (uint qIdx = tile.quadricStartIndex; qIdx < tile.quadricStartIndex + tile.quadricsReserved; qIdx++)
+    for (uint qIdx = rasterizer.rasterizerIdx * gAppData.quadricsPerRasterizer; qIdx < rasterizer.rasterizerIdx * gAppData.quadricsPerRasterizer + rasterizer.numQuadrics; qIdx++)
     {
-        OutQuadric q = gQuadrics[gQuadricIndices[qIdx]];
+        OutQuadric q = gQuadrics[qIdx];
         
         float yNdc = q.yRange.x + scanline * delta.y;
         
@@ -49,7 +48,7 @@ void main( uint3 DTid : SV_DispatchThreadID )
         xMin = clamp(xMin, ndcLeft, ndcRight);
         xMax = clamp(xMax, ndcLeft, ndcRight);
         
-        //some of these steps can be moved to tile initialization
+        //some of these steps can be moved to rasterizer initialization
         uint2 screenPixel = NDCToScreen(float2(xMin, yNdc), gAppData.windowDimensions);        
 
         for (float xNdc = xMin; xNdc < xMax; xNdc += delta.x, screenPixel.x++)
@@ -108,10 +107,10 @@ void main( uint3 DTid : SV_DispatchThreadID )
     }
 }
 
-uint2 GetScreenLeftTop(uint index, uint2 textureDimensions, uint2 tileDimensions)
+uint2 GetScreenLeftTop(uint index, uint2 textureDimensions, uint2 rasterizerDimensions)
 {
     uint2 screenLeftTop;
-    screenLeftTop.x = (index % (textureDimensions.x / tileDimensions.x + 1)) * tileDimensions.x;
-    screenLeftTop.y = (index / (textureDimensions.x / tileDimensions.x + 1)) * tileDimensions.y;
+    screenLeftTop.x = (index % (textureDimensions.x / rasterizerDimensions.x + 1)) * rasterizerDimensions.x;
+    screenLeftTop.y = (index / (textureDimensions.x / rasterizerDimensions.x + 1)) * rasterizerDimensions.y;
     return screenLeftTop;
 }

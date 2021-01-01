@@ -6,11 +6,8 @@
 #include <imgui.h>
 #include <DirectXMath.h>
 #include "d3dx12.h"
-#include "ProjectionStage.h"
 #include "Structs.h"
 #include "Window.h"
-#include "TileSelectionStage.h"
-#include "BinningStage.h"
 #include "RasterizationStage.h"
 #include "GeometryProcessingStage.h"
 
@@ -54,13 +51,13 @@ private:
 	void InitResources();
 
 	//RENDER STAGES
-	friend class Stage::Projection;
-	friend class Stage::TileSelection;
-	friend class Stage::Binning;
-	friend class Stage::Rasterization;
+
 	friend class Stage::GeometryProcessing;
+	friend class Stage::Rasterization;
 
 	Stage::GeometryProcessing m_GPStage;
+	Stage::Rasterization m_RStage;
+
 
 	void CopyToBackBuffer();
 	
