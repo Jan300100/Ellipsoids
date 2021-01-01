@@ -17,6 +17,5 @@ namespace Stage
 	public:
 		virtual ~Stage() = default;
 		Stage(DX12* pDX12) : m_pDX12{ pDX12 } {}
-		virtual void Execute(QuadricRenderer* pRenderer, QuadricMesh* pMesh) const = 0;
 	};
 }

@@ -42,8 +42,8 @@ struct AppData
 	DirectX::XMUINT4 windowSize;
 	DirectX::XMFLOAT4 lightDirection;
 	Dimensions<unsigned int> tileDimensions;
-	unsigned int quadricsPerTile;
-	float multiplier;
+	unsigned int quadricsPerRasterizer;
+	unsigned int numRasterizers;
 };
 
 struct MeshData
@@ -52,17 +52,21 @@ struct MeshData
 	unsigned int numQuadrics;
 };
 
-struct ScreenTile
+struct MeshOutputData
 {
-	unsigned int tileIndex;
-	unsigned int numQuadrics;
+	unsigned int numOutputQuadrics;
+	bool overflowed;
 };
 
-struct Tile
+struct ScreenTile
 {
-	unsigned int screenTileIndex; //indicates position on the screen
-	unsigned int quadricStartIndex;
-	unsigned int quadricsReserved; //set by screentile
-	unsigned int quadricCtr; //used by quadrics that want to add themselves to this buffer
-	unsigned int nextTileIndex; //if this Tile is saturated with quadrics, they should be added to the next tile instead.
+	unsigned int rasterizerHint;
+};
+
+struct Rasterizer
+{
+	unsigned int screenTileIdx; //indicates position on the screen
+	unsigned int rasterizerIdx;
+	unsigned int nextRasterizerIdx; //if this Tile is saturated with quadrics, they should be added to the next tile instead.
+	unsigned int numQuadrics;
 };

@@ -1,28 +1,28 @@
-#include "BinningStage.h"
-#include "d3dx12.h"
-#include "Helpers.h"
-#include <d3dcompiler.h>
-#include "DX12.h"
+#include "GeometryProcessingStage.h"
 #include "QuadricMesh.h"
 #include "QuadricRenderer.h"
+#include "DX12.h"
+#include <d3dcompiler.h>
 
 using namespace Microsoft::WRL;
 
-Stage::Binning::Binning(DX12* pDX12)
-	: Stage{pDX12} 
+
+Stage::GeometryProcessing::GeometryProcessing(DX12* pDX12)
+	:Stage{pDX12}
 {
 	//ROOT SIGNATURE
-	CD3DX12_ROOT_PARAMETER slotRootParameter[6];
+	CD3DX12_ROOT_PARAMETER slotRootParameter[7];
 
 	slotRootParameter[0].InitAsConstantBufferView(0);
-	slotRootParameter[1].InitAsConstantBufferView(1);
-	slotRootParameter[2].InitAsShaderResourceView(0);
-	slotRootParameter[3].InitAsShaderResourceView(1);
+	slotRootParameter[1].InitAsShaderResourceView(0);
+	slotRootParameter[2].InitAsUnorderedAccessView(2);
+	slotRootParameter[3].InitAsConstantBufferView(1);
 	slotRootParameter[4].InitAsUnorderedAccessView(0);
 	slotRootParameter[5].InitAsUnorderedAccessView(1);
+	slotRootParameter[6].InitAsUnorderedAccessView(3);
 
 	// A root signature is an array of root parameters.
-	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(6, slotRootParameter,
+	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(7, slotRootParameter,
 		0, nullptr,
 		D3D12_ROOT_SIGNATURE_FLAG_NONE);
 
@@ -50,7 +50,7 @@ Stage::Binning::Binning(DX12* pDX12)
 	compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif
 
-	hr = D3DCompileFromFile(L"BinningShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+	hr = D3DCompileFromFile(L"GeometryProcessing.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"main", "cs_5_1", compileFlags, 0, &m_Shader, &errorBlob);
 
 	if (errorBlob != nullptr)
@@ -69,23 +69,36 @@ Stage::Binning::Binning(DX12* pDX12)
 	ThrowIfFailed(pDX12->GetDevice()->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&m_Pso)));
 }
 
-void Stage::Binning::Execute(QuadricRenderer* pRenderer, QuadricMesh* pMesh) const
+unsigned int Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, std::vector<QuadricMesh*> pMeshes, unsigned int start) const
 {
 	DX12::Pipeline* pPipeline = m_pDX12->GetPipeline();
 	auto pComList = pPipeline->commandList;
-
 	pComList->SetPipelineState(m_Pso.Get());
 	pComList->SetComputeRootSignature(m_RootSignature.Get());
 
-	pComList->SetComputeRootConstantBufferView(0, pRenderer->m_AppDataBuffer->GetGPUVirtualAddress());
-	pComList->SetComputeRootConstantBufferView(1, pMesh->GetMeshDataBuffer()->GetGPUVirtualAddress());
-	pComList->SetComputeRootShaderResourceView(2, pMesh->GetProjectedBuffer()->GetGPUVirtualAddress());
-	//pComList->SetComputeRootShaderResourceView(3, pRenderer->m_ScreenTileBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootConstantBufferView(3, pRenderer->m_AppDataBuffer->GetGPUVirtualAddress());
 	pComList->SetComputeRootUnorderedAccessView(4, pRenderer->m_RasterizerQBuffer->GetGPUVirtualAddress());
 	pComList->SetComputeRootUnorderedAccessView(5, pRenderer->m_RasterizerBuffer->GetGPUVirtualAddress());
-	
-	pComList->Dispatch((pMesh->QuadricsAmount() / 32) + 1 * ((pMesh->QuadricsAmount() % 32) > 0), 1, 1);
+	pComList->SetComputeRootUnorderedAccessView(6, pRenderer->m_ScreenTileBuffer->GetGPUVirtualAddress());
 
-	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerQBuffer.Get());
-	pComList->ResourceBarrier(1, &barrier);
+	unsigned int lastMesh = start;
+	unsigned int outputQuadricsCount = 0, numPossible = (pRenderer->m_AppData.quadricsPerRasterizer * pRenderer->m_AppData.numRasterizers);
+	while (outputQuadricsCount < numPossible && lastMesh < pMeshes.size())
+	{
+		QuadricMesh* pMesh = pMeshes[lastMesh];
+		//try process
+		pComList->SetComputeRootConstantBufferView(0, pMesh->GetMeshDataBuffer()->GetGPUVirtualAddress());
+		pComList->SetComputeRootShaderResourceView(1, pMesh->GetInputBuffer()->GetGPUVirtualAddress());
+		pComList->SetComputeRootUnorderedAccessView(2, pMesh->GetMeshOutputBuffer()->GetGPUVirtualAddress());
+
+		pComList->Dispatch((pMesh->QuadricsAmount() / 32) + 1 * ((pMesh->QuadricsAmount() % 32) > 0), 1, 1);
+
+		outputQuadricsCount += pMesh->GetMeshOutput().numOutputQuadrics;
+		if (pMesh->GetMeshOutput().overflowed)
+		{
+			break;
+		}
+		lastMesh++;
+	}
+	return lastMesh;
 }

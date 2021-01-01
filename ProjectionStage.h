@@ -11,6 +11,6 @@ namespace Stage
 	{
 	public:
 		Projection(DX12* pDX12);
-		virtual void Execute(QuadricRenderer* pRenderer, QuadricMesh* pMesh) const;
+		void Execute(QuadricRenderer* pRenderer, QuadricMesh* pMesh) const;
 	};
 }

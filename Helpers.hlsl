@@ -1,3 +1,4 @@
+#define UINT_MAX 0xffffffff
 
 uint NDCToScreen(float ndc, float dimension)
 {

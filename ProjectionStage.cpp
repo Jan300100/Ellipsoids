@@ -77,7 +77,7 @@ void Stage::Projection::Execute(QuadricRenderer* pRenderer, QuadricMesh* pMesh) 
 	pComList->SetComputeRootConstantBufferView(1, pMesh->GetMeshDataBuffer()->GetGPUVirtualAddress());
 	pComList->SetComputeRootShaderResourceView(2, pMesh->GetInputBuffer()->GetGPUVirtualAddress());
 	pComList->SetComputeRootUnorderedAccessView(3, pMesh->GetProjectedBuffer()->GetGPUVirtualAddress());
-	pComList->SetComputeRootUnorderedAccessView(4, pRenderer->m_ScreenTileBuffer->GetGPUVirtualAddress());
+	//pComList->SetComputeRootUnorderedAccessView(4, pRenderer->m_ScreenTileBuffer->GetGPUVirtualAddress());
 
 	pComList->Dispatch((pMesh->QuadricsAmount() / 32) + 1 * ((pMesh->QuadricsAmount() % 32) > 0), 1, 1);
 

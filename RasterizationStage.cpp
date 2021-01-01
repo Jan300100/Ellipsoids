@@ -75,8 +75,8 @@ void Stage::Rasterization::Execute(QuadricRenderer* pRenderer, QuadricMesh* pMes
 	pComList->SetComputeRootSignature(m_RootSignature.Get());
 
 	pComList->SetComputeRootConstantBufferView(0, pRenderer->m_AppDataBuffer->GetGPUVirtualAddress());
-	pComList->SetComputeRootShaderResourceView(1, pRenderer->m_TileBuffer->GetGPUVirtualAddress());
-	pComList->SetComputeRootShaderResourceView(2, pRenderer->m_QuadricDistributionBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootShaderResourceView(1, pRenderer->m_RasterizerBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootShaderResourceView(2, pRenderer->m_RasterizerQBuffer->GetGPUVirtualAddress());
 	pComList->SetComputeRootShaderResourceView(3, pMesh->GetProjectedBuffer()->GetGPUVirtualAddress());
 
 	//THESE NEED TO BE IN DESCRIPTOR

@@ -6,8 +6,8 @@ struct AppData
     uint2 windowDimensions;
     float3 lightDirection;
     uint2 tileDimensions;
-    uint quadricsPerTile;
-    float multiplier;
+    uint quadricsPerRasterizer;
+    uint numRasterizers;
 };
 
 struct InQuadric
@@ -32,22 +32,21 @@ struct MeshData
     uint numQuadrics;
 };
 
-struct ShaderOutput
+struct MeshOutputData
 {
-    uint numRelevantTiles;
+    uint numOutputQuadrics;
+    bool overflowed;
 };
 
 struct ScreenTile
 {
-    uint tileIndex;
-    uint numQuadrics; //counter
+    uint rasterizerHint;
 };
 
-struct Tile
+struct Rasterizer
 {
-    uint screenTileIndex; //indicates position on the screen
-    uint quadricStartIndex;
-    uint quadricsReserved; //set by screentile
-    uint quadricCtr; //used by quadrics that want to add themselves to this buffer
-    uint nextTileIndex; //if this Tile is saturated with quadrics, they should be added here.
+    uint screenTileIdx;
+    uint rasterizerIdx;
+    uint nextRasterizerIdx; //linked list
+    uint numQuadrics;
 };

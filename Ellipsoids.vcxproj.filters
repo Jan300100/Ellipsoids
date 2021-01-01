@@ -30,6 +30,9 @@
     <Filter Include="Pipeline\Rasterization">
       <UniqueIdentifier>{d15da416-15f8-4c63-b3e8-135a75045a6d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Pipeline\GeometryProcessing">
+      <UniqueIdentifier>{ae0de817-2e66-4645-a402-98aa156d0a64}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Helpers.cpp">
@@ -95,6 +98,9 @@
     <ClCompile Include="RasterizationStage.cpp">
       <Filter>Pipeline\Rasterization</Filter>
     </ClCompile>
+    <ClCompile Include="GeometryProcessingStage.cpp">
+      <Filter>Pipeline\GeometryProcessing</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Helpers.h">
@@ -156,6 +162,9 @@
     <ClInclude Include="Stage.h">
       <Filter>Pipeline</Filter>
     </ClInclude>
+    <ClInclude Include="GeometryProcessingStage.h">
+      <Filter>Pipeline\GeometryProcessing</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="ProjectionShader.hlsl">
@@ -175,6 +184,9 @@
     </FxCompile>
     <FxCompile Include="RasterizationShader.hlsl">
       <Filter>Pipeline\Rasterization</Filter>
+    </FxCompile>
+    <FxCompile Include="GeometryProcessing.hlsl">
+      <Filter>Pipeline\GeometryProcessing</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

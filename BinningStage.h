@@ -11,6 +11,6 @@ namespace Stage
 	{
 	public:
 		Binning(DX12* pDX12);
-		virtual void Execute(QuadricRenderer* pRenderer, QuadricMesh* pMesh) const override;
+		void Execute(QuadricRenderer* pRenderer, QuadricMesh* pMesh) const;
 	};
 }

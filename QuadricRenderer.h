@@ -12,6 +12,7 @@
 #include "TileSelectionStage.h"
 #include "BinningStage.h"
 #include "RasterizationStage.h"
+#include "GeometryProcessingStage.h"
 
 class QuadricMesh;
 class DX12;
@@ -38,14 +39,17 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_OutputTexture;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_DepthTexture;
 
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_TileGBuffers[GBUFFER::NumBuffers];
-	//TODO:
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_ScreenTileBuffer; //uav buffer
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_TileBuffer; //uav buffer, flexible(resize when not big enough?)
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_ScreenTileUploadBuffer; //upload buffer
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_QuadricDistributionBuffer; //uav buffer
-	unsigned int m_QuadricsPerTile = 256;
+	//RASTERIZERS:
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerBuffer; //uav buffer, flexible(resize when not big enough?)
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerResetBuffer; //upload buffer to reset screenTiles
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerQBuffer; //uav buffer with outputQuadrics
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_GBuffersDescriptorHeap;
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerGBuffers[GBUFFER::NumBuffers];
 	
+	//SCREENTILES
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_ScreenTileBuffer; //uav buffer, flexible(resize when not big enough?)
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_ScreenTileResetBuffer; //upload buffer to reset screenTiles
+
 	//Initialization
 	void InitResources();
 
@@ -54,17 +58,16 @@ private:
 	friend class Stage::TileSelection;
 	friend class Stage::Binning;
 	friend class Stage::Rasterization;
+	friend class Stage::GeometryProcessing;
 
-	Stage::Projection m_ProjStage;
-	Stage::TileSelection m_TileSelectionStage;
-	Stage::Binning m_BinningStage;
-	Stage::Rasterization m_RasterizationStage;
+	Stage::GeometryProcessing m_GPStage;
+
 	void CopyToBackBuffer();
 	
 	std::vector<QuadricMesh*> m_ToRender;
 
 	void InitDrawCall();
-
+	void PrepareMeshes();
 public:
 	QuadricRenderer(DX12* pDX12, Camera* pCamera);
 	void SetCamera(Camera* pCamera) { m_pCamera = pCamera; }

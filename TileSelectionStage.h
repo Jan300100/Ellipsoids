@@ -20,6 +20,6 @@ namespace Stage
 		Microsoft::WRL::ComPtr<ID3D12Resource> m_CountersReadbackResource;
 	public:
 		TileSelection(DX12* pDX12);
-		virtual void Execute(QuadricRenderer* pRenderer, QuadricMesh* pMesh = nullptr) const override;
+		void Execute(QuadricRenderer* pRenderer, QuadricMesh* pMesh = nullptr) const;
 	};
 }

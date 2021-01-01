@@ -119,8 +119,8 @@ void Stage::TileSelection::Execute(QuadricRenderer* pRenderer, QuadricMesh*) con
 	pComList->SetPipelineState(m_Pso.Get());
 	pComList->SetComputeRootSignature(m_RootSignature.Get());
 	pComList->SetComputeRootConstantBufferView(0, pRenderer->m_AppDataBuffer->GetGPUVirtualAddress());
-	pComList->SetComputeRootUnorderedAccessView(1, pRenderer->m_ScreenTileBuffer->GetGPUVirtualAddress());
-	pComList->SetComputeRootUnorderedAccessView(2, pRenderer->m_TileBuffer->GetGPUVirtualAddress());
+	//pComList->SetComputeRootUnorderedAccessView(1, pRenderer->m_ScreenTileBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootUnorderedAccessView(2, pRenderer->m_RasterizerBuffer->GetGPUVirtualAddress());
 	pComList->SetComputeRootUnorderedAccessView(3, m_CountersResource->GetGPUVirtualAddress());
 
 	unsigned int horizontalTiles{ (m_pDX12->GetWindow()->GetDimensions().width / pRenderer->m_AppData.tileDimensions.width) + 1 }
@@ -130,8 +130,8 @@ void Stage::TileSelection::Execute(QuadricRenderer* pRenderer, QuadricMesh*) con
 	pComList->Dispatch((nrTiles / 32) + 1 * ((nrTiles % 32) > 0), 1, 1);
 
 	CD3DX12_RESOURCE_BARRIER barriers[3];
-	barriers[0] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_ScreenTileBuffer.Get());
-	barriers[1] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_TileBuffer.Get());
+	//barriers[0] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_ScreenTileBuffer.Get());
+	barriers[1] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerBuffer.Get());
 	barriers[2] = CD3DX12_RESOURCE_BARRIER::Transition(m_CountersResource.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_DEST);
 
 	pComList->ResourceBarrier(3, barriers);
