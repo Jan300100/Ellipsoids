@@ -362,6 +362,7 @@ void QuadricRenderer::Render()
 	{
 		InitDrawCall();
 		rendered = m_GPStage.Execute(this, m_ToRender, (UINT)rendered);
+		m_RStage.Execute(this);
 	}
 
 	CopyToBackBuffer();

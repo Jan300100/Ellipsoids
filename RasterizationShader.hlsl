@@ -5,7 +5,7 @@
 //input
 ConstantBuffer<AppData> gAppData : register(b0);
 StructuredBuffer<Rasterizer> gRasterizers : register(t0);
-StructuredBuffer<OutQuadric> gQuadrics : register(t2);
+StructuredBuffer<OutQuadric> gQuadrics : register(t1);
 
 //output
 RWTexture2D<float> gDepthBuffer : register(u0);

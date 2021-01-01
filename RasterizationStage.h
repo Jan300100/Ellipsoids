@@ -10,6 +10,6 @@ namespace Stage
 	{
 	public:
 		Rasterization(DX12* pDX12);
-		void Execute(QuadricRenderer* pRenderer, QuadricMesh* pMesh) const;
+		void Execute(QuadricRenderer* pRenderer) const;
 	};
 }
