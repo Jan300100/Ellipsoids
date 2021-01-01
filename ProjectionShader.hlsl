@@ -61,6 +61,11 @@ void main( uint3 DTid : SV_DispatchThreadID )
         }
         output.yRange = float2(yMin, yMax);
     }
+    else
+    {
+        output.yRange = float2(0, 0);
+
+    }
     
     //calc a, b, c
     b = 2 * (output.transform[1][0] * output.transform[2][1] - output.transform[2][0] * output.transform[1][1]);
@@ -74,6 +79,10 @@ void main( uint3 DTid : SV_DispatchThreadID )
             xMin = -1;
         }
         output.xRange = float2(xMin, xMax);
+    }
+    else
+    {
+        output.xRange = float2(0, 0);
     }
     gQuadricsOut[DTid.x] = output;
 

@@ -123,8 +123,8 @@ void Stage::TileSelection::Execute(QuadricRenderer* pRenderer, QuadricMesh*) con
 	pComList->SetComputeRootUnorderedAccessView(2, pRenderer->m_TileBuffer->GetGPUVirtualAddress());
 	pComList->SetComputeRootUnorderedAccessView(3, m_CountersResource->GetGPUVirtualAddress());
 
-	unsigned int horizontalTiles{ (m_pDX12->GetWindow()->GetDimensions().width / pRenderer->m_TileDimensions.width) + 1 }
-		, verticalTiles{ (m_pDX12->GetWindow()->GetDimensions().height / pRenderer->m_TileDimensions.height) + 1 }
+	unsigned int horizontalTiles{ (m_pDX12->GetWindow()->GetDimensions().width / pRenderer->m_AppData.tileDimensions.width) + 1 }
+		, verticalTiles{ (m_pDX12->GetWindow()->GetDimensions().height / pRenderer->m_AppData.tileDimensions.height) + 1 }
 	, nrTiles{ horizontalTiles * verticalTiles };
 
 	pComList->Dispatch((nrTiles / 32) + 1 * ((nrTiles % 32) > 0), 1, 1);

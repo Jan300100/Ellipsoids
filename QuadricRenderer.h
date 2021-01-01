@@ -16,12 +16,17 @@
 class QuadricMesh;
 class DX12;
 class Camera;
+
+enum GBUFFER : unsigned int
+{
+	Depth = 0, Color, NumBuffers
+};
+
 class QuadricRenderer
 {
 private:
 	DX12* m_pDX12;
 	Camera* m_pCamera;
-
 
 
 	//DATA
@@ -32,18 +37,14 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DescriptorHeapShaderVisible;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_OutputTexture;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_DepthTexture;
-	enum GBuffer : unsigned int
-	{
-		Depth = 0, Color, NumBuffers
-	};
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_TileGBuffers[GBuffer::NumBuffers];
+
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_TileGBuffers[GBUFFER::NumBuffers];
 	//TODO:
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_ScreenTileBuffer; //uav buffer
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_TileBuffer; //uav buffer, flexible(resize when not big enough?)
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_ScreenTileUploadBuffer; //upload buffer
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_QuadricDistributionBuffer; //uav buffer
 	unsigned int m_QuadricsPerTile = 256;
-	Dimensions<unsigned int> m_TileDimensions = {64,64};
 	
 	//Initialization
 	void InitResources();

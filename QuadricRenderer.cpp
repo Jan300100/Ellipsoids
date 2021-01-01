@@ -71,7 +71,7 @@ void QuadricRenderer::InitResources()
 		&texDesc,
 		D3D12_RESOURCE_STATE_COMMON,
 		nullptr,
-		IID_PPV_ARGS(&m_TileGBuffers[GBuffer::Color])));
+		IID_PPV_ARGS(&m_TileGBuffers[GBUFFER::Color])));
 
 	texDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
 	ThrowIfFailed(m_pDX12->GetDevice()->CreateCommittedResource(
@@ -80,7 +80,7 @@ void QuadricRenderer::InitResources()
 		&texDesc,
 		D3D12_RESOURCE_STATE_COMMON,
 		nullptr,
-		IID_PPV_ARGS(&m_TileGBuffers[GBuffer::Depth])));
+		IID_PPV_ARGS(&m_TileGBuffers[GBUFFER::Depth])));
 
 	//descriptors
 	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
@@ -112,8 +112,8 @@ void QuadricRenderer::InitResources()
 	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_DepthTexture.Get(), nullptr, &uavDesc, srvHeapShaderVisibleHandle);
 
 	//BUFFERS
-	unsigned int horizontalTiles{( m_pDX12->GetWindow()->GetDimensions().width / m_TileDimensions.width) + 1}
-	, verticalTiles{ (m_pDX12->GetWindow()->GetDimensions().height / m_TileDimensions.height) + 1 }
+	unsigned int horizontalTiles{( m_pDX12->GetWindow()->GetDimensions().width / m_AppData.tileDimensions.width) + 1}
+	, verticalTiles{ (m_pDX12->GetWindow()->GetDimensions().height / m_AppData.tileDimensions.height) + 1 }
 	, nrTiles{ horizontalTiles * verticalTiles };
 	// Create the buffer that will be a UAV with screenTiles
 	auto byteSize = sizeof(ScreenTile) * nrTiles;
@@ -154,7 +154,7 @@ void QuadricRenderer::InitResources()
 	delete[] screenTiles;
 
 	// Create the buffer that will be a UAV with tiles : initial size is the same as screentiles
-	byteSize = sizeof(Tile) * nrTiles;
+	byteSize = (UINT)(sizeof(Tile) * nrTiles * m_AppData.multiplier);
 	properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	desc = CD3DX12_RESOURCE_DESC::Buffer(byteSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 	ThrowIfFailed(m_pDX12->GetDevice()->CreateCommittedResource(
@@ -250,7 +250,7 @@ QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
 	, m_RasterizationStage{pDX12}
 {
 	m_AppData.windowSize = { m_pDX12->GetWindow()->GetDimensions().width ,m_pDX12->GetWindow()->GetDimensions().height, 0, 0 };
-	m_AppData.tileDimensions = m_TileDimensions;
+	m_AppData.tileDimensions = {64,64};
 	m_AppData.quadricsPerTile = m_QuadricsPerTile;
 	m_AppData.multiplier = 1.0f;
 	InitResources();

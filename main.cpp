@@ -211,7 +211,18 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	in.push_back(lowerLegLeft);
 	in.push_back(shoeLeft);
 
-	QuadricMesh dude{ &dx12, in };
+
+	size_t count = 1;
+	std::vector< QuadricMesh> dudes{};
+	for (size_t i = 0; i < count; i++)
+	{
+		for (size_t j = 0; j < count; j++)
+		{
+			dudes.emplace_back(&dx12, in);
+			dudes.back().GetTransform().position.x = 5.0f * i;
+			dudes.back().GetTransform().position.z = 5.0f * j;
+		}
+	}
 
 	Quadric ellipsoid{};
 	ellipsoid.equation = DirectX::XMFLOAT4X4{
@@ -273,9 +284,10 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 		pCamera->Update(delta);
 		dx12.NewFrame();
-		renderer.Render(&ground);
+		//renderer.Render(&ground);
 
-		renderer.Render(&dude);
+		for (QuadricMesh& dude : dudes)
+			renderer.Render(&dude);
 
 		renderer.Render();
 		imguiRenderer.Render(dx12.GetPipeline()->commandList.Get());
