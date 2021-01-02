@@ -32,11 +32,11 @@ unsigned int Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, std:
 	pComList->SetComputeRootUnorderedAccessView(6, pRenderer->m_ScreenTileBuffer->GetGPUVirtualAddress());
 
 	unsigned int lastMesh = start;
-	unsigned int outputQuadricsCount = 0, numPossible = (pRenderer->m_AppData.quadricsPerRasterizer * pRenderer->m_AppData.numRasterizers);
-	while (outputQuadricsCount < numPossible && lastMesh < pMeshes.size())
+	unsigned int rasterizersInUse = 0, numPossible = pRenderer->m_AppData.numRasterizers;
+	while (rasterizersInUse < numPossible && lastMesh < pMeshes.size())
 	{
 		QuadricMesh* pMesh = pMeshes[lastMesh];
-		//try process
+
 
 		std::vector< CD3DX12_RESOURCE_BARRIER> barriers{};
 		barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerBuffer.Get()));
@@ -50,13 +50,14 @@ unsigned int Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, std:
 
 		pComList->Dispatch((pMesh->QuadricsAmount() / 32) + ((pMesh->QuadricsAmount() % 32) > 0), 1, 1);
 
-		outputQuadricsCount += pMesh->GetMeshOutput().numOutputQuadrics;
 		if (pMesh->GetMeshOutput().overflowed)
 		{
 			pMesh->GetMeshOutput().overflowed = false;
-			//if (lastMesh == start) throw "Not enough Rasterizers, Mesh is too big";
 			break;
 		}
+
+
+		rasterizersInUse += pMesh->GetMeshOutput().claimedRasterizers;
 		lastMesh++;
 	}
 	return lastMesh;

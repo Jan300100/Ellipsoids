@@ -41,9 +41,9 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 	Transform cameraTransform{};
 	cameraTransform.position = { 0,4.5,-4.f };
-	Camera* pCamera = new FreeCamera{ &window, &mouse, cameraTransform };
+	FreeCamera camera = FreeCamera{ &window, &mouse, cameraTransform };
 
-	QuadricRenderer renderer{ &dx12, pCamera };
+	QuadricRenderer renderer{ &dx12, &camera };
 
 	DirectX::XMFLOAT3 skinColor{ 1.0f,0.67f,0.45f }, tShirtColor{ 1,0,0 }, pantsColor{0,0,1}, shoeColor{0.6f,0.4f,0.1f};
 	
@@ -283,7 +283,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		totalTime += delta;
 
 
-		pCamera->Update(delta);
+		camera.Update(delta);
 		dx12.NewFrame();
 		renderer.Render(&ground);
 

@@ -17,7 +17,7 @@ RWStructuredBuffer<ScreenTile> gScreenTiles : register(u3);
 #define MeshOutput gMeshOutput[0]
 
 OutQuadric Project(InQuadric q);
-void AddQuadric(uint screenTileIdx, OutQuadric quadric);
+bool AddQuadric(uint screenTileIdx, OutQuadric quadric);
 
 [numthreads(32, 1, 1)]
 void main( uint3 DTid : SV_DispatchThreadID )
@@ -45,7 +45,7 @@ void main( uint3 DTid : SV_DispatchThreadID )
     end.x = clamp(end.x, 0, numTiles.x);
     end.y = clamp(end.y, 0, numTiles.y);
     
-    uint added = 0;
+    uint addedRasterizers = 0;
     for (uint x = start.x; x <= end.x; x++)
     {
         for (uint y = start.y; y <= end.y; y++)
@@ -53,19 +53,18 @@ void main( uint3 DTid : SV_DispatchThreadID )
             uint screenIdx = y * numTiles.x + x;
             if (screenIdx < numTiles.x * numTiles.y)
             {
-                added++;
-                AddQuadric(screenIdx, projected);
+                addedRasterizers += AddQuadric(screenIdx, projected);
             }
         }
     }
-    InterlockedAdd(MeshOutput.numOutputQuadrics, added);
+    InterlockedAdd(MeshOutput.claimedRasterizers, addedRasterizers);
 }
 
-void AddQuadric(uint screenTileIdx, OutQuadric quadric)
+bool AddQuadric(uint screenTileIdx, OutQuadric quadric)
 {
     uint screenHint = gScreenTiles[screenTileIdx].rasterizerHint;
     uint pos = (screenHint != UINT_MAX) * screenHint;
-    bool added = false;
+    bool added = false, claimedRasterizer = false;
     uint previousFull = UINT_MAX;
     while (!added)
     {
@@ -76,6 +75,8 @@ void AddQuadric(uint screenTileIdx, OutQuadric quadric)
             added = true;
             MeshOutput.overflowed = true; //tells the cpu this mesh didn't fit in the batch anymore. 
             //next frame, cpu will try again, but will also start with this one on a new batch.
+            claimedRasterizer = true;
+
         }
         else if (gRasterizers[pos].screenTileIdx == screenTileIdx)
         {
@@ -128,6 +129,8 @@ void AddQuadric(uint screenTileIdx, OutQuadric quadric)
             pos++;
         }
     }
+    return claimedRasterizer;
+
 }
 
 

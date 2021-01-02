@@ -346,7 +346,7 @@ QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
 	,m_MStage{pDX12}
 {
 	m_AppData.windowSize = { m_pDX12->GetWindow()->GetDimensions().width ,m_pDX12->GetWindow()->GetDimensions().height, 0, 0 };
-	m_AppData.tileDimensions = { 256,32 };
+	m_AppData.tileDimensions = { 128,128 };
 	m_AppData.quadricsPerRasterizer = 128;
 
 	UINT screenTiles = GetNrTiles().height * GetNrTiles().width;

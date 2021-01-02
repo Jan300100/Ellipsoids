@@ -34,7 +34,7 @@ struct MeshData
 
 struct MeshOutputData
 {
-    uint numOutputQuadrics;
+    uint claimedRasterizers;
     bool overflowed;
 };
 

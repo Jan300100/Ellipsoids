@@ -45,8 +45,8 @@ void main( uint3 DTid : SV_DispatchThreadID )
             uint2 pixel = virtualTextureLeftTop + uint2(x, scanline);
             uint2 screenP = screenLeftTop + uint2(x, scanline);
             float3 pos = float3(
-                                (screenP.x / float(gAppData.windowDimensions.x) - 0.5f) * 2.0f,
-                                -(screenP.y / float(gAppData.windowDimensions.y) - 0.5f) * 2.0f
+                                ((screenLeftTop.x + x) / float(gAppData.windowDimensions.x) - 0.5f) * 2.0f,
+                                -((screenLeftTop.y + scanline) / float(gAppData.windowDimensions.y) - 0.5f) * 2.0f
                                 , 1
                                 );
 
