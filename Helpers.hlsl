@@ -61,10 +61,17 @@ bool SolveQuadratic(float a, float b, float c, out float minValue, out float max
     return !(c < 0);
 }
 
+uint2 GetNrTiles(uint2 windowDimensions, uint2 rasterizerDimensions)
+{
+    return uint2(windowDimensions.x / rasterizerDimensions.x + (windowDimensions.x % rasterizerDimensions.x > 0)
+    , windowDimensions.y / rasterizerDimensions.y + (windowDimensions.y % rasterizerDimensions.y > 0));
+}
+
 uint2 GetScreenLeftTop(uint index, uint2 textureDimensions, uint2 rasterizerDimensions)
 {
     uint2 screenLeftTop;
-    screenLeftTop.x = (index % (textureDimensions.x / rasterizerDimensions.x + 1)) * rasterizerDimensions.x;
-    screenLeftTop.y = (index / (textureDimensions.x / rasterizerDimensions.x + 1)) * rasterizerDimensions.y;
+    uint nrTilesHorizontal = GetNrTiles(textureDimensions, rasterizerDimensions).x;
+    screenLeftTop.x = (index % nrTilesHorizontal) * rasterizerDimensions.x;
+    screenLeftTop.y = (index / nrTilesHorizontal) * rasterizerDimensions.y;
     return screenLeftTop;
 }

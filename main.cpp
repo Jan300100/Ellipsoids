@@ -29,7 +29,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	freopen_s(&pDummy, "CONOUT$", "w", stderr);
 	freopen_s(&pDummy, "CONOUT$", "w", stdout);
 
-	Window window{ hInstance, 640, 480 };
+	Window window{ hInstance, 960, 640 };
 
 	DX12 dx12{&window};
 
@@ -193,22 +193,26 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 	std::vector<InQuadric> in{};
 
-	in.push_back(head);
-	in.push_back(body);
-	in.push_back(upperArmRight);
-	in.push_back(lowerArmRight);
-	in.push_back(handRight);
-	in.push_back(upperArmLeft);
-	in.push_back(lowerArmLeft);
-	in.push_back(handLeft);
-	in.push_back(upperLegRight);
-	in.push_back(lowerLegRight);
-	in.push_back(shoeRight);
-	in.push_back(upperLegLeft);
-	in.push_back(lowerLegLeft);
-	in.push_back(shoeLeft);
+	for (size_t i = 0; i < 1; i++)
+	{
+		in.push_back(head);
+		in.push_back(body);
+		in.push_back(upperArmRight);
+		in.push_back(lowerArmRight);
+		in.push_back(handRight);
+		in.push_back(upperArmLeft);
+		in.push_back(lowerArmLeft);
+		in.push_back(handLeft);
+		in.push_back(upperLegRight);
+		in.push_back(lowerLegRight);
+		in.push_back(shoeRight);
+		in.push_back(upperLegLeft);
+		in.push_back(lowerLegLeft);
+		in.push_back(shoeLeft);
+	}
+	
 
-	size_t count = 20;
+	size_t count = 10;
 	std::vector< QuadricMesh> dudes{};
 	for (size_t i = 0; i < count; i++)
 	{
@@ -216,6 +220,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		{
 			dudes.emplace_back(&dx12, in);
 			dudes.back().GetTransform().position.x = 5.0f * i;
+			dudes.back().GetTransform().position.y = 4.5f;
 			dudes.back().GetTransform().position.z = 5.0f * j;
 		}
 	}
@@ -229,7 +234,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 
 	Quadric world;
-	float range = 10;
+	float range = 1000;
 	world.equation = DirectX::XMFLOAT4X4{
 					1,0,0,0,
 					0,1,0,0,
@@ -280,7 +285,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 		pCamera->Update(delta);
 		dx12.NewFrame();
-		//renderer.Render(&ground);
+		renderer.Render(&ground);
 
 		for (QuadricMesh& dude : dudes)
 			renderer.Render(&dude);

@@ -74,6 +74,9 @@ private:
 
 	DirectX::XMFLOAT4 m_ClearColor = { 66 / 255.0f,135 / 255.0f,245 / 255.0f,0 };
 	float m_DepthClearValue = FLT_MAX;
+
+	Dimensions<UINT> GetNrTiles() const;
+
 public:
 	QuadricRenderer(DX12* pDX12, Camera* pCamera);
 	void SetCamera(Camera* pCamera) { m_pCamera = pCamera; }

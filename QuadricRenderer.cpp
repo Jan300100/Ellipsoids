@@ -65,8 +65,8 @@ void QuadricRenderer::InitResources()
 
 	//tile G buffers
 
-	texDesc.Width = (UINT(sqrt((float)m_AppData.numRasterizers)+1) * m_AppData.tileDimensions.width);
-	texDesc.Height = (UINT(sqrt((float)m_AppData.numRasterizers) + 1) * m_AppData.tileDimensions.height);
+	texDesc.Width = (UINT(ceilf(sqrtf((float)m_AppData.numRasterizers))) * m_AppData.tileDimensions.width);
+	texDesc.Height = (UINT(ceilf(sqrtf((float)m_AppData.numRasterizers))) * m_AppData.tileDimensions.height);
 	texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	ThrowIfFailed(m_pDX12->GetDevice()->CreateCommittedResource(
 		&properties,
@@ -125,12 +125,8 @@ void QuadricRenderer::InitResources()
 	
 	//BUFFERS
 	//SCREENTILES
-	// Create the buffer that will be a UAV with rasterizers
-	unsigned int tilesHor{m_pDX12->GetWindow()->GetDimensions().width / m_AppData.tileDimensions.width + 1}
-	, tilesVer{ m_pDX12->GetWindow()->GetDimensions().height / m_AppData.tileDimensions.height + 1 };
-	unsigned int nrTiles{ tilesHor * tilesVer };
 
-	UINT byteSize = (sizeof(ScreenTile) * nrTiles);
+	UINT byteSize = (sizeof(ScreenTile) * GetNrTiles().width * GetNrTiles().height);
 	properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	desc = CD3DX12_RESOURCE_DESC::Buffer(byteSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 	ThrowIfFailed(m_pDX12->GetDevice()->CreateCommittedResource(
@@ -155,7 +151,7 @@ void QuadricRenderer::InitResources()
 	ScreenTile* tiles = nullptr;
 	m_ScreenTileResetBuffer->Map(0, nullptr,
 		reinterpret_cast<void**>(&tiles));
-	for (UINT i = 0; i < nrTiles; i++)
+	for (UINT i = 0; i < GetNrTiles().width * GetNrTiles().height; i++)
 	{
 		tiles[i].rasterizerHint = UINT_MAX;
 	}
@@ -336,6 +332,13 @@ void QuadricRenderer::PrepareMeshes()
 	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
 }
 
+Dimensions<UINT> QuadricRenderer::GetNrTiles() const
+{
+	auto wDim = m_pDX12->GetWindow()->GetDimensions();
+	auto tDim = m_AppData.tileDimensions;
+	return Dimensions<UINT>{(wDim.width /tDim.width + (wDim.width % tDim.width > 0)), (wDim.height / tDim.height + (wDim.height % tDim.height > 0)) };
+}
+
 QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
 	:m_pDX12{ pDX12 }, m_pCamera{ pCamera }, m_AppData{}
 	, m_GPStage{pDX12}
@@ -343,10 +346,12 @@ QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
 	,m_MStage{pDX12}
 {
 	m_AppData.windowSize = { m_pDX12->GetWindow()->GetDimensions().width ,m_pDX12->GetWindow()->GetDimensions().height, 0, 0 };
-	m_AppData.tileDimensions = {64,128};
-	m_AppData.quadricsPerRasterizer = 64;
+	m_AppData.tileDimensions = { 256,32 };
+	m_AppData.quadricsPerRasterizer = 128;
 
-	m_AppData.numRasterizers = (m_pDX12->GetWindow()->GetDimensions().width / m_AppData.tileDimensions.width + 1) * (m_pDX12->GetWindow()->GetDimensions().height / m_AppData.tileDimensions.height + 1) * 2;
+	UINT screenTiles = GetNrTiles().height * GetNrTiles().width;
+	UINT extraRasterizers = screenTiles;
+	m_AppData.numRasterizers = screenTiles + extraRasterizers;
 
 	InitResources();
 

@@ -44,9 +44,7 @@ void Stage::Merge::Execute(QuadricRenderer* pRenderer) const
 	UINT threadGroupsHor = pRenderer->m_AppData.tileDimensions.width;
 	threadGroupsVer = (threadGroupsVer / 8) + ((threadGroupsVer % 32) > 0);
 	threadGroupsHor = (threadGroupsHor / 8) + ((threadGroupsHor % 32) > 0);
-	UINT numScreentiles = 
-		(pRenderer->m_pDX12->GetWindow()->GetDimensions().width / pRenderer->m_AppData.tileDimensions.width + 1) 
-		* (pRenderer->m_pDX12->GetWindow()->GetDimensions().height / pRenderer->m_AppData.tileDimensions.height + 1);
+	UINT numScreentiles = pRenderer->GetNrTiles().width * pRenderer->GetNrTiles().height;
 	pComList->Dispatch(threadGroupsHor, threadGroupsVer, numScreentiles);
 
 

@@ -28,9 +28,14 @@ void main( uint3 DTid : SV_DispatchThreadID )
     OutQuadric projected = Project(gQuadricsIn[DTid.x]);
     
     //FILL RASTERIZERS
-    uint2 numTiles = uint2((gAppData.windowDimensions / gAppData.tileDimensions) + 1);
-    uint2 start = NDCToScreen(float2(projected.xRange.x, projected.yRange.y), gAppData.windowDimensions) / gAppData.tileDimensions;
-    uint2 end = NDCToScreen(float2(projected.xRange.y, projected.yRange.x), gAppData.windowDimensions) / gAppData.tileDimensions;
+    uint2 numTiles = GetNrTiles(gAppData.windowDimensions, gAppData.tileDimensions);
+
+    uint2 start = NDCToScreen(float2(projected.xRange.x, projected.yRange.y), gAppData.windowDimensions);
+    start.x /= gAppData.tileDimensions.x;
+    start.y /= gAppData.tileDimensions.y;
+    uint2 end = NDCToScreen(float2(projected.xRange.y, projected.yRange.x), gAppData.windowDimensions);
+    end.x /= gAppData.tileDimensions.x;
+    end.y /= gAppData.tileDimensions.y;
     
     if (start.x > numTiles.x || end.x < 0 || start.y > numTiles.y || end.y < 0)
         return;
@@ -40,18 +45,20 @@ void main( uint3 DTid : SV_DispatchThreadID )
     end.x = clamp(end.x, 0, numTiles.x);
     end.y = clamp(end.y, 0, numTiles.y);
     
-    uint total = (end.x - start.x + 1) * (end.y - start.y + 1);
-    InterlockedAdd(MeshOutput.numOutputQuadrics, total);
+    uint added = 0;
     for (uint x = start.x; x <= end.x; x++)
     {
         for (uint y = start.y; y <= end.y; y++)
         {
-
-            AddQuadric(y * numTiles.x + x, projected);
-            if (MeshOutput.overflowed)
-                return;
+            uint screenIdx = y * numTiles.x + x;
+            if (screenIdx < numTiles.x * numTiles.y)
+            {
+                added++;
+                AddQuadric(screenIdx, projected);
+            }
         }
     }
+    InterlockedAdd(MeshOutput.numOutputQuadrics, added);
 }
 
 void AddQuadric(uint screenTileIdx, OutQuadric quadric)
@@ -107,14 +114,12 @@ void AddQuadric(uint screenTileIdx, OutQuadric quadric)
             InterlockedCompareExchange(gRasterizers[pos].screenTileIdx, UINT_MAX, screenTileIdx, original);
             if (original == UINT_MAX)
             {
-                //we claimed the raterizer, setup hints for future quadrics
-                if (previousFull == UINT_MAX)
+                //we claimed the rasterizer, append to linkedlist
+                uint llIdx;
+                InterlockedCompareExchange(gScreenTiles[screenTileIdx].rasterizerHint, UINT_MAX, pos, llIdx);
+                while (llIdx < gAppData.numRasterizers)
                 {
-                    InterlockedCompareStore(gScreenTiles[screenTileIdx].rasterizerHint, screenHint, pos);
-                }
-                else
-                {
-                    InterlockedCompareStore(gRasterizers[previousFull].nextRasterizerIdx, UINT_MAX, pos);
+                    InterlockedCompareExchange(gRasterizers[llIdx].nextRasterizerIdx, UINT_MAX, pos, llIdx);
                 }
             }
         }

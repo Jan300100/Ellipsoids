@@ -1,5 +1,5 @@
-#include "Structs.hlsl"
 #include "Helpers.hlsl"
+#include "Structs.hlsl"
 
 
 //input
@@ -23,18 +23,23 @@ void main( uint3 DTid : SV_DispatchThreadID )
     uint screenTileIdx = DTid.z;
     uint2 screenLeftTop = GetScreenLeftTop(screenTileIdx, gAppData.windowDimensions, gAppData.tileDimensions);
     uint2 pixel = screenLeftTop.xy + DTid.xy;
-    if (pixel.x > gAppData.windowDimensions.x || pixel.y > gAppData.windowDimensions.y)
+    if (pixel.x > gAppData.windowDimensions.x 
+        || pixel.y > gAppData.windowDimensions.y 
+        || DTid.x > gAppData.tileDimensions.x 
+        || DTid.y > gAppData.tileDimensions.y)
         return;
-    uint rasterizerIdx = gScreenTiles[screenTileIdx].rasterizerHint;
 
-    while (rasterizerIdx != UINT_MAX && rasterizerIdx < gAppData.numRasterizers)
+    uint rasterizerIdx = gScreenTiles[screenTileIdx].rasterizerHint;
+    uint2 virtualDimensions = mul(uint(ceil(sqrt((float) gAppData.numRasterizers))), gAppData.tileDimensions);
+    while (rasterizerIdx < gAppData.numRasterizers)
     {
-        uint2 virtualTextureLeftTop = GetScreenLeftTop(rasterizerIdx, gAppData.tileDimensions * uint(sqrt((float) gAppData.numRasterizers) + 1.0f), gAppData.tileDimensions);
-        
-        if (gDepthBuffer[pixel.xy] > gGBufferDepth[virtualTextureLeftTop.xy + DTid.xy])
+        uint2 virtualTextureLeftTop = GetScreenLeftTop(rasterizerIdx, virtualDimensions, gAppData.tileDimensions);
+        uint2 GBufferPixel = virtualTextureLeftTop.xy + DTid.xy;
+        float pixelDepth = gGBufferDepth[GBufferPixel.xy];
+        if (gDepthBuffer[pixel.xy] > pixelDepth)
         {
-            gDepthBuffer[pixel.xy] = gGBufferDepth[virtualTextureLeftTop.xy + DTid.xy];
-            gBackBuffer[pixel.xy] = gGBufferColor[virtualTextureLeftTop.xy + DTid.xy];
+            gDepthBuffer[pixel.xy] = pixelDepth;
+            gBackBuffer[pixel.xy] = gGBufferColor[GBufferPixel.xy];
         }
         rasterizerIdx = gRasterizers[rasterizerIdx].nextRasterizerIdx;
     }
