@@ -8,7 +8,6 @@ struct Dimensions
 	T width, height;
 };
 
-
 class InputListener
 {
 	InputListener* m_pNextListener = nullptr;

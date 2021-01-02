@@ -13,5 +13,5 @@ public:
 	ImGuiRenderer(ID3D12Device* pDevice, HWND hwnd);
 	~ImGuiRenderer();
 	void Render(ID3D12GraphicsCommandList* commandList);
-	void NewFrame(); //can we do this at the end of render?
+	void NewFrame();
 };
