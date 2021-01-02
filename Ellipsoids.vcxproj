@@ -98,7 +98,6 @@
     <ClCompile Include="MergeStage.cpp" />
     <ClCompile Include="QuadricMesh.cpp" />
     <ClCompile Include="QuadricRenderer.cpp" />
-    <ClCompile Include="Helpers.cpp" />
     <ClCompile Include="Mouse.cpp" />
     <ClCompile Include="RasterizationStage.cpp" />
     <ClCompile Include="Window.cpp" />

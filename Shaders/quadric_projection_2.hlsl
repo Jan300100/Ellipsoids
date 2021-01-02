@@ -11,6 +11,12 @@ struct Data
     float3 lightDirection;
 };
 
+struct MeshData
+{
+    float4x4 transform;
+    uint totalPatches;
+};
+
 struct InQuadric
 {
     float4x4 transformed;
@@ -20,35 +26,32 @@ struct InQuadric
 struct OutQuadric
 {
     float4x4 shearToProj;
-    float4x4 normalGenerator;
+    float4x4 covariantTensor;
     float3x3 transform;
     float3 color;
-    //bounding box
-    float2 yRange;
-    float2 xRange;
-    //
+    /////
     uint2 startPixel;
+    uint startPatch;
     uint numPatches;
     uint numHorizontalPatches;
 };
 
-struct MeshData
-{
-    float4x4 transform;
-};
 
 //input
 ConstantBuffer<Data> gData : register(b0);
-ConstantBuffer<MeshData> gMeshData : register(b1);
-
 StructuredBuffer<InQuadric> gInput : register(t0);
+
 //output
 RWStructuredBuffer<OutQuadric> gOutput : register(u0);
-RWStructuredBuffer<uint> gNumPatches : register(u1);
+RWStructuredBuffer<MeshData> gMeshData : register(u1);
 
-bool PosRange(float a, float b, float c, out float yMin, out float yMax);
+uint2 ToPixel(float2 ndc);
+void BoundingBox(float3x3 quadric, out float2 min, out float2 max);
+bool SolveQuadratic(float a, float b, float c, out float min, out float max);
 
+#define patchSize 32
 #define boundingBoxRange 1
+#define mesh gMeshData[0]
 
 //transforms ellipsoids to the correct space
 [numthreads(32, 1, 1)]
@@ -59,7 +62,7 @@ void main(uint3 id : SV_DispatchThreadID)
     output.color = input.color.rgb;
     
     float4x4 world = input.transformed;
-    world = mul(mul(transpose(gMeshData.transform), input.transformed),gMeshData.transform);
+    world = mul(mul(transpose(mesh.transform), input.transformed), mesh.transform);
     
     float4x4 projected = mul(mul(transpose(gData.viewProjInv), world), gData.viewProjInv);
 
@@ -82,77 +85,60 @@ void main(uint3 id : SV_DispatchThreadID)
     };
     
     float4x4 tsd = mul(shearTransform, transpose(gData.viewProjInv));
-    output.normalGenerator = mul(tsd, world);
-    output.normalGenerator = mul(output.normalGenerator, gData.viewInv);
-    
+    output.covariantTensor = mul(tsd, world);
+    output.covariantTensor = mul(output.covariantTensor, gData.viewInv);
     output.transform = simplified;
-    //calculate yRange
+    
+    float2 min, max;
+    BoundingBox(simplified, min, max);
+    output.startPixel = ToPixel(float2(min.x,min.y));
+    output.numHorizontalPatches = ceil((max.x - min.x) / patchSize);
+    output.numPatches = output.numHorizontalPatches * ceil((max.y - min.y) / patchSize);
+    InterlockedAdd(mesh.totalPatches, output.numPatches, output.startPatch);
+    //output.startPatch = 0// filled in in next stage
+    gOutput[id.x] = output;
+}
 
+void BoundingBox(float3x3 quadric, out float2 min, out float2 max)
+{
+    
     //calc QTilde Inverse elements we need
-    float qStar22 = simplified[0][0] * simplified[1][1] - simplified[0][1] * simplified[1][0];
-    float qStar12 = simplified[0][1] * simplified[2][0] - simplified[0][0] * simplified[2][1];
-    float qStar11 = simplified[0][0] * simplified[2][2] - simplified[0][2] * simplified[2][0];
-    float qStar00 = simplified[1][1] * simplified[2][2] - simplified[1][2] * simplified[2][1];
-    float qStar02 = simplified[1][0] * simplified[2][1] - simplified[2][0] * simplified[1][1];
+    float qStar22 = quadric[0][0] * quadric[1][1] - quadric[0][1] * quadric[1][0];
+    float qStar12 = quadric[0][1] * quadric[2][0] - quadric[0][0] * quadric[2][1];
+    float qStar11 = quadric[0][0] * quadric[2][2] - quadric[0][2] * quadric[2][0];
+    float qStar00 = quadric[1][1] * quadric[2][2] - quadric[1][2] * quadric[2][1];
+    float qStar02 = quadric[1][0] * quadric[2][1] - quadric[2][0] * quadric[1][1];
     
     //calc a, b, c
     float a = -qStar22;
     float b = 2 * qStar12;
     float c = -qStar11;
-    float yMin = 0, yMax = 0;
     
-    if (PosRange(a,b,c, yMin, yMax))
+    if (SolveQuadratic(a, b, c, min.y, max.y))
     {
-        if (yMin > yMax)
+        if (min.y > max.y)
         {
-            //if (simplified[0][0] == 0.0f)
-            //{
-            //    return; //sphere not visible
-            //}
-            //float localxMin = -(simplified[0][1] * yMin + simplified[0][2]) / simplified[0][0];
-            //if (localxMin * tsd[0][3] + yMin * tsd[1][3] + tsd[3][3] < 0)
-            //{
-            //    yMin = -boundingBoxRange;
-            //}
-            //else
-            //{
-            //    yMax = boundingBoxRange;
-            //}
-            yMax = boundingBoxRange;
-            yMin = -boundingBoxRange;
+            max.y = boundingBoxRange;
+            min.y = -boundingBoxRange;
         }
-
-        output.yRange = float2(yMin, yMax);
     }
     
     //calc a, b, c
     a = -qStar22;
     b = 2 * qStar02;
     c = -qStar00;
-    float xMin = 0, xMax = 0;
     
-    if (PosRange(a, b, c, xMin, xMax))
+    if (SolveQuadratic(a, b, c, min.x, max.x))
     {
-        if (xMin > xMax)
+        if (min.x > max.x)
         {
-            xMax = boundingBoxRange;
-            xMin = -boundingBoxRange;
+            max.x = boundingBoxRange;
+            min.x = -boundingBoxRange;
         }
-        output.xRange = float2(xMin, xMax);
     }
-    
-    
-    //
-    gOutput[id.x] = output;
-    
-    
-    
 }
-
-
-bool PosRange(float a, float b, float c, out float yMin, out float yMax)
+bool SolveQuadratic(float a, float b, float c, out float min, out float max)
 {
-    
     if (a != 0.0f)
     {
         float ba = b / (2 * a);
@@ -164,8 +150,8 @@ bool PosRange(float a, float b, float c, out float yMin, out float yMax)
             if (c < 0)
                 return false;
             //entire screen
-            yMin = -boundingBoxRange;
-            yMax = boundingBoxRange;
+            min = -boundingBoxRange;
+            max = boundingBoxRange;
             return true;
         }
         float d = sqrt(discr);
@@ -173,29 +159,37 @@ bool PosRange(float a, float b, float c, out float yMin, out float yMax)
         {
             d = -d; //signal that its hyperbolic
         }
-        yMax = -ba + d;
-        yMin = -ba - d;
+        min = -ba - d;
+        max = -ba + d;
         return true;
     }
     if (b!=0.0f)
     {
         if (b > 0)
         {
-            yMin = -c / b;
-            yMax = boundingBoxRange;
+            min = -c / b;
+            max = boundingBoxRange;
         }
         else
         {
-            yMin = -boundingBoxRange;
-            yMax = -c / b;
+            min = -boundingBoxRange;
+            max = -c / b;
         }
         return true;
     }
     if (c < 0)
         return false;
         
-    yMin = -boundingBoxRange;
-    yMax = boundingBoxRange;
+    min = -boundingBoxRange;
+    max = boundingBoxRange;
     
     return true;
+}
+uint2 ToPixel(float2 ndc)
+{
+    uint2 pixel;
+    pixel = (ndc / 2.0f) + 0.5f;
+    pixel.x *= gData.windowDimensions.x;
+    pixel.y *= -gData.windowDimensions.y;
+    return pixel;
 }

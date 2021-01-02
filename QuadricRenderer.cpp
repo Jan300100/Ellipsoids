@@ -354,7 +354,7 @@ QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
 	m_AppData.numRasterizers = screenTiles + extraRasterizers;
 
 	InitResources();
-
+	
 	m_GPStage.Init(this);
 	m_RStage.Init(this);
 	m_MStage.Init(this);
