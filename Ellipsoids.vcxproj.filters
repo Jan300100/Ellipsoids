@@ -15,6 +15,18 @@
     <Filter Include="Ellipsoids">
       <UniqueIdentifier>{3d0973cc-a67d-4e50-9aba-d57ed67110a2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Pipeline">
+      <UniqueIdentifier>{56c47b70-75bd-400d-9f12-aad5a0e802e7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Pipeline\Rasterization">
+      <UniqueIdentifier>{d15da416-15f8-4c63-b3e8-135a75045a6d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Pipeline\GeometryProcessing">
+      <UniqueIdentifier>{ae0de817-2e66-4645-a402-98aa156d0a64}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Pipeline\Merge">
+      <UniqueIdentifier>{257e85ab-2067-4349-998e-8481ba69dbc8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Helpers.cpp">
@@ -28,12 +40,6 @@
     </ClCompile>
     <ClCompile Include="Mouse.cpp">
       <Filter>General</Filter>
-    </ClCompile>
-    <ClCompile Include="Quadric.cpp">
-      <Filter>Ellipsoids</Filter>
-    </ClCompile>
-    <ClCompile Include="QuadricRenderer.cpp">
-      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ImGui\imgui.cpp">
       <Filter>Source Files</Filter>
@@ -56,9 +62,6 @@
     <ClCompile Include="ImGui\imgui_widgets.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ImGui\ImGuiRenderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Camera.cpp">
       <Filter>General</Filter>
     </ClCompile>
@@ -70,6 +73,21 @@
     </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\ImGuiRenderer.cpp">
+      <Filter>General</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadricRenderer.cpp">
+      <Filter>Pipeline</Filter>
+    </ClCompile>
+    <ClCompile Include="RasterizationStage.cpp">
+      <Filter>Pipeline\Rasterization</Filter>
+    </ClCompile>
+    <ClCompile Include="GeometryProcessingStage.cpp">
+      <Filter>Pipeline\GeometryProcessing</Filter>
+    </ClCompile>
+    <ClCompile Include="MergeStage.cpp">
+      <Filter>Pipeline\Merge</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -88,12 +106,6 @@
     <ClInclude Include="Mouse.h">
       <Filter>General</Filter>
     </ClInclude>
-    <ClInclude Include="Quadric.h">
-      <Filter>Ellipsoids</Filter>
-    </ClInclude>
-    <ClInclude Include="QuadricRenderer.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="ImGui\imstb_truetype.h" />
     <ClInclude Include="ImGui\imconfig.h" />
     <ClInclude Include="ImGui\imgui.h" />
@@ -102,7 +114,6 @@
     <ClInclude Include="ImGui\imgui_internal.h" />
     <ClInclude Include="ImGui\imstb_rectpack.h" />
     <ClInclude Include="ImGui\imstb_textedit.h" />
-    <ClInclude Include="ImGui\ImGuiRenderer.h" />
     <ClInclude Include="Camera.h">
       <Filter>General</Filter>
     </ClInclude>
@@ -115,8 +126,43 @@
     <ClInclude Include="Transform.h">
       <Filter>General</Filter>
     </ClInclude>
-    <ClInclude Include="Scene.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="ImGui\ImGuiRenderer.h">
+      <Filter>General</Filter>
     </ClInclude>
+    <ClInclude Include="QuadricRenderer.h">
+      <Filter>Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Structs.h">
+      <Filter>Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="RasterizationStage.h">
+      <Filter>Pipeline\Rasterization</Filter>
+    </ClInclude>
+    <ClInclude Include="Stage.h">
+      <Filter>Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="GeometryProcessingStage.h">
+      <Filter>Pipeline\GeometryProcessing</Filter>
+    </ClInclude>
+    <ClInclude Include="MergeStage.h">
+      <Filter>Pipeline\Merge</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Helpers.hlsl">
+      <Filter>Pipeline</Filter>
+    </FxCompile>
+    <FxCompile Include="Structs.hlsl">
+      <Filter>Pipeline</Filter>
+    </FxCompile>
+    <FxCompile Include="RasterizationShader.hlsl">
+      <Filter>Pipeline\Rasterization</Filter>
+    </FxCompile>
+    <FxCompile Include="MergeShader.hlsl">
+      <Filter>Pipeline\Merge</Filter>
+    </FxCompile>
+    <FxCompile Include="GeometryProcessingShader.hlsl">
+      <Filter>Pipeline\GeometryProcessing</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

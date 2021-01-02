@@ -1,41 +1,12 @@
-struct Data
-{
-    float4x4 viewProjInv;
-    float4x4 viewInv;
-    float4x4 projInv;
-    float2 windowDimensions;
-    float3 lightDirection;
-};
-
-struct InputQuadric
-{
-    float4x4 transformed;
-    float4 color;
-};
-
-struct ProjectedQuadric
-{
-    float4x4 shearToProj;
-    float4x4 normalGenerator;
-    float3x3 transform;
-    float3 color;
-    float2 yRange;
-    float2 xRange;
-};
-
-struct MeshData
-{
-    float4x4 transform;
-};
-
+#include "../Structs.hlsl"
 
 //input
-ConstantBuffer<Data> gData : register(b0);
+ConstantBuffer<AppData> gData : register(b0);
 ConstantBuffer<MeshData> gMeshData : register(b1);
 
-StructuredBuffer<InputQuadric> gInput : register(t0);
+StructuredBuffer<InQuadric> gInput : register(t0);
 //output
-RWStructuredBuffer<ProjectedQuadric> gOutput : register(u0);
+RWStructuredBuffer<OutQuadric> gOutput : register(u0);
 
 bool PosRange(float a, float b, float c, out float yMin, out float yMax);
 
@@ -45,15 +16,16 @@ bool PosRange(float a, float b, float c, out float yMin, out float yMax);
 [numthreads(32, 1, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
-    InputQuadric input = gInput[id.x];
-    ProjectedQuadric output = (ProjectedQuadric) 0;
+    InQuadric input = gInput[id.x];
+    OutQuadric output = (OutQuadric) 0;
     output.color = input.color.rgb;
     
-    float4x4 world = input.transformed;
-    world = mul(mul(transpose(gMeshData.transform), input.transformed), gMeshData.transform);
     
-    float4x4 projected = mul(mul(transpose(gData.viewProjInv), world), gData.viewProjInv);
-
+    
+    float4x4 world = mul(mul(gMeshData.transform, input.transformed), transpose(gMeshData.transform));
+    
+    float4x4 projected = mul(mul(gData.viewProjInv, world), transpose(gData.viewProjInv));
+    
     float4x4 shearTransform =
     {
         1, 0, -projected[0][2] / projected[2][2], 0,
@@ -72,10 +44,8 @@ void main(uint3 id : SV_DispatchThreadID)
         sheared[3][0], sheared[3][1], sheared[3][3]
     };
     
-    float4x4 tsd = mul(shearTransform, transpose(gData.viewProjInv));
-    output.normalGenerator = mul(tsd, world);
-    output.normalGenerator = mul(output.normalGenerator, gData.viewInv);
-    
+    float4x4 tsd = mul(shearTransform, gData.viewProjInv);
+    output.normalGenerator = mul(mul(tsd, world), transpose(gData.viewInv));
     output.transform = simplified;
     //calculate yRange
 

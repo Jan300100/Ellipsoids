@@ -6,21 +6,20 @@
 
 using namespace DirectX;
 
-void QuadricMesh::UpdateMeshData()
+void QuadricMesh::UpdateMeshData() const
 {
-    MeshData data{};
-    
+    MeshData m{};
 
-    data.transform = XMMatrixAffineTransformation(XMLoadFloat3(&m_Transform.scale), XMVectorZero()
+    m.transform = XMMatrixAffineTransformation(XMLoadFloat3(&m_Transform.scale), XMVectorZero()
         , XMQuaternionRotationRollPitchYawFromVector(XMLoadFloat3(&m_Transform.rotation))
         , XMLoadFloat3(&m_Transform.position));
-    data.transform = XMMatrixInverse(nullptr, data.transform);
+    m.transform = XMMatrixInverse(nullptr, m.transform);
+    m.numQuadrics = (unsigned int)m_Quadrics.size();
 
     BYTE* mapped = nullptr;
     m_MeshDataBuffer->Map(0, nullptr,
         reinterpret_cast<void**>(&mapped));
-
-    memcpy(mapped, &data, sizeof(MeshData));
+    memcpy(mapped, &m, sizeof(MeshData));
     if (m_MeshDataBuffer != nullptr)
         m_MeshDataBuffer->Unmap(0, nullptr);
 }
@@ -28,11 +27,9 @@ void QuadricMesh::UpdateMeshData()
 QuadricMesh::QuadricMesh(DX12* pDX12, const std::vector<InQuadric>& quadrics, const Transform& transform)
     :m_Quadrics{quadrics},  m_Transform{transform}
 {
-
     size_t byteSize = sizeof(InQuadric) * m_Quadrics.size();
     CD3DX12_HEAP_PROPERTIES properties{ CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT) };
     CD3DX12_RESOURCE_DESC desc{ CD3DX12_RESOURCE_DESC::Buffer(byteSize) };
-
 
     // Create the actual default buffer resource.
     ThrowIfFailed(pDX12->GetDevice()->CreateCommittedResource(
@@ -53,26 +50,59 @@ QuadricMesh::QuadricMesh(DX12* pDX12, const std::vector<InQuadric>& quadrics, co
         nullptr,
         IID_PPV_ARGS(m_InputUploadBuffer.GetAddressOf())));
     
+    UpdateBuffers(pDX12);
+
+
     // Create the buffer that will be a UAV with outputquadrics
-    byteSize = sizeof(OutQuadric) * m_Quadrics.size();
+    byteSize = sizeof(MeshOutputData);
     properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
     desc = CD3DX12_RESOURCE_DESC::Buffer(byteSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     ThrowIfFailed(pDX12->GetDevice()->CreateCommittedResource(
         &properties,
         D3D12_HEAP_FLAG_NONE,
         &desc,
-        D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+        D3D12_RESOURCE_STATE_COPY_DEST,
         nullptr,
-        IID_PPV_ARGS(&m_OutputProjectedBuffer)));
+        IID_PPV_ARGS(&m_MeshOutputBuffer)));
 
+    //uploadBuffer
+    properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD);
+    desc = CD3DX12_RESOURCE_DESC::Buffer(byteSize);
+    ThrowIfFailed(pDX12->GetDevice()->CreateCommittedResource(
+        &properties,
+        D3D12_HEAP_FLAG_NONE,
+        &desc,
+        D3D12_RESOURCE_STATE_GENERIC_READ,
+        nullptr,
+        IID_PPV_ARGS(&m_MeshOutputResetBuffer)));
 
-    UpdateBuffers(pDX12);
+    MeshOutputData* mapped = nullptr;
+    m_MeshOutputResetBuffer->Map(0, nullptr,
+        reinterpret_cast<void**>(&mapped));
+    mapped->claimedRasterizers = 0;
+    mapped->overflowed = false;
+    if (m_MeshOutputResetBuffer != nullptr)
+        m_MeshOutputResetBuffer->Unmap(0, nullptr);
+
+    //readback
+    properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_READBACK);
+    desc = CD3DX12_RESOURCE_DESC::Buffer(byteSize, D3D12_RESOURCE_FLAG_NONE);
+    ThrowIfFailed(pDX12->GetDevice()->CreateCommittedResource(
+        &properties,
+        D3D12_HEAP_FLAG_NONE,
+        &desc,
+        D3D12_RESOURCE_STATE_COPY_DEST,
+        nullptr,
+        IID_PPV_ARGS(&m_MeshOutputReadBackBuffer)));
+    m_MeshOutputReadBackBuffer->SetName(LPCWSTR(L"m_MeshOutputReadBackBuffer"));
+    m_MeshOutputResetBuffer->SetName(LPCWSTR(L"m_MeshOutputResetBuffer"));
+    m_MeshOutputBuffer->SetName(LPCWSTR(L"m_MeshOutputBuffer"));
 
 
     //create transform data
     //Constant Buffer
     properties = { CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD) };
-    desc = { CD3DX12_RESOURCE_DESC::Buffer((sizeof(XMMATRIX) + 255) & ~255) };
+    desc = { CD3DX12_RESOURCE_DESC::Buffer((sizeof(MeshData) + 255) & ~255) };
     pDX12->GetDevice()->CreateCommittedResource(
         &properties,
         D3D12_HEAP_FLAG_NONE,
@@ -83,7 +113,43 @@ QuadricMesh::QuadricMesh(DX12* pDX12, const std::vector<InQuadric>& quadrics, co
 
     //set data
     UpdateMeshData();
+
+    auto pPipeline = pDX12->GetPipeline();
+    ThrowIfFailed(pPipeline->commandAllocator->Reset());
+    ThrowIfFailed(pPipeline->commandList->Reset(pPipeline->commandAllocator.Get(), nullptr));
+
+    pPipeline->commandList->CopyResource(m_MeshOutputBuffer.Get(), m_MeshOutputResetBuffer.Get());
+
+    CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(m_MeshOutputBuffer.Get(),
+        D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE);
+
+    pPipeline->commandList->ResourceBarrier(1 , &transition);
+
+    pPipeline->commandList->CopyResource(m_MeshOutputReadBackBuffer.Get() , m_MeshOutputBuffer.Get());
+
+    transition = CD3DX12_RESOURCE_BARRIER::Transition(m_MeshOutputBuffer.Get(),
+        D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    pPipeline->commandList->ResourceBarrier(1, &transition);
+
+    ThrowIfFailed(pPipeline->commandList->Close());
+    ID3D12CommandList* cmdsLists[] = { pPipeline->commandList.Get() };
+    pPipeline->commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+    pPipeline->Flush();
+
 }
+
+void QuadricMesh::ReadMeshOutput()
+{
+    // Map the data so we can read it on CPU.
+    MeshOutputData* mappedData = nullptr;
+    ThrowIfFailed(m_MeshOutputReadBackBuffer->Map(0, nullptr,
+        reinterpret_cast<void**>(&mappedData)));
+
+    m_OutputData = *mappedData;
+
+    m_MeshOutputReadBackBuffer->Unmap(0, nullptr);
+}
+
 
 void QuadricMesh::UpdateBuffers(DX12* pDX12)
 {
