@@ -52,13 +52,12 @@ void main( uint3 DTid : SV_DispatchThreadID )
                 return;
         }
     }
-    
 }
 
 void AddQuadric(uint screenTileIdx, OutQuadric quadric)
 {
     uint screenHint = gScreenTiles[screenTileIdx].rasterizerHint;
-    uint pos = screenHint;
+    uint pos = (screenHint != UINT_MAX) * screenHint;
     bool added = false;
     uint previousFull = UINT_MAX;
     while (!added)

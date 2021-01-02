@@ -25,7 +25,7 @@ class QuadricMesh
 
 public:
 	QuadricMesh(DX12* pDX12, const std::vector<InQuadric>& quadrics, const Transform& transform = {});
-	MeshOutputData GetMeshOutput() const { return m_OutputData; };
+	MeshOutputData& GetMeshOutput() { return m_OutputData; };
 	void ReadMeshOutput();
 	ID3D12Resource* GetInputBuffer() const { return m_InputBuffer.Get(); }
 	ID3D12Resource* GetMeshOutputBuffer() const { return m_MeshOutputBuffer.Get(); }

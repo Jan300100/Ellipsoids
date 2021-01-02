@@ -32,8 +32,12 @@ private:
 	AppData m_AppData;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_AppDataBuffer; //general data (for both stages?)
 	//TEXTURES
+	enum DescriptorHeapLayout : unsigned int
+	{
+		Color = 0, GColor, Depth, GDepth, NumDescriptors
+	};
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DescriptorHeap;
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DescriptorHeapShaderVisible;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DescriptorHeapSV;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_OutputTexture;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_DepthTexture;
 
@@ -41,7 +45,6 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerBuffer; //uav buffer, flexible(resize when not big enough?)
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerResetBuffer; //upload buffer to reset screenTiles
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerQBuffer; //uav buffer with outputQuadrics
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_GBuffersDescriptorHeap;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerGBuffers[GBUFFER::NumBuffers];
 	
 	//SCREENTILES
@@ -68,6 +71,9 @@ private:
 
 	void InitDrawCall();
 	void PrepareMeshes();
+
+	DirectX::XMFLOAT4 m_ClearColor = { 66 / 255.0f,135 / 255.0f,245 / 255.0f,0 };
+	float m_DepthClearValue = FLT_MAX;
 public:
 	QuadricRenderer(DX12* pDX12, Camera* pCamera);
 	void SetCamera(Camera* pCamera) { m_pCamera = pCamera; }

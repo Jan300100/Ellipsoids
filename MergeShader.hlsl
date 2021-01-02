@@ -13,8 +13,8 @@ Texture2D<float> gGBufferDepth : register(t3);
 
 //output
 //descriptorheap 2 
-RWTexture2D<float4> gBackBuffer : register(u2);
-RWTexture2D<float> gDepthBuffer : register(u3);
+RWTexture2D<float4> gBackBuffer : register(u0);
+RWTexture2D<float> gDepthBuffer : register(u1);
 
 
 [numthreads(8, 8, 1)]
@@ -23,11 +23,19 @@ void main( uint3 DTid : SV_DispatchThreadID )
     uint screenTileIdx = DTid.z;
     uint2 screenLeftTop = GetScreenLeftTop(screenTileIdx, gAppData.windowDimensions, gAppData.tileDimensions);
     uint2 pixel = screenLeftTop.xy + DTid.xy;
+    if (pixel.x > gAppData.windowDimensions.x || pixel.y > gAppData.windowDimensions.y)
+        return;
     uint rasterizerIdx = gScreenTiles[screenTileIdx].rasterizerHint;
-    while (rasterizerIdx != UINT_MAX)
+
+    while (rasterizerIdx != UINT_MAX && rasterizerIdx < gAppData.numRasterizers)
     {
         uint2 virtualTextureLeftTop = GetScreenLeftTop(rasterizerIdx, gAppData.tileDimensions * uint(sqrt((float) gAppData.numRasterizers) + 1.0f), gAppData.tileDimensions);
-        gBackBuffer[pixel.xy] = gGBufferColor[virtualTextureLeftTop.xy + DTid.xy];
+        
+        if (gDepthBuffer[pixel.xy] > gGBufferDepth[virtualTextureLeftTop.xy + DTid.xy])
+        {
+            gDepthBuffer[pixel.xy] = gGBufferDepth[virtualTextureLeftTop.xy + DTid.xy];
+            gBackBuffer[pixel.xy] = gGBufferColor[virtualTextureLeftTop.xy + DTid.xy];
+        }
         rasterizerIdx = gRasterizers[rasterizerIdx].nextRasterizerIdx;
     }
 }

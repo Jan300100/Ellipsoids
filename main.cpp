@@ -208,7 +208,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	in.push_back(lowerLegLeft);
 	in.push_back(shoeLeft);
 
-	size_t count = 1;
+	size_t count = 20;
 	std::vector< QuadricMesh> dudes{};
 	for (size_t i = 0; i < count; i++)
 	{
@@ -229,7 +229,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 
 	Quadric world;
-	float range = 100;
+	float range = 10;
 	world.equation = DirectX::XMFLOAT4X4{
 					1,0,0,0,
 					0,1,0,0,

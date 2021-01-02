@@ -10,6 +10,60 @@ using namespace Microsoft::WRL;
 Stage::GeometryProcessing::GeometryProcessing(DX12* pDX12)
 	:Stage{pDX12}
 {
+	
+}
+
+unsigned int Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, std::vector<QuadricMesh*> pMeshes, unsigned int start) const
+{
+	DX12::Pipeline* pPipeline = m_pDX12->GetPipeline();
+	auto pComList = pPipeline->commandList;
+
+
+
+
+
+	pComList->SetPipelineState(m_Pso.Get());
+	pComList->SetComputeRootSignature(m_RootSignature.Get());
+
+
+	pComList->SetComputeRootConstantBufferView(3, pRenderer->m_AppDataBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootUnorderedAccessView(4, pRenderer->m_RasterizerQBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootUnorderedAccessView(5, pRenderer->m_RasterizerBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootUnorderedAccessView(6, pRenderer->m_ScreenTileBuffer->GetGPUVirtualAddress());
+
+	unsigned int lastMesh = start;
+	unsigned int outputQuadricsCount = 0, numPossible = (pRenderer->m_AppData.quadricsPerRasterizer * pRenderer->m_AppData.numRasterizers);
+	while (outputQuadricsCount < numPossible && lastMesh < pMeshes.size())
+	{
+		QuadricMesh* pMesh = pMeshes[lastMesh];
+		//try process
+
+		std::vector< CD3DX12_RESOURCE_BARRIER> barriers{};
+		barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerBuffer.Get()));
+		barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerQBuffer.Get()));
+		barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_ScreenTileBuffer.Get()));
+		pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
+
+		pComList->SetComputeRootConstantBufferView(0, pMesh->GetMeshDataBuffer()->GetGPUVirtualAddress());
+		pComList->SetComputeRootShaderResourceView(1, pMesh->GetInputBuffer()->GetGPUVirtualAddress());
+		pComList->SetComputeRootUnorderedAccessView(2, pMesh->GetMeshOutputBuffer()->GetGPUVirtualAddress());
+
+		pComList->Dispatch((pMesh->QuadricsAmount() / 32) + ((pMesh->QuadricsAmount() % 32) > 0), 1, 1);
+
+		outputQuadricsCount += pMesh->GetMeshOutput().numOutputQuadrics;
+		if (pMesh->GetMeshOutput().overflowed)
+		{
+			pMesh->GetMeshOutput().overflowed = false;
+			//if (lastMesh == start) throw "Not enough Rasterizers, Mesh is too big";
+			break;
+		}
+		lastMesh++;
+	}
+	return lastMesh;
+}
+
+void Stage::GeometryProcessing::Init(QuadricRenderer*)
+{
 	//ROOT SIGNATURE
 	CD3DX12_ROOT_PARAMETER slotRootParameter[7];
 
@@ -37,7 +91,7 @@ Stage::GeometryProcessing::GeometryProcessing(DX12* pDX12)
 	}
 	ThrowIfFailed(hr);
 
-	ThrowIfFailed(pDX12->GetDevice()->CreateRootSignature(
+	ThrowIfFailed(m_pDX12->GetDevice()->CreateRootSignature(
 		0,
 		serializedRootSig->GetBufferPointer(),
 		serializedRootSig->GetBufferSize(),
@@ -66,40 +120,5 @@ Stage::GeometryProcessing::GeometryProcessing(DX12* pDX12)
 		m_Shader->GetBufferSize()
 	};
 	computePsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-	ThrowIfFailed(pDX12->GetDevice()->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&m_Pso)));
-}
-
-unsigned int Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, std::vector<QuadricMesh*> pMeshes, unsigned int start) const
-{
-	DX12::Pipeline* pPipeline = m_pDX12->GetPipeline();
-	auto pComList = pPipeline->commandList;
-	pComList->SetPipelineState(m_Pso.Get());
-	pComList->SetComputeRootSignature(m_RootSignature.Get());
-
-	pComList->SetComputeRootConstantBufferView(3, pRenderer->m_AppDataBuffer->GetGPUVirtualAddress());
-	pComList->SetComputeRootUnorderedAccessView(4, pRenderer->m_RasterizerQBuffer->GetGPUVirtualAddress());
-	pComList->SetComputeRootUnorderedAccessView(5, pRenderer->m_RasterizerBuffer->GetGPUVirtualAddress());
-	pComList->SetComputeRootUnorderedAccessView(6, pRenderer->m_ScreenTileBuffer->GetGPUVirtualAddress());
-
-	unsigned int lastMesh = start;
-	unsigned int outputQuadricsCount = 0, numPossible = (pRenderer->m_AppData.quadricsPerRasterizer * pRenderer->m_AppData.numRasterizers);
-	while (outputQuadricsCount < numPossible && lastMesh < pMeshes.size())
-	{
-		QuadricMesh* pMesh = pMeshes[lastMesh];
-		//try process
-		pComList->SetComputeRootConstantBufferView(0, pMesh->GetMeshDataBuffer()->GetGPUVirtualAddress());
-		pComList->SetComputeRootShaderResourceView(1, pMesh->GetInputBuffer()->GetGPUVirtualAddress());
-		pComList->SetComputeRootUnorderedAccessView(2, pMesh->GetMeshOutputBuffer()->GetGPUVirtualAddress());
-
-		pComList->Dispatch((pMesh->QuadricsAmount() / 32) + 1 * ((pMesh->QuadricsAmount() % 32) > 0), 1, 1);
-
-		outputQuadricsCount += pMesh->GetMeshOutput().numOutputQuadrics;
-		if (pMesh->GetMeshOutput().overflowed)
-		{
-			if (lastMesh == start) throw "Not enough Rasterizers, Mesh is too big";
-			break;
-		}
-		lastMesh++;
-	}
-	return lastMesh;
+	ThrowIfFailed(m_pDX12->GetDevice()->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&m_Pso)));
 }
