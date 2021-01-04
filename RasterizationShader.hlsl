@@ -1,6 +1,8 @@
 #include "Helpers.hlsl"
 #include "Structs.hlsl"
 
+//#define SHOWBORDERS
+
 
 //input
 ConstantBuffer<AppData> gAppData : register(b0);
@@ -15,7 +17,7 @@ RWTexture2D<float> gDepthBuffer : register(u1);
 void main( uint3 DTid : SV_DispatchThreadID )
 {
     uint scanline = DTid.x;
-    if (scanline > gAppData.tileDimensions.y)
+    if (scanline >= gAppData.tileDimensions.y)
         return;
     
     //rasterizer INFO
@@ -42,7 +44,39 @@ void main( uint3 DTid : SV_DispatchThreadID )
 
         for (uint x = 0; x < gAppData.tileDimensions.x; x++)
         {
+
+            
+            
             uint2 pixel = virtualTextureLeftTop + uint2(x, scanline);
+            
+            #ifdef SHOWBORDERS
+            if (x == 0)
+            {
+                gDepthBuffer[pixel.xy] = 0;
+                gColorBuffer[pixel.xy] = float4(1,0,0,1);
+                continue;
+            }
+            else if (scanline == 0)
+            {
+                gDepthBuffer[pixel.xy] = 0;
+                gColorBuffer[pixel.xy] = float4(0, 0, 1, 1);
+                continue;
+            }
+
+            else if (x == gAppData.tileDimensions.x - 1)
+            {
+                gDepthBuffer[pixel.xy] = 0;
+                gColorBuffer[pixel.xy] = float4(0, 1, 0, 1);
+                continue;
+            }
+            else if (scanline == gAppData.tileDimensions.y - 1)
+            {
+                gDepthBuffer[pixel.xy] = 0;
+                gColorBuffer[pixel.xy] = float4(1, 1, 0, 1);
+                continue;
+            }
+            #endif
+            
             uint2 screenP = screenLeftTop + uint2(x, scanline);
             float3 pos = float3(
                                 ((screenLeftTop.x + x) / float(gAppData.windowDimensions.x) - 0.5f) * 2.0f,
