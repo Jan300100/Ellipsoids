@@ -8,6 +8,7 @@
 #include <iostream>
 #include "Camera.h"
 #include "QuadricMesh.h"
+using namespace Microsoft::WRL;
 
 using namespace DirectX;
 
@@ -209,6 +210,46 @@ void QuadricRenderer::InitResources()
 		nullptr,
 		IID_PPV_ARGS(&m_RasterizerQBuffer)));
 
+
+	//ROOT SIGNATURE
+	CD3DX12_ROOT_PARAMETER rootParameter[8];
+
+	CD3DX12_DESCRIPTOR_RANGE range;
+	range.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 4, 3, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);
+
+	rootParameter[0].InitAsConstants(1,0);
+	rootParameter[1].InitAsConstantBufferView(1);
+	rootParameter[2].InitAsShaderResourceView(0);
+	rootParameter[3].InitAsShaderResourceView(1);
+	rootParameter[4].InitAsUnorderedAccessView(0);
+	rootParameter[5].InitAsUnorderedAccessView(1);
+	rootParameter[6].InitAsUnorderedAccessView(2);
+	rootParameter[7].InitAsDescriptorTable(1, &range);
+
+	// A root signature is an array of root parameters.
+	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(8, rootParameter,
+		0, nullptr,
+		D3D12_ROOT_SIGNATURE_FLAG_NONE);
+
+	ComPtr<ID3DBlob> serializedRootSig = nullptr;
+	ComPtr<ID3DBlob> errorBlob = nullptr;
+	HRESULT hr = D3D12SerializeRootSignature(&rootSigDesc, D3D_ROOT_SIGNATURE_VERSION_1,
+		serializedRootSig.GetAddressOf(), errorBlob.GetAddressOf());
+
+	if (errorBlob != nullptr)
+	{
+		::OutputDebugStringA((char*)errorBlob->GetBufferPointer());
+	}
+	ThrowIfFailed(hr);
+
+	ThrowIfFailed(m_pDX12->GetDevice()->CreateRootSignature(
+		0,
+		serializedRootSig->GetBufferPointer(),
+		serializedRootSig->GetBufferSize(),
+		IID_PPV_ARGS(m_RootSignature.GetAddressOf())));
+
+
+
 	//init resources
 	m_RasterizerBuffer->SetName(L"m_RasterizerBuffer");
 	m_RasterizerResetBuffer->SetName(L"m_RasterizerResetBuffer");
@@ -294,73 +335,13 @@ void QuadricRenderer::InitDrawCall()
 	cpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 	gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_DescriptorHeapSV->GetGPUDescriptorHandleForHeapStart());
 	m_pDX12->GetPipeline()->commandList->ClearUnorderedAccessViewFloat(gpuHandle.Offset(incrementSize * DescriptorHeapLayout::GDepth), cpuHandle.Offset(incrementSize * DescriptorHeapLayout::GDepth), m_RasterizerGBuffers[GBUFFER::Depth].Get(), (FLOAT*)&m_DepthClearValue, 0, nullptr);
-}
 
-void QuadricRenderer::PrepareMeshes()
-{
-	for (QuadricMesh* pMesh : m_ToRender)
-	{
-		pMesh->ReadMeshOutput();
-	}
-
-	auto pPipeline = m_pDX12->GetPipeline();
-	auto pComList = pPipeline->commandList;
-	std::vector< CD3DX12_RESOURCE_BARRIER> barriers{};
-	for (QuadricMesh* pMesh : m_ToRender)
-	{
-		barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(pMesh->GetMeshOutputBuffer(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS
-			, D3D12_RESOURCE_STATE_COPY_SOURCE));
-	}
-	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
-	barriers.clear();
-	for (QuadricMesh* pMesh : m_ToRender)
-	{
-		pComList->CopyResource(pMesh->GetMeshOutputReadbackBuffer(), pMesh->GetMeshOutputBuffer());
-
-		barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(pMesh->GetMeshOutputBuffer(), D3D12_RESOURCE_STATE_COPY_SOURCE
-			, D3D12_RESOURCE_STATE_COPY_DEST));
-	}
-	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
-	barriers.clear();
-	for (QuadricMesh* pMesh : m_ToRender)
-	{
-		pComList->CopyResource(pMesh->GetMeshOutputBuffer(), pMesh->GetMeshOutputResetBuffer());
-
-		barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(pMesh->GetMeshOutputBuffer(), D3D12_RESOURCE_STATE_COPY_DEST
-			, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-	}
-	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
-}
-
-Dimensions<UINT> QuadricRenderer::GetNrTiles() const
-{
-	auto wDim = m_pDX12->GetWindow()->GetDimensions();
-	auto tDim = m_AppData.tileDimensions;
-	return Dimensions<UINT>{(wDim.width /tDim.width + (wDim.width % tDim.width > 0)), (wDim.height / tDim.height + (wDim.height % tDim.height > 0)) };
-}
-
-QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
-	:m_pDX12{ pDX12 }, m_pCamera{ pCamera }, m_AppData{}
-	, m_GPStage{pDX12}
-	,m_RStage{pDX12}
-	,m_MStage{pDX12}
-{
-	m_AppData.windowSize = { m_pDX12->GetWindow()->GetDimensions().width ,m_pDX12->GetWindow()->GetDimensions().height, 0, 0 };
-	m_AppData.tileDimensions = { 64,64 };
-	m_AppData.quadricsPerRasterizer = 16;
-
-	UINT screenTiles = GetNrTiles().height * GetNrTiles().width;
-	UINT extraRasterizers = screenTiles;
-	m_AppData.numRasterizers = screenTiles + extraRasterizers;
-
-	InitResources();
 	
-	m_GPStage.Init(this);
-	m_RStage.Init(this);
-	m_MStage.Init(this);
+
+
 }
 
-void QuadricRenderer::Render()
+void QuadricRenderer::InitRendering()
 {
 	//update input data : In separate update function ?
 	XMStoreFloat4(&m_AppData.lightDirection, XMVector4Normalize(XMVector4Transform(XMVectorSet(0.577f, -0.577f, 0.577f, 0), m_pCamera->GetView())));
@@ -388,16 +369,64 @@ void QuadricRenderer::Render()
 	cpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 	gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_DescriptorHeapSV->GetGPUDescriptorHandleForHeapStart());
 	m_pDX12->GetPipeline()->commandList->ClearUnorderedAccessViewFloat(
-		gpuHandle.Offset(incrementSize * DescriptorHeapLayout::Depth), 
-		cpuHandle.Offset(incrementSize * DescriptorHeapLayout::Depth), 
+		gpuHandle.Offset(incrementSize * DescriptorHeapLayout::Depth),
+		cpuHandle.Offset(incrementSize * DescriptorHeapLayout::Depth),
 		m_DepthTexture.Get(), (FLOAT*)&m_DepthClearValue, 0, nullptr);
-	
-	PrepareMeshes();
 
-	for (size_t rendered = 0; rendered < m_ToRender.size();)
+	auto pPipeline = m_pDX12->GetPipeline();
+	auto pComList = pPipeline->commandList;
+	//set root sign and parameters
+	pComList->SetComputeRootSignature(m_RootSignature.Get());
+
+	ID3D12DescriptorHeap* descHeaps[]{ m_DescriptorHeapSV.Get() };
+	pComList->SetDescriptorHeaps(_countof(descHeaps), descHeaps);
+
+	pComList->SetComputeRootConstantBufferView(1,m_AppDataBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootUnorderedAccessView(4, m_RasterizerBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootUnorderedAccessView(5, m_ScreenTileBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootUnorderedAccessView(6, m_RasterizerQBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootDescriptorTable(7, m_DescriptorHeapSV->GetGPUDescriptorHandleForHeapStart());
+}
+
+Dimensions<UINT> QuadricRenderer::GetNrTiles() const
+{
+	auto wDim = m_pDX12->GetWindow()->GetDimensions();
+	auto tDim = m_AppData.tileDimensions;
+	return Dimensions<UINT>{(wDim.width /tDim.width + (wDim.width % tDim.width > 0)), (wDim.height / tDim.height + (wDim.height % tDim.height > 0)) };
+}
+
+QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
+	:m_pDX12{ pDX12 }, m_pCamera{ pCamera }, m_AppData{}
+	, m_GPStage{pDX12}
+	,m_RStage{pDX12}
+	,m_MStage{pDX12}
+{
+	m_AppData.windowSize = { m_pDX12->GetWindow()->GetDimensions().width ,m_pDX12->GetWindow()->GetDimensions().height, 0, 0 };
+	m_AppData.tileDimensions = { 128,128 };
+	m_AppData.quadricsPerRasterizer = 16;
+
+	UINT screenTiles = GetNrTiles().height * GetNrTiles().width;
+	UINT extraRasterizers = screenTiles;
+	m_AppData.numRasterizers = screenTiles + extraRasterizers;
+
+	InitResources();
+	
+	m_GPStage.Init(this);
+	m_RStage.Init(this);
+	m_MStage.Init(this);
+}
+
+void QuadricRenderer::Render()
+{
+	InitRendering();
+
+	auto pPipeline = m_pDX12->GetPipeline();
+	auto pComList = pPipeline->commandList;
+
+	for (size_t i = 0; i < m_ToRender.size(); i++)
 	{
 		InitDrawCall();
-		rendered = m_GPStage.Execute(this, m_ToRender, (UINT)rendered);
+		m_GPStage.Execute(this, m_ToRender[i]);
 		m_RStage.Execute(this);
 		m_MStage.Execute(this);
 	}

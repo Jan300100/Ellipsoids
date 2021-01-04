@@ -8,7 +8,6 @@ namespace Stage
 {
 	class Rasterization : public Stage
 	{
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DescriptorHeap;
 	public:
 		Rasterization(DX12* pDX12);
 		virtual void Init(QuadricRenderer* pRenderer) override;
