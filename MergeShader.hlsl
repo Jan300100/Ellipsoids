@@ -1,21 +1,5 @@
 #include "Helpers.hlsl"
-#include "Structs.hlsl"
-
-
-//input
-ConstantBuffer<AppData> gAppData : register(b0);
-StructuredBuffer<Rasterizer> gRasterizers : register(t0);
-StructuredBuffer<ScreenTile> gScreenTiles : register(t1); //use to find the first rasterizer in the rasterizerbuffer
-
-//descriptorheap 1
-Texture2D<float4> gGBufferColor : register(t2);
-Texture2D<float> gGBufferDepth : register(t3);
-
-//output
-//descriptorheap 2 
-RWTexture2D<float4> gBackBuffer : register(u0);
-RWTexture2D<float> gDepthBuffer : register(u1);
-
+#include "RootSignature.hlsl"
 
 [numthreads(8, 8, 1)]
 void main( uint3 DTid : SV_DispatchThreadID )
@@ -30,7 +14,8 @@ void main( uint3 DTid : SV_DispatchThreadID )
         return;
 
     uint rasterizerIdx = gScreenTiles[screenTileIdx].rasterizerHint;
-    uint2 virtualDimensions = mul(uint(ceil(sqrt((float) gAppData.numRasterizers))), gAppData.tileDimensions);
+    uint2 virtualDimensions;
+    gGBufferColor.GetDimensions(virtualDimensions.x, virtualDimensions.y);
     while (rasterizerIdx < gAppData.numRasterizers)
     {
         uint2 virtualTextureLeftTop = GetScreenLeftTop(rasterizerIdx, virtualDimensions, gAppData.tileDimensions);

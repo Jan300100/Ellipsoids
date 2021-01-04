@@ -1,17 +1,5 @@
-#include "Structs.hlsl"
+#include "RootSignature.hlsl"
 #include "Helpers.hlsl"
-
-//input
-ConstantBuffer<MeshData> gMeshData : register(b0);
-
-ConstantBuffer<AppData> gAppData : register(b1);
-
-StructuredBuffer<InQuadric> gQuadricsIn : register(t0);
-
-//output
-RWStructuredBuffer<OutQuadric> gRasterizerQBuffer : register(u0);
-RWStructuredBuffer<Rasterizer> gRasterizers : register(u1);
-RWStructuredBuffer<ScreenTile> gScreenTiles : register(u2);
 
 
 OutQuadric Project(InQuadric q);
@@ -20,7 +8,7 @@ void AddQuadric(uint screenTileIdx, OutQuadric quadric);
 [numthreads(32, 1, 1)]
 void main( uint3 DTid : SV_DispatchThreadID )
 {
-    if (DTid.x >= gMeshData.numQuadrics)
+    if (DTid.x >= gNumQuadrics)
         return;
     //PROJECT
     OutQuadric projected = Project(gQuadricsIn[DTid.x]);
@@ -120,9 +108,10 @@ void AddQuadric(uint screenTileIdx, OutQuadric quadric)
 OutQuadric Project(InQuadric input)
 {
     OutQuadric output = (OutQuadric)0;
+    float4x4 transform = gMeshData[0].transform;
     
     //put the quadric at its's world position
-    float4x4 world = mul(mul(gMeshData.transform, input.transformed), transpose(gMeshData.transform));;
+    float4x4 world = mul(mul(transform, input.transformed), transpose(transform));;
     
     //projection to the screen + perspective
     float4x4 projected = mul(mul(gAppData.viewProjInv, world), transpose(gAppData.viewProjInv));

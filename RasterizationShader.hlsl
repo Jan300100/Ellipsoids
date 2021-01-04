@@ -1,17 +1,5 @@
 #include "Helpers.hlsl"
-#include "Structs.hlsl"
-
-//#define SHOWBORDERS
-
-
-//input
-ConstantBuffer<AppData> gAppData : register(b0);
-StructuredBuffer<Rasterizer> gRasterizers : register(t0);
-StructuredBuffer<OutQuadric> gQuadrics : register(t1);
-
-//output
-RWTexture2D<float4> gColorBuffer : register(u0);
-RWTexture2D<float> gDepthBuffer : register(u1);
+#include "RootSignature.hlsl"
 
 [numthreads(32, 1, 1)]
 void main( uint3 DTid : SV_DispatchThreadID )
@@ -26,7 +14,8 @@ void main( uint3 DTid : SV_DispatchThreadID )
     float2 delta = float2(2.0f / gAppData.windowDimensions.x, 2.0f / gAppData.windowDimensions.y); //width and height of 1 pixel in NDC
     uint2 screenLeftTop = GetScreenLeftTop(rasterizer.screenTileIdx, gAppData.windowDimensions, gAppData.tileDimensions);
     
-    uint2 virtualDimensions = mul(uint(ceil(sqrt((float) gAppData.numRasterizers))), gAppData.tileDimensions);
+    uint2 virtualDimensions;
+    gGBufferColor.GetDimensions(virtualDimensions.x, virtualDimensions.y);
     uint2 virtualTextureLeftTop = GetScreenLeftTop(rasterizerIndex, virtualDimensions, gAppData.tileDimensions);
     float ndcLeft = ScreenToNDC(screenLeftTop.x, gAppData.windowDimensions.x);
     float ndcTop = -ScreenToNDC(screenLeftTop.y, gAppData.windowDimensions.y);
@@ -36,11 +25,7 @@ void main( uint3 DTid : SV_DispatchThreadID )
     //PER QUADRIC
     for (uint qIdx = rasterizer.rasterizerIdx * gAppData.quadricsPerRasterizer; qIdx < rasterizer.rasterizerIdx * gAppData.quadricsPerRasterizer + rasterizer.numQuadrics; qIdx++)
     {
-        OutQuadric q = gQuadrics[qIdx];
-        
-        
-        // METHOD1
-        
+        OutQuadric q = gRasterizerQBuffer[qIdx];
 
         for (uint x = 0; x < gAppData.tileDimensions.x; x++)
         {
@@ -49,27 +34,27 @@ void main( uint3 DTid : SV_DispatchThreadID )
             #ifdef SHOWBORDERS
             if (x == 0)
             {
-                gDepthBuffer[pixel.xy] = 0;
-                gColorBuffer[pixel.xy] = float4(1,0,0,1);
+                gGBufferDepth[pixel.xy] = 0;
+                gGBufferColor[pixel.xy] = float4(1,0,0,1);
                 continue;
             }
             else if (scanline == 0)
             {
-                gDepthBuffer[pixel.xy] = 0;
-                gColorBuffer[pixel.xy] = float4(0, 0, 1, 1);
+                gGBufferDepth[pixel.xy] = 0;
+                gGBufferColor[pixel.xy] = float4(0, 0, 1, 1);
                 continue;
             }
 
             else if (x == gAppData.tileDimensions.x - 1)
             {
-                gDepthBuffer[pixel.xy] = 0;
-                gColorBuffer[pixel.xy] = float4(0, 1, 0, 1);
+                gGBufferDepth[pixel.xy] = 0;
+                gGBufferColor[pixel.xy] = float4(0, 1, 0, 1);
                 continue;
             }
             else if (scanline == gAppData.tileDimensions.y - 1)
             {
-                gDepthBuffer[pixel.xy] = 0;
-                gColorBuffer[pixel.xy] = float4(1, 1, 0, 1);
+                gGBufferDepth[pixel.xy] = 0;
+                gGBufferColor[pixel.xy] = float4(1, 1, 0, 1);
                 continue;
             }
             #endif
@@ -91,15 +76,15 @@ void main( uint3 DTid : SV_DispatchThreadID )
                     continue; //this is behind us / we dont want to render stuff thats behind the camera
         
                 float depth = projPos.z;
-                if (gDepthBuffer[pixel.xy] > depth)
+                if (gGBufferDepth[pixel.xy] > depth)
                 {
-                    gDepthBuffer[pixel.xy] = depth;
+                    gGBufferDepth[pixel.xy] = depth;
                     float3 normal = -mul(float4(pos, 1), q.normalGenerator).xyz;
                     normal = normalize(normal);
-                    float3 lDir = normalize(gAppData.lightDirection.xyz); //make sure its normalized
+                    float3 lDir = gAppData.lightDirection.xyz;
                     float lambertDot = dot(normal, lDir);
                     float4 diffuse = float4(q.color, 1) * lambertDot;
-                    gColorBuffer[pixel.xy] = diffuse;
+                    gGBufferColor[pixel.xy] = diffuse;
                 }
             }
 
@@ -167,10 +152,10 @@ void main( uint3 DTid : SV_DispatchThreadID )
         //    {
         //        depth += q.shearToProj[2][i] * zs;
         //    }
-        //    if (depth < gDepthBuffer[pixel.xy])
+        //    if (depth < gGBufferDepth[pixel.xy])
         //    {
-        //        gDepthBuffer[pixel.xy] = depth;
-        //        gColorBuffer[pixel.xy] = float4(q.color, 1);
+        //        gGBufferDepth[pixel.xy] = depth;
+        //        gGBufferColor[pixel.xy] = float4(q.color, 1);
         //    }
         //    screenPixel.x++;
         //}
@@ -193,9 +178,9 @@ void main( uint3 DTid : SV_DispatchThreadID )
         //        depth += q.shearToProj[2][i] * zs;
         //    }
 
-        //    if (depth < gDepthBuffer[pixel])
+        //    if (depth < gGBufferDepth[pixel])
         //    { //fill GBuffers
-        //        gDepthBuffer[pixel] = depth;
+        //        gGBufferDepth[pixel] = depth;
         //    }
             
         //    //increment pixel

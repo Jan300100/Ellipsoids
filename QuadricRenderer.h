@@ -51,9 +51,13 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_ScreenTileBuffer; //uav buffer, flexible(resize when not big enough?)
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_ScreenTileResetBuffer; //upload buffer to reset screenTiles
 
+	//RS
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_RootSignature;
+
 	//Initialization
 	void InitResources();
-
+	void InitDrawCall();
+	void InitRendering();
 	//RENDER STAGES
 
 	friend class Stage::GeometryProcessing;
@@ -69,7 +73,6 @@ private:
 	
 	std::vector<QuadricMesh*> m_ToRender;
 
-	void InitDrawCall();
 
 	DirectX::XMFLOAT4 m_ClearColor = { 66 / 255.0f,135 / 255.0f,245 / 255.0f,0 };
 	float m_DepthClearValue = FLT_MAX;

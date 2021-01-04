@@ -12,7 +12,6 @@ namespace Stage
 	protected:
 		Microsoft::WRL::ComPtr<ID3DBlob> m_Shader;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_Pso;
-		Microsoft::WRL::ComPtr<ID3D12RootSignature> m_RootSignature;
 		DX12* m_pDX12;
 	public:
 		virtual ~Stage() = default;

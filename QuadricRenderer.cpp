@@ -8,6 +8,7 @@
 #include <iostream>
 #include "Camera.h"
 #include "QuadricMesh.h"
+using namespace Microsoft::WRL;
 
 using namespace DirectX;
 
@@ -209,6 +210,46 @@ void QuadricRenderer::InitResources()
 		nullptr,
 		IID_PPV_ARGS(&m_RasterizerQBuffer)));
 
+
+	//ROOT SIGNATURE
+	CD3DX12_ROOT_PARAMETER rootParameter[8];
+
+	CD3DX12_DESCRIPTOR_RANGE range;
+	range.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 4, 3, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND);
+
+	rootParameter[0].InitAsConstants(1,0);
+	rootParameter[1].InitAsConstantBufferView(1);
+	rootParameter[2].InitAsShaderResourceView(0);
+	rootParameter[3].InitAsShaderResourceView(1);
+	rootParameter[4].InitAsUnorderedAccessView(0);
+	rootParameter[5].InitAsUnorderedAccessView(1);
+	rootParameter[6].InitAsUnorderedAccessView(2);
+	rootParameter[7].InitAsDescriptorTable(1, &range);
+
+	// A root signature is an array of root parameters.
+	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(8, rootParameter,
+		0, nullptr,
+		D3D12_ROOT_SIGNATURE_FLAG_NONE);
+
+	ComPtr<ID3DBlob> serializedRootSig = nullptr;
+	ComPtr<ID3DBlob> errorBlob = nullptr;
+	HRESULT hr = D3D12SerializeRootSignature(&rootSigDesc, D3D_ROOT_SIGNATURE_VERSION_1,
+		serializedRootSig.GetAddressOf(), errorBlob.GetAddressOf());
+
+	if (errorBlob != nullptr)
+	{
+		::OutputDebugStringA((char*)errorBlob->GetBufferPointer());
+	}
+	ThrowIfFailed(hr);
+
+	ThrowIfFailed(m_pDX12->GetDevice()->CreateRootSignature(
+		0,
+		serializedRootSig->GetBufferPointer(),
+		serializedRootSig->GetBufferSize(),
+		IID_PPV_ARGS(m_RootSignature.GetAddressOf())));
+
+
+
 	//init resources
 	m_RasterizerBuffer->SetName(L"m_RasterizerBuffer");
 	m_RasterizerResetBuffer->SetName(L"m_RasterizerResetBuffer");
@@ -294,6 +335,57 @@ void QuadricRenderer::InitDrawCall()
 	cpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 	gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_DescriptorHeapSV->GetGPUDescriptorHandleForHeapStart());
 	m_pDX12->GetPipeline()->commandList->ClearUnorderedAccessViewFloat(gpuHandle.Offset(incrementSize * DescriptorHeapLayout::GDepth), cpuHandle.Offset(incrementSize * DescriptorHeapLayout::GDepth), m_RasterizerGBuffers[GBUFFER::Depth].Get(), (FLOAT*)&m_DepthClearValue, 0, nullptr);
+
+	
+
+
+}
+
+void QuadricRenderer::InitRendering()
+{
+	//update input data : In separate update function ?
+	XMStoreFloat4(&m_AppData.lightDirection, XMVector4Normalize(XMVector4Transform(XMVectorSet(0.577f, -0.577f, 0.577f, 0), m_pCamera->GetView())));
+	m_AppData.viewProjInv = m_pCamera->GetViewProjectionInverse();
+	m_AppData.viewInv = m_pCamera->GetViewInverse();
+	m_AppData.projInv = XMMatrixInverse(nullptr, m_pCamera->GetViewProjection());
+
+	BYTE* mapped = nullptr;
+	m_AppDataBuffer->Map(0, nullptr,
+		reinterpret_cast<void**>(&mapped));
+	memcpy(mapped, &m_AppData, sizeof(AppData));
+	if (m_AppDataBuffer != nullptr)
+		m_AppDataBuffer->Unmap(0, nullptr);
+
+	// Clear the buffers
+	// https://www.gamedev.net/forums/topic/672063-d3d12-clearunorderedaccessviewfloat-fails/
+	auto cpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+	auto gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_DescriptorHeapSV->GetGPUDescriptorHandleForHeapStart());
+	UINT incrementSize = m_pDX12->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+	m_pDX12->GetPipeline()->commandList->ClearUnorderedAccessViewFloat(
+		gpuHandle.Offset(incrementSize * DescriptorHeapLayout::Color),
+		cpuHandle.Offset(incrementSize * DescriptorHeapLayout::Color),
+		m_OutputTexture.Get(), (FLOAT*)&m_ClearColor, 0, nullptr);
+	cpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+	gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_DescriptorHeapSV->GetGPUDescriptorHandleForHeapStart());
+	m_pDX12->GetPipeline()->commandList->ClearUnorderedAccessViewFloat(
+		gpuHandle.Offset(incrementSize * DescriptorHeapLayout::Depth),
+		cpuHandle.Offset(incrementSize * DescriptorHeapLayout::Depth),
+		m_DepthTexture.Get(), (FLOAT*)&m_DepthClearValue, 0, nullptr);
+
+	auto pPipeline = m_pDX12->GetPipeline();
+	auto pComList = pPipeline->commandList;
+	//set root sign and parameters
+	pComList->SetComputeRootSignature(m_RootSignature.Get());
+
+	ID3D12DescriptorHeap* descHeaps[]{ m_DescriptorHeapSV.Get() };
+	pComList->SetDescriptorHeaps(_countof(descHeaps), descHeaps);
+
+	pComList->SetComputeRootConstantBufferView(1,m_AppDataBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootUnorderedAccessView(4, m_RasterizerBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootUnorderedAccessView(5, m_ScreenTileBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootUnorderedAccessView(6, m_RasterizerQBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootDescriptorTable(7, m_DescriptorHeapSV->GetGPUDescriptorHandleForHeapStart());
 }
 
 Dimensions<UINT> QuadricRenderer::GetNrTiles() const
@@ -326,36 +418,10 @@ QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
 
 void QuadricRenderer::Render()
 {
-	//update input data : In separate update function ?
-	XMStoreFloat4(&m_AppData.lightDirection, XMVector4Normalize(XMVector4Transform(XMVectorSet(0.577f, -0.577f, 0.577f, 0), m_pCamera->GetView())));
-	m_AppData.viewProjInv = m_pCamera->GetViewProjectionInverse();
-	m_AppData.viewInv = m_pCamera->GetViewInverse();
-	m_AppData.projInv = XMMatrixInverse(nullptr, m_pCamera->GetViewProjection());
+	InitRendering();
 
-	BYTE* mapped = nullptr;
-	m_AppDataBuffer->Map(0, nullptr,
-		reinterpret_cast<void**>(&mapped));
-	memcpy(mapped, &m_AppData, sizeof(AppData));
-	if (m_AppDataBuffer != nullptr)
-		m_AppDataBuffer->Unmap(0, nullptr);
-
-	// Clear the buffers
-	// https://www.gamedev.net/forums/topic/672063-d3d12-clearunorderedaccessviewfloat-fails/
-	auto cpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-	auto gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_DescriptorHeapSV->GetGPUDescriptorHandleForHeapStart());
-	UINT incrementSize = m_pDX12->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-	m_pDX12->GetPipeline()->commandList->ClearUnorderedAccessViewFloat(
-		gpuHandle.Offset(incrementSize * DescriptorHeapLayout::Color),
-		cpuHandle.Offset(incrementSize * DescriptorHeapLayout::Color),
-		m_OutputTexture.Get(), (FLOAT*)&m_ClearColor, 0, nullptr);
-	cpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-	gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_DescriptorHeapSV->GetGPUDescriptorHandleForHeapStart());
-	m_pDX12->GetPipeline()->commandList->ClearUnorderedAccessViewFloat(
-		gpuHandle.Offset(incrementSize * DescriptorHeapLayout::Depth), 
-		cpuHandle.Offset(incrementSize * DescriptorHeapLayout::Depth), 
-		m_DepthTexture.Get(), (FLOAT*)&m_DepthClearValue, 0, nullptr);
-	
+	auto pPipeline = m_pDX12->GetPipeline();
+	auto pComList = pPipeline->commandList;
 
 	for (size_t i = 0; i < m_ToRender.size(); i++)
 	{
