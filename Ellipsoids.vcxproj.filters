@@ -161,5 +161,8 @@
     <FxCompile Include="GeometryProcessingShader.hlsl">
       <Filter>Pipeline\GeometryProcessing</Filter>
     </FxCompile>
+    <FxCompile Include="RootSignature.hlsl">
+      <Filter>Pipeline</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>
