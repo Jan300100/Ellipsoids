@@ -287,7 +287,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 			camera.Update(delta);
 			dx12.NewFrame();
-			renderer.Render(&ground);
+			//renderer.Render(&ground);
 
 			for (QuadricMesh& dude : dudes)
 				renderer.Render(&dude);

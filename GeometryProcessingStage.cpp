@@ -31,36 +31,21 @@ unsigned int Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, std:
 	pComList->SetComputeRootUnorderedAccessView(5, pRenderer->m_RasterizerBuffer->GetGPUVirtualAddress());
 	pComList->SetComputeRootUnorderedAccessView(6, pRenderer->m_ScreenTileBuffer->GetGPUVirtualAddress());
 
-	unsigned int lastMesh = start;
-	unsigned int rasterizersInUse = 0, numPossible = pRenderer->m_AppData.numRasterizers;
-	while (rasterizersInUse < numPossible && lastMesh < pMeshes.size())
-	{
-		QuadricMesh* pMesh = pMeshes[lastMesh];
+	QuadricMesh* pMesh = pMeshes[start];
 
 
-		std::vector< CD3DX12_RESOURCE_BARRIER> barriers{};
-		barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerBuffer.Get()));
-		barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerQBuffer.Get()));
-		barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_ScreenTileBuffer.Get()));
-		pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
+	std::vector< CD3DX12_RESOURCE_BARRIER> barriers{};
+	barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerBuffer.Get()));
+	barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerQBuffer.Get()));
+	barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_ScreenTileBuffer.Get()));
+	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
 
-		pComList->SetComputeRootConstantBufferView(0, pMesh->GetMeshDataBuffer()->GetGPUVirtualAddress());
-		pComList->SetComputeRootShaderResourceView(1, pMesh->GetInputBuffer()->GetGPUVirtualAddress());
-		pComList->SetComputeRootUnorderedAccessView(2, pMesh->GetMeshOutputBuffer()->GetGPUVirtualAddress());
+	pComList->SetComputeRootConstantBufferView(0, pMesh->GetMeshDataBuffer()->GetGPUVirtualAddress());
+	pComList->SetComputeRootShaderResourceView(1, pMesh->GetInputBuffer()->GetGPUVirtualAddress());
+	pComList->SetComputeRootUnorderedAccessView(2, pMesh->GetMeshOutputBuffer()->GetGPUVirtualAddress());
 
-		pComList->Dispatch((pMesh->QuadricsAmount() / 32) + ((pMesh->QuadricsAmount() % 32) > 0), 1, 1);
-
-		if (pMesh->GetMeshOutput().overflowed)
-		{
-			pMesh->GetMeshOutput().overflowed = false;
-			break;
-		}
-
-
-		rasterizersInUse += pMesh->GetMeshOutput().claimedRasterizers;
-		lastMesh++;
-	}
-	return lastMesh;
+	pComList->Dispatch((pMesh->QuadricsAmount() / 32) + ((pMesh->QuadricsAmount() % 32) > 0), 1, 1);
+	return start + 1;
 }
 
 void Stage::GeometryProcessing::Init(QuadricRenderer*)
