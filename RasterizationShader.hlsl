@@ -1,7 +1,7 @@
 #include "Helpers.hlsl"
 #include "Structs.hlsl"
 
-//#define SHOWBORDERS
+#define SHOWBORDERS
 
 
 //input

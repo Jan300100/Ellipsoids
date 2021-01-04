@@ -69,7 +69,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		body.transform.scale = { 1,2,1 };
 		body.transform.position = { 0,0,0 };
 
-		Quadric upperArmRight;
+		Quadric upperArmRight{};
 		upperArmRight.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -80,7 +80,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		upperArmRight.transform.position = { 1.25f,0.6f,0 };
 		upperArmRight.transform.rotation = { 0,0,1 };
 
-		Quadric lowerArmRight;
+		Quadric lowerArmRight{};
 		lowerArmRight.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -90,7 +90,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		lowerArmRight.transform.scale = { 0.3f,1.0f,0.3f };
 		lowerArmRight.transform.position = { 1.85f,-0.6f,0 };
 
-		Quadric handRight;
+		Quadric handRight{};
 		handRight.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -100,7 +100,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		handRight.transform.scale = { 0.3f,0.5f,0.3f };
 		handRight.transform.position = { 1.85f,-1.5f,0 };
 
-		Quadric upperArmLeft;
+		Quadric upperArmLeft{};
 		upperArmLeft.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -111,7 +111,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		upperArmLeft.transform.position = { -1.25f,0.6f,0 };
 		upperArmLeft.transform.rotation = { 0,0,-1 };
 
-		Quadric lowerArmLeft;
+		Quadric lowerArmLeft{};
 		lowerArmLeft.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -121,7 +121,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		lowerArmLeft.transform.scale = { 0.3f,1.0f,0.3f };
 		lowerArmLeft.transform.position = { -1.85f,-0.6f,0 };
 
-		Quadric handLeft;
+		Quadric handLeft{};
 		handLeft.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -132,7 +132,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		handLeft.transform.position = { -1.85f,-1.5f,0 };
 
 		//leg
-		Quadric upperLegRight;
+		Quadric upperLegRight{};
 		upperLegRight.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -142,7 +142,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		upperLegRight.transform.scale = { 0.5f,1.5f,0.5f };
 		upperLegRight.transform.position = { 0.5f,-2.0f,0 };
 
-		Quadric lowerLegRight;
+		Quadric lowerLegRight{};
 		lowerLegRight.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -152,7 +152,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		lowerLegRight.transform.scale = { 0.5f,1.5f,0.5f };
 		lowerLegRight.transform.position = { 0.5f,-3.0f,0 };
 
-		Quadric shoeRight;
+		Quadric shoeRight{};
 		shoeRight.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -163,7 +163,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		shoeRight.transform.position = { 0.5f,-4.5f,-0.5f };
 
 		//leg
-		Quadric upperLegLeft;
+		Quadric upperLegLeft{};
 		upperLegLeft.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -173,7 +173,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		upperLegLeft.transform.scale = { 0.5f,1.5f,0.5f };
 		upperLegLeft.transform.position = { -0.5f,-2.0f,0 };
 
-		Quadric lowerLegLeft;
+		Quadric lowerLegLeft{};
 		lowerLegLeft.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -183,7 +183,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		lowerLegLeft.transform.scale = { 0.5f,1.5f,0.5f };
 		lowerLegLeft.transform.position = { -0.5f,-3.0f,0 };
 
-		Quadric shoeLeft;
+		Quadric shoeLeft{};
 		shoeLeft.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
