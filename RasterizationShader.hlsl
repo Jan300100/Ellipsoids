@@ -1,7 +1,7 @@
 #include "Helpers.hlsl"
 #include "Structs.hlsl"
 
-#define SHOWBORDERS
+//#define SHOWBORDERS
 
 
 //input
@@ -44,9 +44,6 @@ void main( uint3 DTid : SV_DispatchThreadID )
 
         for (uint x = 0; x < gAppData.tileDimensions.x; x++)
         {
-
-            
-            
             uint2 pixel = virtualTextureLeftTop + uint2(x, scanline);
             
             #ifdef SHOWBORDERS

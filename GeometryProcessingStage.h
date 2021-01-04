@@ -11,7 +11,7 @@ namespace Stage
 	{
 	public:
 		GeometryProcessing(DX12* pDX12);
-		unsigned int Execute(QuadricRenderer* pRenderer, std::vector<QuadricMesh*> pMeshes, unsigned int start) const;
+		void Execute(QuadricRenderer* pRenderer, QuadricMesh* pMesh) const;
 		virtual void Init(QuadricRenderer* pRenderer) override;
 	}; 
 }

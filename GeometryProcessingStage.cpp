@@ -13,25 +13,22 @@ Stage::GeometryProcessing::GeometryProcessing(DX12* pDX12)
 	
 }
 
-unsigned int Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, std::vector<QuadricMesh*> pMeshes, unsigned int start) const
+void Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, QuadricMesh* pMesh) const
 {
 	DX12::Pipeline* pPipeline = m_pDX12->GetPipeline();
 	auto pComList = pPipeline->commandList;
-
-
-
-
 
 	pComList->SetPipelineState(m_Pso.Get());
 	pComList->SetComputeRootSignature(m_RootSignature.Get());
 
 
-	pComList->SetComputeRootConstantBufferView(3, pRenderer->m_AppDataBuffer->GetGPUVirtualAddress());
-	pComList->SetComputeRootUnorderedAccessView(4, pRenderer->m_RasterizerQBuffer->GetGPUVirtualAddress());
-	pComList->SetComputeRootUnorderedAccessView(5, pRenderer->m_RasterizerBuffer->GetGPUVirtualAddress());
-	pComList->SetComputeRootUnorderedAccessView(6, pRenderer->m_ScreenTileBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootConstantBufferView(2, pRenderer->m_AppDataBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootUnorderedAccessView(3, pRenderer->m_RasterizerQBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootUnorderedAccessView(4, pRenderer->m_RasterizerBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootUnorderedAccessView(5, pRenderer->m_ScreenTileBuffer->GetGPUVirtualAddress());
 
-	QuadricMesh* pMesh = pMeshes[start];
+	pComList->SetComputeRootConstantBufferView(0, pMesh->GetMeshDataBuffer()->GetGPUVirtualAddress());
+	pComList->SetComputeRootShaderResourceView(1, pMesh->GetInputBuffer()->GetGPUVirtualAddress());
 
 
 	std::vector< CD3DX12_RESOURCE_BARRIER> barriers{};
@@ -39,30 +36,24 @@ unsigned int Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, std:
 	barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerQBuffer.Get()));
 	barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_ScreenTileBuffer.Get()));
 	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
-
-	pComList->SetComputeRootConstantBufferView(0, pMesh->GetMeshDataBuffer()->GetGPUVirtualAddress());
-	pComList->SetComputeRootShaderResourceView(1, pMesh->GetInputBuffer()->GetGPUVirtualAddress());
-	pComList->SetComputeRootUnorderedAccessView(2, pMesh->GetMeshOutputBuffer()->GetGPUVirtualAddress());
-
+	
 	pComList->Dispatch((pMesh->QuadricsAmount() / 32) + ((pMesh->QuadricsAmount() % 32) > 0), 1, 1);
-	return start + 1;
 }
 
 void Stage::GeometryProcessing::Init(QuadricRenderer*)
 {
 	//ROOT SIGNATURE
-	CD3DX12_ROOT_PARAMETER slotRootParameter[7];
+	CD3DX12_ROOT_PARAMETER slotRootParameter[6];
 
 	slotRootParameter[0].InitAsConstantBufferView(0);
 	slotRootParameter[1].InitAsShaderResourceView(0);
-	slotRootParameter[2].InitAsUnorderedAccessView(2);
-	slotRootParameter[3].InitAsConstantBufferView(1);
-	slotRootParameter[4].InitAsUnorderedAccessView(0);
-	slotRootParameter[5].InitAsUnorderedAccessView(1);
-	slotRootParameter[6].InitAsUnorderedAccessView(3);
+	slotRootParameter[2].InitAsConstantBufferView(1);
+	slotRootParameter[3].InitAsUnorderedAccessView(0);
+	slotRootParameter[4].InitAsUnorderedAccessView(1);
+	slotRootParameter[5].InitAsUnorderedAccessView(2);
 
 	// A root signature is an array of root parameters.
-	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(7, slotRootParameter,
+	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(6, slotRootParameter,
 		0, nullptr,
 		D3D12_ROOT_SIGNATURE_FLAG_NONE);
 

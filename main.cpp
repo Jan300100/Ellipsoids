@@ -214,7 +214,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		}
 
 
-		size_t count = 10;
+		size_t count = 1;
 		std::vector< QuadricMesh> dudes{};
 		for (size_t i = 0; i < count; i++)
 		{
@@ -287,7 +287,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 			camera.Update(delta);
 			dx12.NewFrame();
-			//renderer.Render(&ground);
+			renderer.Render(&ground);
 
 			for (QuadricMesh& dude : dudes)
 				renderer.Render(&dude);

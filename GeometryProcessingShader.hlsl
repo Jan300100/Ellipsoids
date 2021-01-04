@@ -11,13 +11,11 @@ StructuredBuffer<InQuadric> gQuadricsIn : register(t0);
 //output
 RWStructuredBuffer<OutQuadric> gRasterizerQBuffer : register(u0);
 RWStructuredBuffer<Rasterizer> gRasterizers : register(u1);
-RWStructuredBuffer<MeshOutputData> gMeshOutput : register(u2);
-RWStructuredBuffer<ScreenTile> gScreenTiles : register(u3);
+RWStructuredBuffer<ScreenTile> gScreenTiles : register(u2);
 
-#define MeshOutput gMeshOutput[0]
 
 OutQuadric Project(InQuadric q);
-bool AddQuadric(uint screenTileIdx, OutQuadric quadric);
+void AddQuadric(uint screenTileIdx, OutQuadric quadric);
 
 [numthreads(32, 1, 1)]
 void main( uint3 DTid : SV_DispatchThreadID )
@@ -26,17 +24,12 @@ void main( uint3 DTid : SV_DispatchThreadID )
         return;
     //PROJECT
     OutQuadric projected = Project(gQuadricsIn[DTid.x]);
+
     
     //FILL RASTERIZERS
     uint2 numTiles = GetNrTiles(gAppData.windowDimensions, gAppData.tileDimensions);
-
-    uint2 start = NDCToScreen(float2(projected.xRange.x, projected.yRange.y), gAppData.windowDimensions);
-    start.x /= gAppData.tileDimensions.x;
-    start.y /= gAppData.tileDimensions.y;
-    uint2 end = NDCToScreen(float2(projected.xRange.y, projected.yRange.x), gAppData.windowDimensions);
-    end.x /= gAppData.tileDimensions.x;
-    end.y /= gAppData.tileDimensions.y;
-    
+    uint2 start = NDCToScreen(float2(projected.xRange.x, projected.yRange.y), gAppData.windowDimensions) / gAppData.tileDimensions;
+    uint2 end = NDCToScreen(float2(projected.xRange.y, projected.yRange.x), gAppData.windowDimensions) / gAppData.tileDimensions;
     if (start.x > numTiles.x || end.x < 0 || start.y > numTiles.y || end.y < 0)
         return;
     
@@ -45,7 +38,6 @@ void main( uint3 DTid : SV_DispatchThreadID )
     end.x = clamp(end.x, 0, numTiles.x);
     end.y = clamp(end.y, 0, numTiles.y);
     
-    uint addedRasterizers = 0;
     for (uint x = start.x; x <= end.x; x++)
     {
         for (uint y = start.y; y <= end.y; y++)
@@ -53,30 +45,23 @@ void main( uint3 DTid : SV_DispatchThreadID )
             uint screenIdx = y * numTiles.x + x;
             if (screenIdx < numTiles.x * numTiles.y)
             {
-                addedRasterizers += AddQuadric(screenIdx, projected);
+                AddQuadric(screenIdx, projected);
             }
         }
     }
-    InterlockedAdd(MeshOutput.claimedRasterizers, addedRasterizers);
 }
 
-bool AddQuadric(uint screenTileIdx, OutQuadric quadric)
+void AddQuadric(uint screenTileIdx, OutQuadric quadric)
 {
     uint screenHint = gScreenTiles[screenTileIdx].rasterizerHint;
     uint pos = (screenHint != UINT_MAX) * screenHint;
-    bool added = false, claimedRasterizer = false;
+    bool added = false;
     uint previousFull = UINT_MAX;
     while (!added)
     {
         if (pos >= gAppData.numRasterizers)
         {
-            //all rasterizers are in use! we can't add the quadric, we would be writing out of bounds
-            //but we can act as if we added it, the quadric won't get rendered, but might the next frame.
             added = true;
-            MeshOutput.overflowed = true; //tells the cpu this mesh didn't fit in the batch anymore. 
-            //next frame, cpu will try again, but will also start with this one on a new batch.
-            claimedRasterizer = true;
-
         }
         else if (gRasterizers[pos].screenTileIdx == screenTileIdx)
         {
@@ -129,15 +114,12 @@ bool AddQuadric(uint screenTileIdx, OutQuadric quadric)
             pos++;
         }
     }
-    return claimedRasterizer;
-
 }
 
 
 OutQuadric Project(InQuadric input)
 {
     OutQuadric output = (OutQuadric)0;
-    output.color = input.color.rgb;
     
     //put the quadric at its's world position
     float4x4 world = mul(mul(gMeshData.transform, input.transformed), transpose(gMeshData.transform));;
@@ -181,8 +163,8 @@ OutQuadric Project(InQuadric input)
     }
     else
     {
-        output.yRange = float2(0, 0);
-
+        output.yRange = float2(1, -1);
+        return output;
     }
     
     //calc a, b, c
@@ -200,12 +182,14 @@ OutQuadric Project(InQuadric input)
     }
     else
     {
-        output.xRange = float2(0, 0);
+        output.xRange = float2(1, -1);
+        return output;
     }
     
     //normal generator
     float4x4 tsd = mul(output.shearToProj, gAppData.viewProjInv);
     output.normalGenerator = mul(mul(tsd, world), transpose(gAppData.viewInv));
-    
+    output.color = input.color.rgb;
+
     return output;
 }

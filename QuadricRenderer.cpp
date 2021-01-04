@@ -296,42 +296,6 @@ void QuadricRenderer::InitDrawCall()
 	m_pDX12->GetPipeline()->commandList->ClearUnorderedAccessViewFloat(gpuHandle.Offset(incrementSize * DescriptorHeapLayout::GDepth), cpuHandle.Offset(incrementSize * DescriptorHeapLayout::GDepth), m_RasterizerGBuffers[GBUFFER::Depth].Get(), (FLOAT*)&m_DepthClearValue, 0, nullptr);
 }
 
-void QuadricRenderer::PrepareMeshes()
-{
-	for (QuadricMesh* pMesh : m_ToRender)
-	{
-		pMesh->ReadMeshOutput();
-	}
-
-	auto pPipeline = m_pDX12->GetPipeline();
-	auto pComList = pPipeline->commandList;
-	std::vector< CD3DX12_RESOURCE_BARRIER> barriers{};
-	for (QuadricMesh* pMesh : m_ToRender)
-	{
-		barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(pMesh->GetMeshOutputBuffer(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS
-			, D3D12_RESOURCE_STATE_COPY_SOURCE));
-	}
-	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
-	barriers.clear();
-	for (QuadricMesh* pMesh : m_ToRender)
-	{
-		pComList->CopyResource(pMesh->GetMeshOutputReadbackBuffer(), pMesh->GetMeshOutputBuffer());
-
-		barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(pMesh->GetMeshOutputBuffer(), D3D12_RESOURCE_STATE_COPY_SOURCE
-			, D3D12_RESOURCE_STATE_COPY_DEST));
-	}
-	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
-	barriers.clear();
-	for (QuadricMesh* pMesh : m_ToRender)
-	{
-		pComList->CopyResource(pMesh->GetMeshOutputBuffer(), pMesh->GetMeshOutputResetBuffer());
-
-		barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(pMesh->GetMeshOutputBuffer(), D3D12_RESOURCE_STATE_COPY_DEST
-			, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-	}
-	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
-}
-
 Dimensions<UINT> QuadricRenderer::GetNrTiles() const
 {
 	auto wDim = m_pDX12->GetWindow()->GetDimensions();
@@ -346,7 +310,7 @@ QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
 	,m_MStage{pDX12}
 {
 	m_AppData.windowSize = { m_pDX12->GetWindow()->GetDimensions().width ,m_pDX12->GetWindow()->GetDimensions().height, 0, 0 };
-	m_AppData.tileDimensions = { 64,64 };
+	m_AppData.tileDimensions = { 128,128 };
 	m_AppData.quadricsPerRasterizer = 16;
 
 	UINT screenTiles = GetNrTiles().height * GetNrTiles().width;
@@ -392,12 +356,11 @@ void QuadricRenderer::Render()
 		cpuHandle.Offset(incrementSize * DescriptorHeapLayout::Depth), 
 		m_DepthTexture.Get(), (FLOAT*)&m_DepthClearValue, 0, nullptr);
 	
-	PrepareMeshes();
 
-	for (size_t rendered = 0; rendered < m_ToRender.size();)
+	for (size_t i = 0; i < m_ToRender.size(); i++)
 	{
 		InitDrawCall();
-		rendered = m_GPStage.Execute(this, m_ToRender, (UINT)rendered);
+		m_GPStage.Execute(this, m_ToRender[i]);
 		m_RStage.Execute(this);
 		m_MStage.Execute(this);
 	}
