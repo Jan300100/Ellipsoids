@@ -13,7 +13,7 @@ Stage::GeometryProcessing::GeometryProcessing(DX12* pDX12)
 	
 }
 
-void Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, QuadricMesh* pMesh) const
+bool Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, QuadricMesh* pMesh) const
 {
 	DX12::Pipeline* pPipeline = m_pDX12->GetPipeline();
 	auto pComList = pPipeline->commandList;
@@ -24,12 +24,15 @@ void Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, QuadricMesh*
 	barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_ScreenTileBuffer.Get()));
 	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
 	pComList->SetComputeRoot32BitConstant(0, pMesh->QuadricsAmount(), 0);
-	pComList->SetComputeRootShaderResourceView(2, pMesh->GetMeshDataBuffer()->GetGPUVirtualAddress());
+	pComList->SetComputeRootShaderResourceView(2, pMesh->GetTransformBuffer()->GetGPUVirtualAddress());
 	pComList->SetComputeRootShaderResourceView(3, pMesh->GetInputBuffer()->GetGPUVirtualAddress());
 
 	pComList->SetPipelineState(m_Pso.Get());
 
-	pComList->Dispatch((pMesh->QuadricsAmount() / 32) + ((pMesh->QuadricsAmount() % 32) > 0), 1, 1);
+	UINT amount = pMesh->UpdateTransforms();
+	if (amount == 0) return false;
+	pComList->Dispatch((pMesh->QuadricsAmount() / 32) + ((pMesh->QuadricsAmount() % 32) > 0), 1, amount);
+	return true;
 }
 
 void Stage::GeometryProcessing::Init(QuadricRenderer* pRenderer)

@@ -403,7 +403,7 @@ QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
 {
 	m_AppData.windowSize = { m_pDX12->GetWindow()->GetDimensions().width ,m_pDX12->GetWindow()->GetDimensions().height, 0, 0 };
 	m_AppData.tileDimensions = { 128,128 };
-	m_AppData.quadricsPerRasterizer = 16;
+	m_AppData.quadricsPerRasterizer = 128;
 
 	UINT screenTiles = GetNrTiles().height * GetNrTiles().width;
 	UINT extraRasterizers = screenTiles;
@@ -426,9 +426,11 @@ void QuadricRenderer::Render()
 	for (size_t i = 0; i < m_ToRender.size(); i++)
 	{
 		InitDrawCall();
-		m_GPStage.Execute(this, m_ToRender[i]);
-		m_RStage.Execute(this);
-		m_MStage.Execute(this);
+		if (m_GPStage.Execute(this, m_ToRender[i]))
+		{
+			m_RStage.Execute(this);
+			m_MStage.Execute(this);
+		}
 	}
 
 	CopyToBackBuffer();

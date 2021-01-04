@@ -3,7 +3,7 @@
 uint gNumQuadrics : register(b0);
 ConstantBuffer<AppData> gAppData : register(b1);
 
-StructuredBuffer<MeshData> gMeshData : register(t0);
+StructuredBuffer<float4x4> gMeshData : register(t0);
 StructuredBuffer<InQuadric> gQuadricsIn : register(t1);
 
 RWStructuredBuffer<Rasterizer> gRasterizers : register(u0);

@@ -2,7 +2,7 @@
 #include "Helpers.hlsl"
 
 
-OutQuadric Project(InQuadric q);
+OutQuadric Project(InQuadric q, uint instanceIdx);
 void AddQuadric(uint screenTileIdx, OutQuadric quadric);
 
 [numthreads(32, 1, 1)]
@@ -11,7 +11,7 @@ void main( uint3 DTid : SV_DispatchThreadID )
     if (DTid.x >= gNumQuadrics)
         return;
     //PROJECT
-    OutQuadric projected = Project(gQuadricsIn[DTid.x]);
+    OutQuadric projected = Project(gQuadricsIn[DTid.x], DTid.z);
 
     
     //FILL RASTERIZERS
@@ -105,10 +105,10 @@ void AddQuadric(uint screenTileIdx, OutQuadric quadric)
 }
 
 
-OutQuadric Project(InQuadric input)
+OutQuadric Project(InQuadric input, uint instanceIdx)
 {
     OutQuadric output = (OutQuadric)0;
-    float4x4 transform = gMeshData[0].transform;
+    float4x4 transform = gMeshData[instanceIdx];
     
     //put the quadric at its's world position
     float4x4 world = mul(mul(transform, input.transformed), transpose(transform));;
