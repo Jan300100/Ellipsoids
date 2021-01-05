@@ -3,16 +3,16 @@
 #include "Transform.h"
 #include <DirectXMath.h>
 
-class QuadricMesh;
+class QuadricGeometry;
 
 class Instance
 {
-	QuadricMesh* m_pMesh;
+	QuadricGeometry* m_pGeometry;
 	Transform m_Transform;
-	DirectX::XMMATRIX m_TransformationMatrix;
 public:
-	Instance(QuadricMesh* pMesh);
-	void Render() const;
-	Transform GetTransform() { return m_Transform; }
+	Instance(QuadricGeometry* pGeometry);
+	Transform GetTransform() const { return m_Transform; }
+	const DirectX::XMMATRIX& GetTransformMatrix() const { return m_Transform.matrix; }
 	void SetTransform(const Transform& tr);
+	QuadricGeometry* GetGeometry() const { return m_pGeometry; }
 };

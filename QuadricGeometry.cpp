@@ -1,4 +1,4 @@
-#include "QuadricMesh.h"
+#include "QuadricGeometry.h"
 #include "d3dx12.h"
 #include "Helpers.h"
 #include "DX12.h"
@@ -6,7 +6,7 @@
 
 using namespace DirectX;
 
-UINT QuadricMesh::UpdateTransforms()
+UINT QuadricGeometry::UpdateTransforms()
 {
     BYTE* mapped = nullptr;
     m_MeshDataBuffer->Map(0, nullptr,
@@ -27,8 +27,8 @@ UINT QuadricMesh::UpdateTransforms()
     return amount;
 }
 
-QuadricMesh::QuadricMesh(DX12* pDX12, const std::vector<InQuadric>& quadrics, UINT maxInstances)
-    :m_Quadrics{ quadrics }, m_Transforms{}, m_MaxInstances{maxInstances}
+QuadricGeometry::QuadricGeometry(DX12* pDX12, const std::vector<InQuadric>& quadrics, UINT maxInstances)
+    :m_Quadrics{ quadrics }, m_Transforms{}, m_MaxInstances{(maxInstances == 0) ? 1 : maxInstances}
 {
     size_t byteSize = sizeof(InQuadric) * m_Quadrics.size();
     CD3DX12_HEAP_PROPERTIES properties{ CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT) };
@@ -55,11 +55,10 @@ QuadricMesh::QuadricMesh(DX12* pDX12, const std::vector<InQuadric>& quadrics, UI
     
     UpdateBuffers(pDX12);
 
-
     //create transform data
     //Constant Buffer
     properties = { CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD) };
-    desc = { CD3DX12_RESOURCE_DESC::Buffer(sizeof(DirectX::XMMATRIX) * maxInstances)};
+    desc = { CD3DX12_RESOURCE_DESC::Buffer(sizeof(DirectX::XMMATRIX) * m_MaxInstances)};
     pDX12->GetDevice()->CreateCommittedResource(
         &properties,
         D3D12_HEAP_FLAG_NONE,
@@ -73,7 +72,7 @@ QuadricMesh::QuadricMesh(DX12* pDX12, const std::vector<InQuadric>& quadrics, UI
 
 }
 
-void QuadricMesh::UpdateBuffers(DX12* pDX12)
+void QuadricGeometry::UpdateBuffers(DX12* pDX12)
 {
     size_t byteSize = sizeof(InQuadric) * m_Quadrics.size();
 

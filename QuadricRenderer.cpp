@@ -7,7 +7,9 @@
 #include <d3dcompiler.h>
 #include <iostream>
 #include "Camera.h"
-#include "QuadricMesh.h"
+#include "QuadricGeometry.h"
+#include "Instance.h"
+
 using namespace Microsoft::WRL;
 
 using namespace DirectX;
@@ -403,7 +405,7 @@ QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
 {
 	m_AppData.windowSize = { m_pDX12->GetWindow()->GetDimensions().width ,m_pDX12->GetWindow()->GetDimensions().height, 0, 0 };
 	m_AppData.tileDimensions = { 128,128 };
-	m_AppData.quadricsPerRasterizer = 128;
+	m_AppData.quadricsPerRasterizer = 32;
 
 	UINT screenTiles = GetNrTiles().height * GetNrTiles().width;
 	UINT extraRasterizers = screenTiles;
@@ -423,24 +425,35 @@ void QuadricRenderer::Render()
 	auto pPipeline = m_pDX12->GetPipeline();
 	auto pComList = pPipeline->commandList;
 
-	for (size_t i = 0; i < m_ToRender.size(); i++)
+	for (QuadricGeometry* pGeo : m_ToRender)
 	{
 		InitDrawCall();
-		if (m_GPStage.Execute(this, m_ToRender[i]))
+		if (m_GPStage.Execute(this, pGeo))
 		{
 			m_RStage.Execute(this);
 			m_MStage.Execute(this);
 		}
 	}
+	m_ToRender.clear();
 
 	CopyToBackBuffer();
-
-	//reset for next frame
-	m_ToRender.clear();
 }
 
-void QuadricRenderer::Render(QuadricMesh* pMesh)
+void QuadricRenderer::Render(const Instance& instance)
 {
-	//registers the quadric for rendering
-	m_ToRender.push_back(pMesh);
+	auto pGeo = instance.GetGeometry();
+	m_ToRender.push_back(pGeo);
+	pGeo->m_Transforms.push_back(instance.GetTransformMatrix());
+}
+
+void QuadricRenderer::Render(QuadricGeometry* pGeo, Transform& transform)
+{
+	transform.CalculateMatrix();
+	Render(pGeo, transform.matrix);
+}
+
+void QuadricRenderer::Render(QuadricGeometry* pGeo, const DirectX::XMMATRIX& transform)
+{
+	m_ToRender.push_back(pGeo);
+	pGeo->m_Transforms.push_back(transform);
 }

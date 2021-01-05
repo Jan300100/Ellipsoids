@@ -17,7 +17,7 @@
 #include "FreeCamera.h"
 #include <ImGuiRenderer.h>
 #include "Structs.h"
-#include "QuadricMesh.h"
+#include "QuadricGeometry.h"
 #include "Instance.h"
 
 
@@ -215,14 +215,14 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		}
 
 
-		UINT count = 1;
-		QuadricMesh dudeMesh{ &dx12, in , count * count};
+		UINT count = 5;
+		QuadricGeometry dudeGeometry{ &dx12, in , count * count};
 		std::vector<Instance> instances{};
 		for (UINT i = 0; i < count; i++)
 		{
 			for (UINT j = 0; j < count; j++)
 			{
-				instances.push_back(&dudeMesh);
+				instances.push_back(&dudeGeometry);
 				Transform tr{};
 				tr.position.x = 5.0f * i;
 				tr.position.y = 4.5f;
@@ -239,7 +239,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 						0,0,0,-1 };
 
 
-		Quadric world;
+		Quadric world{};
 		float range = 500;
 		world.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
@@ -252,7 +252,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 		std::vector<InQuadric> groundInput{};
 		groundInput.push_back(world);
-		QuadricMesh ground{ &dx12, groundInput };
+		QuadricGeometry ground{ &dx12, groundInput };
 
 		//LOOP
 		MSG msg = {};
@@ -293,17 +293,11 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 			dx12.NewFrame();
 
 			renderer.Render(&ground);
-			Instance groundInstance{ &ground };
-			groundInstance.Render();
-
-			renderer.Render(&dudeMesh);
-
-
-
 			for (const Instance& i : instances)
 			{
-				i.Render();
+				renderer.Render(i);
 			}
+
 			renderer.Render();
 			imguiRenderer.Render(dx12.GetPipeline()->commandList.Get());
 			dx12.Present();

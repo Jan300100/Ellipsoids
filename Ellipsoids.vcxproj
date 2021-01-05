@@ -97,10 +97,11 @@
     <ClCompile Include="Instance.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MergeStage.cpp" />
-    <ClCompile Include="QuadricMesh.cpp" />
+    <ClCompile Include="QuadricGeometry.cpp" />
     <ClCompile Include="QuadricRenderer.cpp" />
     <ClCompile Include="Mouse.cpp" />
     <ClCompile Include="RasterizationStage.cpp" />
+    <ClCompile Include="Transform.cpp" />
     <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -119,7 +120,7 @@
     <ClInclude Include="ImGui\imstb_truetype.h" />
     <ClInclude Include="Instance.h" />
     <ClInclude Include="MergeStage.h" />
-    <ClInclude Include="QuadricMesh.h" />
+    <ClInclude Include="QuadricGeometry.h" />
     <ClInclude Include="QuadricRenderer.h" />
     <ClInclude Include="DX12.h" />
     <ClInclude Include="Helpers.h" />

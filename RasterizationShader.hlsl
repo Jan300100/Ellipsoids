@@ -1,6 +1,9 @@
 #include "Helpers.hlsl"
 #include "RootSignature.hlsl"
 
+
+//#define SHOW_TILES
+
 [numthreads(32, 1, 1)]
 void main( uint3 DTid : SV_DispatchThreadID )
 {
@@ -31,7 +34,7 @@ void main( uint3 DTid : SV_DispatchThreadID )
         {
             uint2 pixel = virtualTextureLeftTop + uint2(x, scanline);
             
-            #ifdef SHOWBORDERS
+            #ifdef SHOW_TILES
             if (x == 0)
             {
                 gGBufferDepth[pixel.xy] = 0;

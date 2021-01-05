@@ -6,10 +6,9 @@
 
 class DX12;
 
-class QuadricMesh
+class QuadricGeometry
 {
-
-	friend class Instance;
+	friend class QuadricRenderer;
 	//data cpu
 	UINT m_MaxInstances;
 	std::vector<InQuadric> m_Quadrics; 
@@ -18,10 +17,8 @@ class QuadricMesh
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_InputUploadBuffer = nullptr; //uploads the inputquadrics data to the gpu
 	///PER MESH DATA : //contains the transformation matrix for the entire mesh
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_MeshDataBuffer = nullptr;
-	
-
 public:
-	QuadricMesh(DX12* pDX12, const std::vector<InQuadric>& quadrics, UINT maxInstances = 1);
+	QuadricGeometry(DX12* pDX12, const std::vector<InQuadric>& quadrics, UINT maxInstances = 1);
 	ID3D12Resource* GetInputBuffer() const { return m_InputBuffer.Get(); }
 	ID3D12Resource* GetTransformBuffer() { return m_MeshDataBuffer.Get(); }
 	UINT UpdateTransforms();

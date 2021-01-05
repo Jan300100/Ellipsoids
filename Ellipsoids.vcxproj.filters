@@ -65,9 +65,6 @@
     <ClCompile Include="FreeCamera.cpp">
       <Filter>General</Filter>
     </ClCompile>
-    <ClCompile Include="QuadricMesh.cpp">
-      <Filter>Geometry</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -88,6 +85,12 @@
     </ClCompile>
     <ClCompile Include="Instance.cpp">
       <Filter>Geometry</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadricGeometry.cpp">
+      <Filter>Geometry</Filter>
+    </ClCompile>
+    <ClCompile Include="Transform.cpp">
+      <Filter>General</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -120,9 +123,6 @@
     <ClInclude Include="FreeCamera.h">
       <Filter>General</Filter>
     </ClInclude>
-    <ClInclude Include="QuadricMesh.h">
-      <Filter>Geometry</Filter>
-    </ClInclude>
     <ClInclude Include="Transform.h">
       <Filter>General</Filter>
     </ClInclude>
@@ -148,6 +148,9 @@
       <Filter>Pipeline\Merge</Filter>
     </ClInclude>
     <ClInclude Include="Instance.h">
+      <Filter>Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadricGeometry.h">
       <Filter>Geometry</Filter>
     </ClInclude>
   </ItemGroup>

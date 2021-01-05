@@ -4,7 +4,7 @@
 
 class DX12;
 class QuadricRenderer;
-class QuadricMesh;
+class QuadricGeometry;
 namespace Stage
 {
 	class Stage
