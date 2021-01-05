@@ -4,14 +4,14 @@
 
 class DX12;
 class QuadricRenderer;
-class QuadricMesh;
+class QuadricGeometry;
 namespace Stage
 {
 	class GeometryProcessing : public Stage
 	{
 	public:
 		GeometryProcessing(DX12* pDX12);
-		void Execute(QuadricRenderer* pRenderer, QuadricMesh* pMesh) const;
+		bool Execute(QuadricRenderer* pRenderer, QuadricGeometry* pGeometry) const;
 		virtual void Init(QuadricRenderer* pRenderer) override;
 	}; 
 }

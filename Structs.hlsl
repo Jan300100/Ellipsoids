@@ -26,18 +26,6 @@ struct OutQuadric
     float2 xRange;
 };
 
-struct MeshData
-{
-    row_major float4x4 transform;
-    uint numQuadrics;
-};
-
-struct MeshOutputData
-{
-    uint claimedRasterizers;
-    bool overflowed;
-};
-
 struct ScreenTile
 {
     uint rasterizerHint;

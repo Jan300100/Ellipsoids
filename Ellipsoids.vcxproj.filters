@@ -12,9 +12,6 @@
     <Filter Include="General">
       <UniqueIdentifier>{a279192b-0b0c-479f-994d-548ac4156554}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Ellipsoids">
-      <UniqueIdentifier>{3d0973cc-a67d-4e50-9aba-d57ed67110a2}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Pipeline">
       <UniqueIdentifier>{56c47b70-75bd-400d-9f12-aad5a0e802e7}</UniqueIdentifier>
     </Filter>
@@ -26,6 +23,9 @@
     </Filter>
     <Filter Include="Pipeline\Merge">
       <UniqueIdentifier>{257e85ab-2067-4349-998e-8481ba69dbc8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Geometry">
+      <UniqueIdentifier>{3d0973cc-a67d-4e50-9aba-d57ed67110a2}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -65,9 +65,6 @@
     <ClCompile Include="FreeCamera.cpp">
       <Filter>General</Filter>
     </ClCompile>
-    <ClCompile Include="QuadricMesh.cpp">
-      <Filter>Ellipsoids</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -85,6 +82,15 @@
     </ClCompile>
     <ClCompile Include="MergeStage.cpp">
       <Filter>Pipeline\Merge</Filter>
+    </ClCompile>
+    <ClCompile Include="Instance.cpp">
+      <Filter>Geometry</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadricGeometry.cpp">
+      <Filter>Geometry</Filter>
+    </ClCompile>
+    <ClCompile Include="Transform.cpp">
+      <Filter>General</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -117,9 +123,6 @@
     <ClInclude Include="FreeCamera.h">
       <Filter>General</Filter>
     </ClInclude>
-    <ClInclude Include="QuadricMesh.h">
-      <Filter>Ellipsoids</Filter>
-    </ClInclude>
     <ClInclude Include="Transform.h">
       <Filter>General</Filter>
     </ClInclude>
@@ -143,6 +146,12 @@
     </ClInclude>
     <ClInclude Include="MergeStage.h">
       <Filter>Pipeline\Merge</Filter>
+    </ClInclude>
+    <ClInclude Include="Instance.h">
+      <Filter>Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadricGeometry.h">
+      <Filter>Geometry</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

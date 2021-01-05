@@ -7,7 +7,9 @@
 #include <d3dcompiler.h>
 #include <iostream>
 #include "Camera.h"
-#include "QuadricMesh.h"
+#include "QuadricGeometry.h"
+#include "Instance.h"
+
 using namespace Microsoft::WRL;
 
 using namespace DirectX;
@@ -66,8 +68,9 @@ void QuadricRenderer::InitResources()
 
 	//tile G buffers
 
-	texDesc.Width = (UINT(ceilf(sqrtf((float)m_AppData.numRasterizers))) * m_AppData.tileDimensions.width);
-	texDesc.Height = (UINT(ceilf(sqrtf((float)m_AppData.numRasterizers))) * m_AppData.tileDimensions.height);
+	UINT sqrtNumR = UINT(ceilf(sqrtf((float)m_AppData.numRasterizers)));
+	texDesc.Width = sqrtNumR * (UINT)m_AppData.tileDimensions.width;
+	texDesc.Height = sqrtNumR * (UINT)m_AppData.tileDimensions.height;
 	texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	ThrowIfFailed(m_pDX12->GetDevice()->CreateCommittedResource(
 		&properties,
@@ -350,12 +353,12 @@ void QuadricRenderer::InitRendering()
 	m_AppData.projInv = XMMatrixInverse(nullptr, m_pCamera->GetViewProjection());
 
 	BYTE* mapped = nullptr;
-	m_AppDataBuffer->Map(0, nullptr,
-		reinterpret_cast<void**>(&mapped));
+	ThrowIfFailed(m_AppDataBuffer->Map(0, nullptr,
+		reinterpret_cast<void**>(&mapped)));
 	memcpy(mapped, &m_AppData, sizeof(AppData));
 	if (m_AppDataBuffer != nullptr)
 		m_AppDataBuffer->Unmap(0, nullptr);
-
+	
 	// Clear the buffers
 	// https://www.gamedev.net/forums/topic/672063-d3d12-clearunorderedaccessviewfloat-fails/
 	auto cpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart());
@@ -402,10 +405,11 @@ QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
 	,m_MStage{pDX12}
 {
 	m_AppData.windowSize = { m_pDX12->GetWindow()->GetDimensions().width ,m_pDX12->GetWindow()->GetDimensions().height, 0, 0 };
-	m_AppData.tileDimensions = { 128,128 };
-	m_AppData.quadricsPerRasterizer = 16;
+	m_AppData.tileDimensions = { 64,64 };
+	m_AppData.quadricsPerRasterizer = 64;
 
-	UINT screenTiles = GetNrTiles().height * GetNrTiles().width;
+	auto tileDim = GetNrTiles();
+	UINT screenTiles = tileDim.height * tileDim.width;
 	UINT extraRasterizers = screenTiles;
 	m_AppData.numRasterizers = screenTiles + extraRasterizers;
 
@@ -418,27 +422,42 @@ QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
 
 void QuadricRenderer::Render()
 {
+	ThrowIfFailed(m_pDX12->GetDevice()->GetDeviceRemovedReason());
+
 	InitRendering();
 
 	auto pPipeline = m_pDX12->GetPipeline();
 	auto pComList = pPipeline->commandList;
 
-	for (size_t i = 0; i < m_ToRender.size(); i++)
+	for (QuadricGeometry* pGeo : m_ToRender)
 	{
 		InitDrawCall();
-		m_GPStage.Execute(this, m_ToRender[i]);
-		m_RStage.Execute(this);
-		m_MStage.Execute(this);
+		if (m_GPStage.Execute(this, pGeo))
+		{
+			m_RStage.Execute(this);
+			m_MStage.Execute(this);
+		}
 	}
+	m_ToRender.clear();
 
 	CopyToBackBuffer();
-
-	//reset for next frame
-	m_ToRender.clear();
 }
 
-void QuadricRenderer::Render(QuadricMesh* pMesh)
+void QuadricRenderer::Render(const Instance& instance)
 {
-	//registers the quadric for rendering
-	m_ToRender.push_back(pMesh);
+	auto pGeo = instance.GetGeometry();
+	m_ToRender.insert(pGeo);
+	pGeo->m_Transforms.push_back(instance.GetTransformMatrix());
+}
+
+void QuadricRenderer::Render(QuadricGeometry* pGeo, Transform& transform)
+{
+	transform.CalculateMatrix();
+	Render(pGeo, transform.matrix);
+}
+
+void QuadricRenderer::Render(QuadricGeometry* pGeo, const DirectX::XMMATRIX& transform)
+{
+	m_ToRender.insert(pGeo);
+	pGeo->m_Transforms.push_back(transform);
 }

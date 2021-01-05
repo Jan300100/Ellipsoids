@@ -46,18 +46,6 @@ struct AppData
 	unsigned int numRasterizers;
 };
 
-struct MeshData
-{
-	DirectX::XMMATRIX transform;
-	unsigned int numQuadrics;
-};
-
-struct MeshOutputData
-{
-	unsigned int claimedRasterizers;
-	bool overflowed;
-};
-
 struct ScreenTile
 {
 	unsigned int rasterizerHint;

@@ -11,8 +11,10 @@
 #include "RasterizationStage.h"
 #include "GeometryProcessingStage.h"
 #include "MergeStage.h"
+#include <set>
 
-class QuadricMesh;
+class QuadricGeometry;
+class Instance;
 class DX12;
 class Camera;
 
@@ -71,8 +73,7 @@ private:
 
 	void CopyToBackBuffer();
 	
-	std::vector<QuadricMesh*> m_ToRender;
-
+	std::set<QuadricGeometry*> m_ToRender;
 
 	DirectX::XMFLOAT4 m_ClearColor = { 66 / 255.0f,135 / 255.0f,245 / 255.0f,0 };
 	float m_DepthClearValue = FLT_MAX;
@@ -84,5 +85,7 @@ public:
 	void SetCamera(Camera* pCamera) { m_pCamera = pCamera; }
 
 	void Render();
-	void Render(QuadricMesh* pMesh);
+	void Render(const Instance& instance);
+	void Render(QuadricGeometry* pGeo, Transform& transform);
+	void Render(QuadricGeometry* pGeo, const DirectX::XMMATRIX& transform);
 };

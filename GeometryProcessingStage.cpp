@@ -1,5 +1,5 @@
 #include "GeometryProcessingStage.h"
-#include "QuadricMesh.h"
+#include "QuadricGeometry.h"
 #include "QuadricRenderer.h"
 #include "DX12.h"
 #include <d3dcompiler.h>
@@ -13,8 +13,11 @@ Stage::GeometryProcessing::GeometryProcessing(DX12* pDX12)
 	
 }
 
-void Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, QuadricMesh* pMesh) const
+bool Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, QuadricGeometry* pGeometry) const
 {
+	UINT amount = pGeometry->UpdateTransforms();
+	if (amount == 0) return false;
+
 	DX12::Pipeline* pPipeline = m_pDX12->GetPipeline();
 	auto pComList = pPipeline->commandList;
 
@@ -23,18 +26,18 @@ void Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, QuadricMesh*
 	barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerQBuffer.Get()));
 	barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_ScreenTileBuffer.Get()));
 	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
-	pComList->SetComputeRoot32BitConstant(0, pMesh->QuadricsAmount(), 0);
-	pComList->SetComputeRootShaderResourceView(2, pMesh->GetMeshDataBuffer()->GetGPUVirtualAddress());
-	pComList->SetComputeRootShaderResourceView(3, pMesh->GetInputBuffer()->GetGPUVirtualAddress());
+	pComList->SetComputeRoot32BitConstant(0, pGeometry->QuadricsAmount(), 0);
+	pComList->SetComputeRootShaderResourceView(2, pGeometry->GetTransformBuffer()->GetGPUVirtualAddress());
+	pComList->SetComputeRootShaderResourceView(3, pGeometry->GetInputBuffer()->GetGPUVirtualAddress());
 
 	pComList->SetPipelineState(m_Pso.Get());
 
-	pComList->Dispatch((pMesh->QuadricsAmount() / 32) + ((pMesh->QuadricsAmount() % 32) > 0), 1, 1);
+	pComList->Dispatch((pGeometry->QuadricsAmount() / 32) + ((pGeometry->QuadricsAmount() % 32) > 0), 1, amount);
+	return true;
 }
 
 void Stage::GeometryProcessing::Init(QuadricRenderer* pRenderer)
 {
-
 	//SHADER
 	UINT compileFlags = 0;
 #if defined(DEBUG) || defined(_DEBUG)  

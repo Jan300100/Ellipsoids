@@ -17,7 +17,8 @@
 #include "FreeCamera.h"
 #include <ImGuiRenderer.h>
 #include "Structs.h"
-#include "QuadricMesh.h"
+#include "QuadricGeometry.h"
+#include "Instance.h"
 
 
 int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
@@ -214,16 +215,19 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		}
 
 
-		size_t count = 1;
-		std::vector< QuadricMesh> dudes{};
-		for (size_t i = 0; i < count; i++)
+		UINT count = 20;
+		QuadricGeometry dudeGeometry{ &dx12, in , count * count};
+		std::vector<Instance> instances{};
+		for (UINT i = 0; i < count; i++)
 		{
-			for (size_t j = 0; j < count; j++)
+			for (UINT j = 0; j < count; j++)
 			{
-				dudes.emplace_back(&dx12, in);
-				dudes.back().GetTransform().position.x = 5.0f * i;
-				dudes.back().GetTransform().position.y = 4.5f;
-				dudes.back().GetTransform().position.z = 5.0f * j;
+				instances.push_back(&dudeGeometry);
+				Transform tr{};
+				tr.position.x = 5.0f * i;
+				tr.position.y = 4.5f;
+				tr.position.z = 5.0f * j;
+				instances.back().SetTransform(tr);
 			}
 		}
 
@@ -235,8 +239,8 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 						0,0,0,-1 };
 
 
-		Quadric world;
-		float range = 1000;
+		Quadric world{};
+		float range = 500;
 		world.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -248,13 +252,14 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 		std::vector<InQuadric> groundInput{};
 		groundInput.push_back(world);
-		QuadricMesh ground{ &dx12, groundInput };
+		QuadricGeometry ground{ &dx12, groundInput };
 
 		//LOOP
 		MSG msg = {};
 		auto start = std::chrono::high_resolution_clock::now();
 		float passed = 0.0f;
 		int framectr = 0;
+		
 		float totalTime = 0.0f;
 		while (msg.message != WM_QUIT)
 		{
@@ -278,7 +283,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 			if (passed > 1.0f)
 			{
 				passed -= 1.0f;
-				std::cout << "FPS: " << framectr << "\t\r";
+				std::cout << "FPS: " << framectr << std::endl;
 				framectr = 0;
 			}
 
@@ -287,10 +292,12 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 			camera.Update(delta);
 			dx12.NewFrame();
-			renderer.Render(&ground);
 
-			for (QuadricMesh& dude : dudes)
-				renderer.Render(&dude);
+			renderer.Render(&ground);
+			for (const Instance& i : instances)
+			{
+				renderer.Render(i);
+			}
 
 			renderer.Render();
 			imguiRenderer.Render(dx12.GetPipeline()->commandList.Get());
@@ -300,6 +307,11 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	catch (DxException& e)
 	{
 		MessageBox(nullptr, e.ToString().c_str(), L"HR Failed", MB_OK);
+		return 0;
+	}
+	catch (std::wstring& str)
+	{
+		MessageBox(nullptr, str.c_str(), L"Error", MB_OK);
 		return 0;
 	}
 	return 0;
