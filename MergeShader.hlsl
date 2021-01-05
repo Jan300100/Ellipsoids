@@ -1,6 +1,8 @@
 #include "Helpers.hlsl"
 #include "RootSignature.hlsl"
 
+//#define SHOW_TILES
+
 [numthreads(8, 8, 1)]
 void main( uint3 DTid : SV_DispatchThreadID )
 {
@@ -32,8 +34,36 @@ void main( uint3 DTid : SV_DispatchThreadID )
         rasterizerIdx = gRasterizers[rasterizerIdx].nextRasterizerIdx;
     }
     
-    if (currentIdx != UINT_MAX)
+#ifdef SHOW_TILES
+    if (pixel.x % gAppData.tileDimensions.x == 0)
     {
+        gDepthBuffer[pixel.xy] = 0;
+        gBackBuffer[pixel.xy] = float4(1, 0, 0, 1);
+        return;
+    }
+    else if (pixel.y % gAppData.tileDimensions.y == 0)
+    {
+        gDepthBuffer[pixel.xy] = 0;
+        gBackBuffer[pixel.xy] = float4(0, 1, 1, 1);
+        return;
+    }
+    else if ((pixel.x + 1) % gAppData.tileDimensions.x == 0)
+    {
+        gDepthBuffer[pixel.xy] = 0;
+        gBackBuffer[pixel.xy] = float4(0, 1, 0, 1);
+        return;
+    }
+    else if ((pixel.y + 1)  % gAppData.tileDimensions.y == 0)
+    {
+        gDepthBuffer[pixel.xy] = 0;
+        gBackBuffer[pixel.xy] = float4(1, 1, 0, 1);
+        return;
+    }
+#endif
+    
+    
+    if (currentIdx != UINT_MAX)
+    {   
         OutQuadric q = gRasterizerQBuffer[currentIdx];
         
         float2 pixelNDC = ScreenToNDC(pixel, gAppData.windowDimensions);

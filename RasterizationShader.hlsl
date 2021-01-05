@@ -2,7 +2,6 @@
 #include "RootSignature.hlsl"
 
 
-//#define SHOW_TILES
 
 
 [numthreads(32, 1, 1)]
@@ -31,6 +30,12 @@ void main( uint3 DTid : SV_DispatchThreadID )
     {
         OutQuadric q = gRasterizerQBuffer[qIdx];
 
+        if ((screenLeftTop.y + scanline) > NDCToScreen(-q.yRange.x, gAppData.windowDimensions.y)
+            || (screenLeftTop.y + scanline) < NDCToScreen(-q.yRange.y, gAppData.windowDimensions.y))
+        {
+            continue;
+        }
+        
         for (uint x = 0; x < gAppData.tileDimensions.x; x++)
         {
             uint2 pixel = virtualTextureLeftTop + uint2(x, scanline);

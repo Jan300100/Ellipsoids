@@ -413,7 +413,7 @@ QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
 
 	auto tileDim = GetNrTiles();
 	UINT screenTiles = tileDim.height * tileDim.width;
-	UINT extraRasterizers = screenTiles;
+	UINT extraRasterizers = screenTiles * 2;
 	m_AppData.numRasterizers = screenTiles + extraRasterizers;
 
 	InitResources();
