@@ -38,7 +38,6 @@ bool Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, QuadricGeome
 
 void Stage::GeometryProcessing::Init(QuadricRenderer* pRenderer)
 {
-
 	//SHADER
 	UINT compileFlags = 0;
 #if defined(DEBUG) || defined(_DEBUG)  

@@ -42,11 +42,28 @@ void main( uint3 DTid : SV_DispatchThreadID )
 
 void AddQuadric(uint screenTileIdx, OutQuadric quadric)
 {
+    uint numRasterizers = gAppData.numRasterizers;
     uint screenHint = gScreenTiles[screenTileIdx].rasterizerHint;
-    uint rIdx = (screenHint < gAppData.numRasterizers) * screenHint;
-    while (rIdx < gAppData.numRasterizers)
+    uint rIdx = (screenHint < numRasterizers) * screenHint;
+    while (rIdx < numRasterizers)
     {
-        if (gRasterizers[rIdx].screenTileIdx == screenTileIdx)
+        if (gRasterizers[rIdx].screenTileIdx == UINT_MAX)
+        {
+            //try claim for this screenTile
+            uint original;
+            InterlockedCompareExchange(gRasterizers[rIdx].screenTileIdx, UINT_MAX, screenTileIdx, original);
+            if (original == UINT_MAX)
+            {
+                //we claimed the rasterizer, append to linkedlist
+                uint llIdx;
+                InterlockedCompareExchange(gScreenTiles[screenTileIdx].rasterizerHint, UINT_MAX, rIdx, llIdx);
+                while (llIdx < numRasterizers)
+                {
+                    InterlockedCompareExchange(gRasterizers[llIdx].nextRasterizerIdx, UINT_MAX, rIdx, llIdx);
+                }
+            }
+        }
+        else if (gRasterizers[rIdx].screenTileIdx == screenTileIdx)
         {
             uint value = gRasterizers[rIdx].numQuadrics;
             if (value < gAppData.quadricsPerRasterizer)
@@ -65,23 +82,7 @@ void AddQuadric(uint screenTileIdx, OutQuadric quadric)
             else
             {
                 uint hint = gRasterizers[rIdx].nextRasterizerIdx;
-                rIdx = (hint < gAppData.numRasterizers) ? hint : rIdx + 1;
-            }
-        }
-        else if (gRasterizers[rIdx].screenTileIdx == UINT_MAX)
-        {
-            //try claim for this screenTile
-            uint original;
-            InterlockedCompareExchange(gRasterizers[rIdx].screenTileIdx, UINT_MAX, screenTileIdx, original);
-            if (original == UINT_MAX)
-            {
-                //we claimed the rasterizer, append to linkedlist
-                uint llIdx;
-                InterlockedCompareExchange(gScreenTiles[screenTileIdx].rasterizerHint, UINT_MAX, rIdx, llIdx);
-                while (llIdx < gAppData.numRasterizers)
-                {
-                    InterlockedCompareExchange(gRasterizers[llIdx].nextRasterizerIdx, UINT_MAX, rIdx, llIdx);
-                }
+                rIdx = (hint > rIdx && hint < gAppData.numRasterizers) ? hint : rIdx + 1;
             }
         }
         else

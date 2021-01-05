@@ -215,7 +215,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		}
 
 
-		UINT count = 5;
+		UINT count = 20;
 		QuadricGeometry dudeGeometry{ &dx12, in , count * count};
 		std::vector<Instance> instances{};
 		for (UINT i = 0; i < count; i++)
@@ -259,6 +259,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		auto start = std::chrono::high_resolution_clock::now();
 		float passed = 0.0f;
 		int framectr = 0;
+		
 		float totalTime = 0.0f;
 		while (msg.message != WM_QUIT)
 		{
@@ -282,7 +283,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 			if (passed > 1.0f)
 			{
 				passed -= 1.0f;
-				std::cout << "FPS: " << framectr << "\t\r";
+				std::cout << "FPS: " << framectr << std::endl;
 				framectr = 0;
 			}
 

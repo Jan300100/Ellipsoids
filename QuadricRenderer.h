@@ -11,6 +11,7 @@
 #include "RasterizationStage.h"
 #include "GeometryProcessingStage.h"
 #include "MergeStage.h"
+#include <set>
 
 class QuadricGeometry;
 class Instance;
@@ -72,8 +73,7 @@ private:
 
 	void CopyToBackBuffer();
 	
-	std::vector<QuadricGeometry*> m_ToRender;
-
+	std::set<QuadricGeometry*> m_ToRender;
 
 	DirectX::XMFLOAT4 m_ClearColor = { 66 / 255.0f,135 / 255.0f,245 / 255.0f,0 };
 	float m_DepthClearValue = FLT_MAX;
