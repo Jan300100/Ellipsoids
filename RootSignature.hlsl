@@ -12,9 +12,9 @@ RWStructuredBuffer<OutQuadric> gRasterizerQBuffer : register(u2);
 
 //desc heap
 RWTexture2D<float4> gBackBuffer : register(u3);
-RWTexture2D<float4> gGBufferColor : register(u4);
+RWTexture2D<uint> gRIBuffer : register(u4);
 RWTexture2D<float> gDepthBuffer : register(u5);
-RWTexture2D<float> gGBufferDepth : register(u6);
+RWTexture2D<float> gRDepthBuffer : register(u6);
 
 
 

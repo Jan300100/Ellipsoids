@@ -32,7 +32,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		freopen_s(&pDummy, "CONOUT$", "w", stderr);
 		freopen_s(&pDummy, "CONOUT$", "w", stdout);
 
-		Window window{ hInstance, 960, 640 };
+		Window window{ hInstance, 1920, 1080 };
 
 		DX12 dx12{ &window };
 

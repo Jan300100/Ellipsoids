@@ -18,11 +18,6 @@ class Instance;
 class DX12;
 class Camera;
 
-enum GBUFFER : unsigned int
-{
-	Depth = 0, Color, NumBuffers
-};
-
 class QuadricRenderer
 {
 private:
@@ -36,18 +31,19 @@ private:
 	//TEXTURES
 	enum DescriptorHeapLayout : unsigned int
 	{
-		Color = 0, GColor, Depth, GDepth, NumDescriptors
+		Color = 0, RIndex, Depth, RDepth, NumDescriptors
 	};
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DescriptorHeap;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DescriptorHeapSV;
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_OutputTexture;
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_DepthTexture;
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_OutputBuffer;
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_DepthBuffer;
 
 	//RASTERIZERS:
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerBuffer; //uav buffer, flexible(resize when not big enough?)
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerResetBuffer; //upload buffer to reset screenTiles
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerQBuffer; //uav buffer with outputQuadrics
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerGBuffers[GBUFFER::NumBuffers];
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerDepthBuffer;
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerIBuffer;
 	
 	//SCREENTILES
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_ScreenTileBuffer; //uav buffer, flexible(resize when not big enough?)

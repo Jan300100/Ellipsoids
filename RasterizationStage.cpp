@@ -46,10 +46,8 @@ void Stage::Rasterization::Execute(QuadricRenderer* pRenderer) const
 
 	//these are used as input here
 	std::vector< CD3DX12_RESOURCE_BARRIER> barriers{};
-	for (UINT i = 0; i < GBUFFER::NumBuffers; i++)
-	{
-		barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerGBuffers[i].Get()));
-	}
+	barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerIBuffer.Get()));
+	barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerDepthBuffer.Get()));
 	barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerBuffer.Get()));
 	barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerQBuffer.Get()));
 	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());

@@ -18,12 +18,10 @@ void Stage::Merge::Execute(QuadricRenderer* pRenderer) const
 
 	//these are used as input here
 	std::vector< CD3DX12_RESOURCE_BARRIER> barriers{};
-	for (UINT i = 0; i < GBUFFER::NumBuffers; i++)
-	{
-		barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerGBuffers[i].Get()));
-	}
-	barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_OutputTexture.Get()));
-	barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_DepthTexture.Get()));
+	barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerIBuffer.Get()));
+	barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerDepthBuffer.Get()));
+	barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_OutputBuffer.Get()));
+	barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_DepthBuffer.Get()));
 	barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerBuffer.Get()));
 	barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_ScreenTileBuffer.Get()));
 

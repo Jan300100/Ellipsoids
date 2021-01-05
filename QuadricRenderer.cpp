@@ -50,8 +50,8 @@ void QuadricRenderer::InitResources()
 		&texDesc,
 		D3D12_RESOURCE_STATE_COMMON,
 		nullptr,
-		IID_PPV_ARGS(&m_OutputTexture)));
-	m_OutputTexture->SetName(L"m_OutputTexture");
+		IID_PPV_ARGS(&m_OutputBuffer)));
+	m_OutputBuffer->SetName(L"m_OutputTexture");
 
 	//depth Texture
 	texDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
@@ -62,8 +62,8 @@ void QuadricRenderer::InitResources()
 		&texDesc,
 		D3D12_RESOURCE_STATE_COMMON,
 		nullptr,
-		IID_PPV_ARGS(&m_DepthTexture)));
-	m_DepthTexture->SetName(L"m_DepthTexture");
+		IID_PPV_ARGS(&m_DepthBuffer)));
+	m_DepthBuffer->SetName(L"DepthBuffer");
 
 
 	//tile G buffers
@@ -71,15 +71,16 @@ void QuadricRenderer::InitResources()
 	UINT sqrtNumR = UINT(ceilf(sqrtf((float)m_AppData.numRasterizers)));
 	texDesc.Width = sqrtNumR * (UINT)m_AppData.tileDimensions.width;
 	texDesc.Height = sqrtNumR * (UINT)m_AppData.tileDimensions.height;
-	texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	texDesc.Format = DXGI_FORMAT_R32_UINT;
 	ThrowIfFailed(m_pDX12->GetDevice()->CreateCommittedResource(
 		&properties,
 		D3D12_HEAP_FLAG_NONE,
 		&texDesc,
 		D3D12_RESOURCE_STATE_COMMON,
 		nullptr,
-		IID_PPV_ARGS(&m_RasterizerGBuffers[GBUFFER::Color])));
-	m_RasterizerGBuffers[GBUFFER::Color]->SetName(L"GBufferColor");
+		IID_PPV_ARGS(&m_RasterizerIBuffer)));
+	m_RasterizerIBuffer->SetName(L"RIndexBuffer");
+
 	texDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
 	ThrowIfFailed(m_pDX12->GetDevice()->CreateCommittedResource(
 		&properties,
@@ -87,8 +88,8 @@ void QuadricRenderer::InitResources()
 		&texDesc,
 		D3D12_RESOURCE_STATE_COMMON,
 		nullptr,
-		IID_PPV_ARGS(&m_RasterizerGBuffers[GBUFFER::Depth])));
-	m_RasterizerGBuffers[GBUFFER::Depth]->SetName(L"GBufferDepth");
+		IID_PPV_ARGS(&m_RasterizerDepthBuffer)));
+	m_RasterizerDepthBuffer->SetName(L"RDepthBuffer");
 
 	//descriptors
 	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
@@ -110,21 +111,22 @@ void QuadricRenderer::InitResources()
 	CD3DX12_CPU_DESCRIPTOR_HANDLE srvHeapHandle(m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 	CD3DX12_CPU_DESCRIPTOR_HANDLE srvHeapHandleSV(m_DescriptorHeapSV->GetCPUDescriptorHandleForHeapStart());
 	m_DescriptorHeapSV->SetName(L"m_DescriptorHeapSV");
-	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_OutputTexture.Get(), nullptr, &uavDesc, srvHeapHandle);
-	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_OutputTexture.Get(), nullptr, &uavDesc, srvHeapHandleSV);
+	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_OutputBuffer.Get(), nullptr, &uavDesc, srvHeapHandle);
+	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_OutputBuffer.Get(), nullptr, &uavDesc, srvHeapHandleSV);
 	srvHeapHandle.Offset(incrementSize);
 	srvHeapHandleSV.Offset(incrementSize);
-	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_RasterizerGBuffers[GBUFFER::Color].Get(), nullptr, &uavDesc, srvHeapHandle);
-	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_RasterizerGBuffers[GBUFFER::Color].Get(), nullptr, &uavDesc, srvHeapHandleSV);
+	uavDesc.Format = DXGI_FORMAT_R32_UINT;
+	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_RasterizerIBuffer.Get(), nullptr, &uavDesc, srvHeapHandle);
+	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_RasterizerIBuffer.Get(), nullptr, &uavDesc, srvHeapHandleSV);
 	srvHeapHandle.Offset(incrementSize);
 	srvHeapHandleSV.Offset(incrementSize);
 	uavDesc.Format = DXGI_FORMAT_R32_FLOAT;
-	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_DepthTexture.Get(), nullptr, &uavDesc, srvHeapHandle);
-	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_DepthTexture.Get(), nullptr, &uavDesc, srvHeapHandleSV);
+	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_DepthBuffer.Get(), nullptr, &uavDesc, srvHeapHandle);
+	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_DepthBuffer.Get(), nullptr, &uavDesc, srvHeapHandleSV);
 	srvHeapHandle.Offset(incrementSize);
 	srvHeapHandleSV.Offset(incrementSize);
-	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_RasterizerGBuffers[GBUFFER::Depth].Get(), nullptr, &uavDesc, srvHeapHandle);
-	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_RasterizerGBuffers[GBUFFER::Depth].Get(), nullptr, &uavDesc, srvHeapHandleSV);
+	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_RasterizerDepthBuffer.Get(), nullptr, &uavDesc, srvHeapHandle);
+	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_RasterizerDepthBuffer.Get(), nullptr, &uavDesc, srvHeapHandleSV);
 
 	
 	//BUFFERS
@@ -264,17 +266,16 @@ void QuadricRenderer::InitResources()
 	ThrowIfFailed(pPipeline->commandList->Reset(pPipeline->commandAllocator.Get(), nullptr));
 
 	std::vector< CD3DX12_RESOURCE_BARRIER>transitions{};
-	transitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_OutputTexture.Get(),
+	transitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_OutputBuffer.Get(),
 		D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-	transitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_DepthTexture.Get(),
+	transitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_DepthBuffer.Get(),
 		D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 	
-	for (UINT i = 0; i < GBUFFER::NumBuffers; i++)
-	{
-		transitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_RasterizerGBuffers[i].Get(),
-			D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-	}
-	
+	transitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_RasterizerIBuffer.Get(),
+		D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+	transitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_RasterizerDepthBuffer.Get(),
+		D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+
 	pPipeline->commandList->ResourceBarrier((UINT)transitions.size(), transitions.data());
 
 	ThrowIfFailed(pPipeline->commandList->Close());
@@ -292,17 +293,17 @@ void QuadricRenderer::CopyToBackBuffer()
 	{
 		CD3DX12_RESOURCE_BARRIER::Transition(pPipeline->GetCurrentRenderTarget(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST),
-		CD3DX12_RESOURCE_BARRIER::Transition(m_OutputTexture.Get(),
+		CD3DX12_RESOURCE_BARRIER::Transition(m_OutputBuffer.Get(),
 		D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE)
 	};
 	pComList->ResourceBarrier(2, transitions);
 
-	pComList->CopyResource(pPipeline->GetCurrentRenderTarget(), m_OutputTexture.Get());
+	pComList->CopyResource(pPipeline->GetCurrentRenderTarget(), m_OutputBuffer.Get());
 
 	// Transition to Render target for any other draws that might happen.
 	transitions[0] = CD3DX12_RESOURCE_BARRIER::Transition(pPipeline->GetCurrentRenderTarget(),
 		D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	transitions[1] = CD3DX12_RESOURCE_BARRIER::Transition(m_OutputTexture.Get(),
+	transitions[1] = CD3DX12_RESOURCE_BARRIER::Transition(m_OutputBuffer.Get(),
 		D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	pComList->ResourceBarrier(2, transitions);
 }
@@ -334,10 +335,12 @@ void QuadricRenderer::InitDrawCall()
 	CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 	CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_DescriptorHeapSV->GetGPUDescriptorHandleForHeapStart());
 	UINT incrementSize = m_pDX12->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	m_pDX12->GetPipeline()->commandList->ClearUnorderedAccessViewFloat(gpuHandle.Offset(incrementSize * DescriptorHeapLayout::GColor), cpuHandle.Offset(incrementSize * DescriptorHeapLayout::GColor), m_RasterizerGBuffers[GBUFFER::Color].Get(), (FLOAT*)&m_ClearColor, 0, nullptr);
+	UINT max = UINT_MAX;
+	m_pDX12->GetPipeline()->commandList->ClearUnorderedAccessViewUint(gpuHandle.Offset(incrementSize * DescriptorHeapLayout::RIndex), cpuHandle.Offset(incrementSize * DescriptorHeapLayout::RIndex)
+		, m_RasterizerIBuffer.Get(), &max, 0, nullptr);
 	cpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 	gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_DescriptorHeapSV->GetGPUDescriptorHandleForHeapStart());
-	m_pDX12->GetPipeline()->commandList->ClearUnorderedAccessViewFloat(gpuHandle.Offset(incrementSize * DescriptorHeapLayout::GDepth), cpuHandle.Offset(incrementSize * DescriptorHeapLayout::GDepth), m_RasterizerGBuffers[GBUFFER::Depth].Get(), (FLOAT*)&m_DepthClearValue, 0, nullptr);
+	m_pDX12->GetPipeline()->commandList->ClearUnorderedAccessViewFloat(gpuHandle.Offset(incrementSize * DescriptorHeapLayout::RDepth), cpuHandle.Offset(incrementSize * DescriptorHeapLayout::RDepth), m_RasterizerDepthBuffer.Get(), (FLOAT*)&m_DepthClearValue, 0, nullptr);
 
 	
 
@@ -368,13 +371,13 @@ void QuadricRenderer::InitRendering()
 	m_pDX12->GetPipeline()->commandList->ClearUnorderedAccessViewFloat(
 		gpuHandle.Offset(incrementSize * DescriptorHeapLayout::Color),
 		cpuHandle.Offset(incrementSize * DescriptorHeapLayout::Color),
-		m_OutputTexture.Get(), (FLOAT*)&m_ClearColor, 0, nullptr);
+		m_OutputBuffer.Get(), (FLOAT*)&m_ClearColor, 0, nullptr);
 	cpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 	gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_DescriptorHeapSV->GetGPUDescriptorHandleForHeapStart());
 	m_pDX12->GetPipeline()->commandList->ClearUnorderedAccessViewFloat(
 		gpuHandle.Offset(incrementSize * DescriptorHeapLayout::Depth),
 		cpuHandle.Offset(incrementSize * DescriptorHeapLayout::Depth),
-		m_DepthTexture.Get(), (FLOAT*)&m_DepthClearValue, 0, nullptr);
+		m_DepthBuffer.Get(), (FLOAT*)&m_DepthClearValue, 0, nullptr);
 
 	auto pPipeline = m_pDX12->GetPipeline();
 	auto pComList = pPipeline->commandList;
@@ -405,7 +408,7 @@ QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
 	,m_MStage{pDX12}
 {
 	m_AppData.windowSize = { m_pDX12->GetWindow()->GetDimensions().width ,m_pDX12->GetWindow()->GetDimensions().height, 0, 0 };
-	m_AppData.tileDimensions = { 64,64 };
+	m_AppData.tileDimensions = { 128,128 };
 	m_AppData.quadricsPerRasterizer = 64;
 
 	auto tileDim = GetNrTiles();
