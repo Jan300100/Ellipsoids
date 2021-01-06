@@ -10,7 +10,7 @@
 //
 #include <wrl.h>
 #include <d3d12.h>
-#include "..\DX12.h"
+#include "DX12.h"
 #include <iostream>
 
 // Forward declare message handler from imgui_impl_win32.cpp

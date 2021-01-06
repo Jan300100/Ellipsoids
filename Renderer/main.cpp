@@ -15,10 +15,10 @@
 #include <chrono>
 #include <iostream>
 #include "FreeCamera.h"
-#include <ImGuiRenderer.h>
 #include "Structs.h"
 #include "QuadricGeometry.h"
 #include "Instance.h"
+#include "ImGuiRenderer.h"
 
 
 int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
