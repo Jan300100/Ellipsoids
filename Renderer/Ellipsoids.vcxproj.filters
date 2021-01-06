@@ -59,10 +59,10 @@
     <ClInclude Include="QuadricGeometry.h">
       <Filter>Geometry</Filter>
     </ClInclude>
-    <ClInclude Include="..\General\d3dx12.h">
+    <ClInclude Include="d3dx12.h">
       <Filter>General</Filter>
     </ClInclude>
-    <ClInclude Include="..\General\Helpers.h">
+    <ClInclude Include="Helpers.h">
       <Filter>General</Filter>
     </ClInclude>
   </ItemGroup>
