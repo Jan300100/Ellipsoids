@@ -36,13 +36,13 @@ void FreeCamera::Update(float)
 	}
 
 	//TRANSLATION
-	XMStoreFloat3(&m_Transform.position, XMVectorAdd(XMLoadFloat3(&m_Transform.position), XMLoadFloat3(&translation)));
-
+	XMFLOAT3 pos = m_Transform.GetPosition();
+	XMStoreFloat3(&pos, XMVectorAdd(XMLoadFloat3(&pos), XMLoadFloat3(&translation)));
+	m_Transform.SetPosition(pos);
 	//ROTATION
-	XMStoreFloat3(&m_Transform.rotation, XMVectorAdd(XMLoadFloat3(&m_Transform.rotation), XMLoadFloat3(&rotation)));
+	XMFLOAT3 rot = m_Transform.GetRotation();
+	XMStoreFloat3(&rot, XMVectorAdd(XMLoadFloat3(&rot), XMLoadFloat3(&rotation)));
+	m_Transform.SetRotation(rot);
 
 	ReCalculateView();
-
-	
-
 }

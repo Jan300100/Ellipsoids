@@ -446,17 +446,21 @@ void QuadricRenderer::Render()
 	CopyToBackBuffer();
 }
 
-void QuadricRenderer::Render(const Instance& instance)
+void QuadricRenderer::Render(Instance& instance)
 {
 	auto pGeo = instance.GetGeometry();
 	m_ToRender.insert(pGeo);
 	pGeo->m_Transforms.push_back(instance.GetTransformMatrix());
 }
 
+void QuadricRenderer::Render(QuadricGeometry* pGeo)
+{
+	Render(pGeo, XMMatrixIdentity());
+}
+
 void QuadricRenderer::Render(QuadricGeometry* pGeo, Transform& transform)
 {
-	transform.CalculateMatrix();
-	Render(pGeo, transform.matrix);
+	Render(pGeo, transform.GetWorld());
 }
 
 void QuadricRenderer::Render(QuadricGeometry* pGeo, const DirectX::XMMATRIX& transform)

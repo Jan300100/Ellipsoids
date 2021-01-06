@@ -11,7 +11,8 @@ void Camera::ReCalculateView()
 	XMVECTOR forward{ GetForward() };
 	XMVECTOR right{ GetRight() };
 	XMVECTOR up = XMVector3Cross(forward , right);
-	XMVECTOR pos = XMLoadFloat3(&m_Transform.position);
+	XMFLOAT3 posf3 = m_Transform.GetPosition();
+	XMVECTOR pos = XMLoadFloat3(&posf3);
 	XMVECTOR target = XMVectorAdd(pos, forward);
 	m_View = XMMatrixLookAtLH(pos, target, up);
 
@@ -33,20 +34,23 @@ Camera::Camera(Window* pWindow, const Transform& transform)
 
 DirectX::XMVECTOR Camera::GetForward() const
 {
-	XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYawFromVector(XMLoadFloat3(&m_Transform.rotation));
+	XMFLOAT3 rot = m_Transform.GetRotation();
+	XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYawFromVector(XMLoadFloat3(&rot));
 	XMVECTOR forward = XMVector3TransformCoord(XMVectorSet(0, 0, 1, 0), rotationMatrix);
 	return XMVector3Normalize(forward);
 }
 
 DirectX::XMVECTOR Camera::GetRight() const
 {
-	XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYawFromVector(XMLoadFloat3(&m_Transform.rotation));
+	XMFLOAT3 rot = m_Transform.GetRotation();
+	XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYawFromVector(XMLoadFloat3(&rot));
 	XMVECTOR right = XMVector3TransformCoord(XMVectorSet(1, 0, 0, 0), rotationMatrix);
 	return XMVector3Normalize(right);
 }
 
 void Camera::Offset(const DirectX::XMFLOAT3& offset)
 {
-	XMStoreFloat3(&m_Transform.position, XMVectorAdd(XMLoadFloat3(&m_Transform.position), XMLoadFloat3(&offset)));
-
+	XMFLOAT3 pos = m_Transform.GetPosition();
+	XMStoreFloat3(&pos, XMVectorAdd(XMLoadFloat3(&pos), XMLoadFloat3(&offset)));
+	m_Transform.SetPosition(pos);
 }

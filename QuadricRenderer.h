@@ -81,7 +81,8 @@ public:
 	void SetCamera(Camera* pCamera) { m_pCamera = pCamera; }
 
 	void Render();
-	void Render(const Instance& instance);
+	void Render(Instance& instance);
+	void Render(QuadricGeometry* pGeo);
 	void Render(QuadricGeometry* pGeo, Transform& transform);
 	void Render(QuadricGeometry* pGeo, const DirectX::XMMATRIX& transform);
 };

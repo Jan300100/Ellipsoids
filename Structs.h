@@ -15,11 +15,10 @@ struct InQuadric
 {
 	DirectX::XMMATRIX transformed;
 	DirectX::XMFLOAT3 color;
-	InQuadric(const Quadric& src) :transformed{}, color{ src.color }
+	InQuadric(Quadric& src) :transformed{ DirectX::XMMatrixIdentity()}, color{ src.color }
 	{
-		DirectX::XMMATRIX tr = DirectX::XMMatrixInverse(nullptr, DirectX::XMMatrixAffineTransformation(DirectX::XMLoadFloat3(&src.transform.scale), DirectX::XMVectorZero()
-			, DirectX::XMQuaternionRotationRollPitchYawFromVector(DirectX::XMLoadFloat3(&src.transform.rotation))
-			, DirectX::XMLoadFloat3(&src.transform.position)));
+		DirectX::XMMATRIX tr = src.transform.GetWorld();
+		tr = XMMatrixInverse(nullptr, tr);
 		transformed = tr * XMLoadFloat4x4(&src.equation) * XMMatrixTranspose(tr);
 	}
 };
