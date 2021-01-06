@@ -9,8 +9,15 @@ Instance::Instance(QuadricGeometry* pGeometry)
     SetTransform(m_Transform);
 }
 
+DirectX::XMMATRIX Instance::GetTransformMatrix()
+{
+    XMMATRIX tr = m_Transform.GetWorld();
+    //invert (for second-order surfaces) and transpose (for directX)
+    tr = XMMatrixInverse(nullptr, XMMatrixTranspose(tr));
+    return tr;
+}
+
 void Instance::SetTransform(const Transform& tr)
 {
     m_Transform = tr;
-    m_Transform.CalculateMatrix();
 }

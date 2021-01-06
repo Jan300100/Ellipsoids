@@ -45,6 +45,7 @@ public:
 	Window(Window&&) = delete;
 	Window& operator=(const Window&) = delete;
 	Window& operator=(Window&&) = delete;
+	float AspectRatio() const;
 public:
 	HWND GetHandle();
 	Dimensions<uint32_t> GetDimensions();

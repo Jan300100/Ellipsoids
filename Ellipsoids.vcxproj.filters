@@ -173,5 +173,8 @@
     <FxCompile Include="RootSignature.hlsl">
       <Filter>Pipeline</Filter>
     </FxCompile>
+    <FxCompile Include="Definitions.hlsl">
+      <Filter>Pipeline</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

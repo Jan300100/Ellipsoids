@@ -15,7 +15,7 @@ protected:
 	void CalculateProj();
 	Window* m_pWindow;
 	float m_Fov = DirectX::XM_PIDIV2;
-	float m_NearPlane = 10.0f, m_FarPlane = 100.f;
+	float m_NearPlane = 1.0f, m_FarPlane = 100.0f;
 
 	Transform m_Transform;
 public:

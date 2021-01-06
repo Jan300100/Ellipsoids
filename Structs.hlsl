@@ -34,7 +34,6 @@ struct ScreenTile
 struct Rasterizer
 {
     uint screenTileIdx;
-    uint rasterizerIdx;
     uint nextRasterizerIdx; //linked list
     uint numQuadrics;
 };

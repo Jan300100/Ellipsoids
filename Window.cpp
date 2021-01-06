@@ -176,6 +176,11 @@ Window::Window(HINSTANCE hInstance, uint32_t width, uint32_t height)
 }
 
 
+float Window::AspectRatio() const
+{
+    return float(m_Dimensions.width) / m_Dimensions.height;
+}
+
 HWND Window::GetHandle()
 {
     return m_Hwnd;
