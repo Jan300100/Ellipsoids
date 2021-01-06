@@ -4,9 +4,7 @@
 #include <Windowsx.h>
 #include "Mouse.h"
 
-//
-#include "Definitions.hlsl"
-//
+#define REVERSED_DEPTH
 
 using namespace DirectX;
 

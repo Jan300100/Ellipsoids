@@ -57,7 +57,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 						0,0,1,0,
 						0,0,0,-1 };
 		head.color = skinColor;
-		head.transform.SetScale( { 1,1,1 });
+		head.transform.SetScale({ 1,1,1 });
 		head.transform.SetPosition({ 0,2,0 });
 
 		Quadric body{};
@@ -67,7 +67,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 						0,0,1,0,
 						0,0,0,-1 };
 		body.color = tShirtColor;
-		body.transform.SetScale( { 1,2,1 });
+		body.transform.SetScale({ 1,2,1 });
 		body.transform.SetPosition({ 0,0,0 });
 
 		Quadric upperArmRight{};
@@ -77,9 +77,9 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 						0,0,1,0,
 						0,0,0,-1 };
 		upperArmRight.color = tShirtColor;
-		upperArmRight.transform.SetScale( { 0.4f,1.0f,0.4f });
+		upperArmRight.transform.SetScale({ 0.4f,1.0f,0.4f });
 		upperArmRight.transform.SetPosition({ 1.25f,0.6f,0 });
-		upperArmRight.transform.SetRotation( { 0,0,1 });
+		upperArmRight.transform.SetRotation({ 0,0,1 });
 
 		Quadric lowerArmRight{};
 		lowerArmRight.equation = DirectX::XMFLOAT4X4{
@@ -88,7 +88,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 						0,0,1,0,
 						0,0,0,-1 };
 		lowerArmRight.color = skinColor;
-		lowerArmRight.transform.SetScale( { 0.3f,1.0f,0.3f });
+		lowerArmRight.transform.SetScale({ 0.3f,1.0f,0.3f });
 		lowerArmRight.transform.SetPosition({ 1.85f,-0.6f,0 });
 
 		Quadric handRight{};
@@ -98,7 +98,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 						0,0,1,0,
 						0,0,0,-1 };
 		handRight.color = skinColor;
-		handRight.transform.SetScale( { 0.3f,0.5f,0.3f });
+		handRight.transform.SetScale({ 0.3f,0.5f,0.3f });
 		handRight.transform.SetPosition({ 1.85f,-1.5f,0 });
 
 		Quadric upperArmLeft{};
@@ -108,9 +108,9 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 						0,0,1,0,
 						0,0,0,-1 };
 		upperArmLeft.color = tShirtColor;
-		upperArmLeft.transform.SetScale( { 0.4f,1.0f,0.4f });
+		upperArmLeft.transform.SetScale({ 0.4f,1.0f,0.4f });
 		upperArmLeft.transform.SetPosition({ -1.25f,0.6f,0 });
-		upperArmLeft.transform.SetRotation( { 0,0,-1 });
+		upperArmLeft.transform.SetRotation({ 0,0,-1 });
 
 		Quadric lowerArmLeft{};
 		lowerArmLeft.equation = DirectX::XMFLOAT4X4{
@@ -119,7 +119,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 						0,0,1,0,
 						0,0,0,-1 };
 		lowerArmLeft.color = skinColor;
-		lowerArmLeft.transform.SetScale( { 0.3f,1.0f,0.3f });
+		lowerArmLeft.transform.SetScale({ 0.3f,1.0f,0.3f });
 		lowerArmLeft.transform.SetPosition({ -1.85f,-0.6f,0 });
 
 		Quadric handLeft{};
@@ -129,7 +129,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 						0,0,1,0,
 						0,0,0,-1 };
 		handLeft.color = skinColor;
-		handLeft.transform.SetScale( { 0.3f,0.5f,0.3f });
+		handLeft.transform.SetScale({ 0.3f,0.5f,0.3f });
 		handLeft.transform.SetPosition({ -1.85f,-1.5f,0 });
 
 		//leg
@@ -140,7 +140,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 						0,0,1,0,
 						0,0,0,-1 };
 		upperLegRight.color = pantsColor;
-		upperLegRight.transform.SetScale( { 0.5f,1.5f,0.5f });
+		upperLegRight.transform.SetScale({ 0.5f,1.5f,0.5f });
 		upperLegRight.transform.SetPosition({ 0.5f,-2.0f,0 });
 
 		Quadric lowerLegRight{};
@@ -150,7 +150,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 						0,0,1,0,
 						0,0,0,-1 };
 		lowerLegRight.color = pantsColor;
-		lowerLegRight.transform.SetScale( { 0.5f,1.5f,0.5f });
+		lowerLegRight.transform.SetScale({ 0.5f,1.5f,0.5f });
 		lowerLegRight.transform.SetPosition({ 0.5f,-3.0f,0 });
 
 		Quadric shoeRight{};
@@ -160,7 +160,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 						0,0,1,0,
 						0,0,0,-1 };
 		shoeRight.color = shoeColor;
-		shoeRight.transform.SetScale( { 0.5f,0.3f,0.75f });
+		shoeRight.transform.SetScale({ 0.5f,0.3f,0.75f });
 		shoeRight.transform.SetPosition({ 0.5f,-4.5f,-0.5f });
 
 		//leg
@@ -171,7 +171,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 						0,0,1,0,
 						0,0,0,-1 };
 		upperLegLeft.color = pantsColor;
-		upperLegLeft.transform.SetScale( { 0.5f,1.5f,0.5f });
+		upperLegLeft.transform.SetScale({ 0.5f,1.5f,0.5f });
 		upperLegLeft.transform.SetPosition({ -0.5f,-2.0f,0 });
 
 		Quadric lowerLegLeft{};
@@ -181,7 +181,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 						0,0,1,0,
 						0,0,0,-1 };
 		lowerLegLeft.color = pantsColor;
-		lowerLegLeft.transform.SetScale( { 0.5f,1.5f,0.5f });
+		lowerLegLeft.transform.SetScale({ 0.5f,1.5f,0.5f });
 		lowerLegLeft.transform.SetPosition({ -0.5f,-3.0f,0 });
 
 		Quadric shoeLeft{};
@@ -191,7 +191,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 						0,0,1,0,
 						0,0,0,-1 };
 		shoeLeft.color = shoeColor;
-		shoeLeft.transform.SetScale( { 0.5f,0.3f,0.75f });
+		shoeLeft.transform.SetScale({ 0.5f,0.3f,0.75f });
 		shoeLeft.transform.SetPosition({ -0.5f,-4.5f,-0.5f });
 
 		std::vector<InQuadric> in{};
@@ -216,7 +216,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 
 		UINT count = 10;
-		QuadricGeometry dudeGeometry{ &dx12, in , count * count};
+		QuadricGeometry dudeGeometry{ &dx12, in , count * count };
 		std::vector<Instance> instances{};
 		for (UINT i = 0; i < count; i++)
 		{
@@ -257,7 +257,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		auto start = std::chrono::high_resolution_clock::now();
 		float passed = 0.0f;
 		int framectr = 0;
-		
+
 		float totalTime = 0.0f;
 		while (msg.message != WM_QUIT)
 		{
