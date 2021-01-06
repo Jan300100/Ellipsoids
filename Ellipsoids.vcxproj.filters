@@ -171,7 +171,7 @@
       <Filter>Pipeline\GeometryProcessing</Filter>
     </FxCompile>
     <FxCompile Include="RootSignature.hlsl">
-      <Filter>Pipeline</Filter>
+      <Filter>Pipeline\Merge</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

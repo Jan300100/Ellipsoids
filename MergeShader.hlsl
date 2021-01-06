@@ -70,6 +70,8 @@ void main( uint3 DTid : SV_DispatchThreadID )
         //SHADING
         float3 pos = float3(pixelNDC.x ,pixelNDC.y, 1);
         pos.z = mul(mul(float3(pos), q.transform), float3(pos));
+        if (pos.z < 0)
+            return;
         pos.z = sqrt(pos.z);
         
         float3 normal = -mul(float4(pos, 1), q.normalGenerator).xyz;

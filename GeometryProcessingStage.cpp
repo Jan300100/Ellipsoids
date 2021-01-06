@@ -16,7 +16,7 @@ Stage::GeometryProcessing::GeometryProcessing(DX12* pDX12)
 bool Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, QuadricGeometry* pGeometry) const
 {
 	UINT amount = pGeometry->UpdateTransforms();
-	if (amount == 0) return false;
+	if (amount == 0 || pGeometry->QuadricsAmount() == 0) return false;
 
 	DX12::Pipeline* pPipeline = m_pDX12->GetPipeline();
 	auto pComList = pPipeline->commandList;
