@@ -1,25 +1,20 @@
 #include "QuadricRenderer.h"
-#include "DX12.h"
 #include "Helpers.h"
 #include "d3dx12.h"
 #include <cmath>
-#include "Window.h"
 #include <d3dcompiler.h>
 #include <iostream>
-#include "Camera.h"
 #include "QuadricGeometry.h"
-#include "Instance.h"
 
 using namespace Microsoft::WRL;
-
 using namespace DirectX;
 
-void QuadricRenderer::InitResources()
+void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 {
 	//Constant Buffer
 	CD3DX12_HEAP_PROPERTIES properties = { CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD) };
 	CD3DX12_RESOURCE_DESC desc = { CD3DX12_RESOURCE_DESC::Buffer((sizeof(AppData) + 255) & ~255) };
-	m_pDX12->GetDevice()->CreateCommittedResource(
+	m_pDevice->CreateCommittedResource(
 		&properties,
 		D3D12_HEAP_FLAG_NONE,
 		&desc,
@@ -33,8 +28,8 @@ void QuadricRenderer::InitResources()
 	ZeroMemory(&texDesc, sizeof(D3D12_RESOURCE_DESC));
 	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	texDesc.Alignment = 0;
-	texDesc.Width = m_pDX12->GetWindow()->GetDimensions().width;
-	texDesc.Height = m_pDX12->GetWindow()->GetDimensions().height;
+	texDesc.Width = m_WindowDimensions.width;
+	texDesc.Height = m_WindowDimensions.height;
 	texDesc.DepthOrArraySize = 1;
 	texDesc.MipLevels = 1;
 	texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -44,7 +39,7 @@ void QuadricRenderer::InitResources()
 	texDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
 	properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-	ThrowIfFailed(m_pDX12->GetDevice()->CreateCommittedResource(
+	ThrowIfFailed(m_pDevice->CreateCommittedResource(
 		&properties,
 		D3D12_HEAP_FLAG_NONE,
 		&texDesc,
@@ -56,7 +51,7 @@ void QuadricRenderer::InitResources()
 	//depth Texture
 	texDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
 
-	ThrowIfFailed(m_pDX12->GetDevice()->CreateCommittedResource(
+	ThrowIfFailed(m_pDevice->CreateCommittedResource(
 		&properties,
 		D3D12_HEAP_FLAG_NONE,
 		&texDesc,
@@ -72,7 +67,7 @@ void QuadricRenderer::InitResources()
 	texDesc.Width = sqrtNumR * (UINT)m_AppData.tileDimensions.width;
 	texDesc.Height = sqrtNumR * (UINT)m_AppData.tileDimensions.height;
 	texDesc.Format = DXGI_FORMAT_R32_UINT;
-	ThrowIfFailed(m_pDX12->GetDevice()->CreateCommittedResource(
+	ThrowIfFailed(m_pDevice->CreateCommittedResource(
 		&properties,
 		D3D12_HEAP_FLAG_NONE,
 		&texDesc,
@@ -82,7 +77,7 @@ void QuadricRenderer::InitResources()
 	m_RasterizerIBuffer->SetName(L"RIndexBuffer");
 
 	texDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
-	ThrowIfFailed(m_pDX12->GetDevice()->CreateCommittedResource(
+	ThrowIfFailed(m_pDevice->CreateCommittedResource(
 		&properties,
 		D3D12_HEAP_FLAG_NONE,
 		&texDesc,
@@ -102,31 +97,31 @@ void QuadricRenderer::InitResources()
 	srvHeapDesc.NumDescriptors = 4;
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	ThrowIfFailed(m_pDX12->GetDevice()->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&m_DescriptorHeapSV)));
+	ThrowIfFailed(m_pDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&m_DescriptorHeapSV)));
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	ThrowIfFailed(m_pDX12->GetDevice()->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&m_DescriptorHeap)));
+	ThrowIfFailed(m_pDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&m_DescriptorHeap)));
 
-	UINT incrementSize = m_pDX12->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	UINT incrementSize = m_pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE srvHeapHandle(m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 	CD3DX12_CPU_DESCRIPTOR_HANDLE srvHeapHandleSV(m_DescriptorHeapSV->GetCPUDescriptorHandleForHeapStart());
 	m_DescriptorHeapSV->SetName(L"m_DescriptorHeapSV");
-	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_OutputBuffer.Get(), nullptr, &uavDesc, srvHeapHandle);
-	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_OutputBuffer.Get(), nullptr, &uavDesc, srvHeapHandleSV);
+	m_pDevice->CreateUnorderedAccessView(m_OutputBuffer.Get(), nullptr, &uavDesc, srvHeapHandle);
+	m_pDevice->CreateUnorderedAccessView(m_OutputBuffer.Get(), nullptr, &uavDesc, srvHeapHandleSV);
 	srvHeapHandle.Offset(incrementSize);
 	srvHeapHandleSV.Offset(incrementSize);
 	uavDesc.Format = DXGI_FORMAT_R32_UINT;
-	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_RasterizerIBuffer.Get(), nullptr, &uavDesc, srvHeapHandle);
-	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_RasterizerIBuffer.Get(), nullptr, &uavDesc, srvHeapHandleSV);
+	m_pDevice->CreateUnorderedAccessView(m_RasterizerIBuffer.Get(), nullptr, &uavDesc, srvHeapHandle);
+	m_pDevice->CreateUnorderedAccessView(m_RasterizerIBuffer.Get(), nullptr, &uavDesc, srvHeapHandleSV);
 	srvHeapHandle.Offset(incrementSize);
 	srvHeapHandleSV.Offset(incrementSize);
 	uavDesc.Format = DXGI_FORMAT_R32_FLOAT;
-	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_DepthBuffer.Get(), nullptr, &uavDesc, srvHeapHandle);
-	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_DepthBuffer.Get(), nullptr, &uavDesc, srvHeapHandleSV);
+	m_pDevice->CreateUnorderedAccessView(m_DepthBuffer.Get(), nullptr, &uavDesc, srvHeapHandle);
+	m_pDevice->CreateUnorderedAccessView(m_DepthBuffer.Get(), nullptr, &uavDesc, srvHeapHandleSV);
 	srvHeapHandle.Offset(incrementSize);
 	srvHeapHandleSV.Offset(incrementSize);
-	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_RasterizerDepthBuffer.Get(), nullptr, &uavDesc, srvHeapHandle);
-	m_pDX12->GetDevice()->CreateUnorderedAccessView(m_RasterizerDepthBuffer.Get(), nullptr, &uavDesc, srvHeapHandleSV);
+	m_pDevice->CreateUnorderedAccessView(m_RasterizerDepthBuffer.Get(), nullptr, &uavDesc, srvHeapHandle);
+	m_pDevice->CreateUnorderedAccessView(m_RasterizerDepthBuffer.Get(), nullptr, &uavDesc, srvHeapHandleSV);
 
 	
 	//BUFFERS
@@ -135,7 +130,7 @@ void QuadricRenderer::InitResources()
 	UINT byteSize = (sizeof(ScreenTile) * GetNrTiles().width * GetNrTiles().height);
 	properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	desc = CD3DX12_RESOURCE_DESC::Buffer(byteSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-	ThrowIfFailed(m_pDX12->GetDevice()->CreateCommittedResource(
+	ThrowIfFailed(m_pDevice->CreateCommittedResource(
 		&properties,
 		D3D12_HEAP_FLAG_NONE,
 		&desc,
@@ -146,7 +141,7 @@ void QuadricRenderer::InitResources()
 	//uploadBuffer
 	properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD);
 	desc = CD3DX12_RESOURCE_DESC::Buffer(byteSize);
-	ThrowIfFailed(m_pDX12->GetDevice()->CreateCommittedResource(
+	ThrowIfFailed(m_pDevice->CreateCommittedResource(
 		&properties,
 		D3D12_HEAP_FLAG_NONE,
 		&desc,
@@ -170,7 +165,7 @@ void QuadricRenderer::InitResources()
 	byteSize = (UINT)(sizeof(Rasterizer) * m_AppData.numRasterizers);
 	properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	desc = CD3DX12_RESOURCE_DESC::Buffer(byteSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-	ThrowIfFailed(m_pDX12->GetDevice()->CreateCommittedResource(
+	ThrowIfFailed(m_pDevice->CreateCommittedResource(
 		&properties,
 		D3D12_HEAP_FLAG_NONE,
 		&desc,
@@ -181,7 +176,7 @@ void QuadricRenderer::InitResources()
 	//uploadBuffer
 	properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD);
 	desc = CD3DX12_RESOURCE_DESC::Buffer(byteSize);
-	ThrowIfFailed(m_pDX12->GetDevice()->CreateCommittedResource(
+	ThrowIfFailed(m_pDevice->CreateCommittedResource(
 		&properties,
 		D3D12_HEAP_FLAG_NONE,
 		&desc,
@@ -206,7 +201,7 @@ void QuadricRenderer::InitResources()
 	byteSize = sizeof(OutQuadric) * m_AppData.numRasterizers * m_AppData.quadricsPerRasterizer;
 	properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	desc = CD3DX12_RESOURCE_DESC::Buffer(byteSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-	ThrowIfFailed(m_pDX12->GetDevice()->CreateCommittedResource(
+	ThrowIfFailed(m_pDevice->CreateCommittedResource(
 		&properties,
 		D3D12_HEAP_FLAG_NONE,
 		&desc,
@@ -246,23 +241,16 @@ void QuadricRenderer::InitResources()
 	}
 	ThrowIfFailed(hr);
 
-	ThrowIfFailed(m_pDX12->GetDevice()->CreateRootSignature(
+	ThrowIfFailed(m_pDevice->CreateRootSignature(
 		0,
 		serializedRootSig->GetBufferPointer(),
 		serializedRootSig->GetBufferSize(),
 		IID_PPV_ARGS(m_RootSignature.GetAddressOf())));
 
-
-
 	//init resources
 	m_RasterizerBuffer->SetName(L"m_RasterizerBuffer");
 	m_RasterizerResetBuffer->SetName(L"m_RasterizerResetBuffer");
 	m_RasterizerQBuffer->SetName(L"m_RasterizerQBuffer");
-
-
-	auto pPipeline = m_pDX12->GetPipeline();
-	ThrowIfFailed(pPipeline->commandAllocator->Reset());
-	ThrowIfFailed(pPipeline->commandList->Reset(pPipeline->commandAllocator.Get(), nullptr));
 
 	std::vector< CD3DX12_RESOURCE_BARRIER>transitions{};
 	transitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_OutputBuffer.Get(),
@@ -275,42 +263,33 @@ void QuadricRenderer::InitResources()
 	transitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_RasterizerDepthBuffer.Get(),
 		D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 
-	pPipeline->commandList->ResourceBarrier((UINT)transitions.size(), transitions.data());
-
-	ThrowIfFailed(pPipeline->commandList->Close());
-	ID3D12CommandList* cmdsLists[] = { pPipeline->commandList.Get() };
-	pPipeline->commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
-	pPipeline->Flush();
+	pComList->ResourceBarrier((UINT)transitions.size(), transitions.data());
 }
 
-void QuadricRenderer::CopyToBackBuffer()
+void QuadricRenderer::CopyToBackBuffer(ID3D12GraphicsCommandList* pComList, ID3D12Resource* pRenderTarget, ID3D12Resource*)
 {
-	auto pPipeline = m_pDX12->GetPipeline();
-	auto pComList = pPipeline->commandList;
 	//COPY COMPUTE BUFFER to Current Backbuffer to present it
 	CD3DX12_RESOURCE_BARRIER transitions[2]
 	{
-		CD3DX12_RESOURCE_BARRIER::Transition(pPipeline->GetCurrentRenderTarget(),
+		CD3DX12_RESOURCE_BARRIER::Transition(pRenderTarget,
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST),
 		CD3DX12_RESOURCE_BARRIER::Transition(m_OutputBuffer.Get(),
 		D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE)
 	};
 	pComList->ResourceBarrier(2, transitions);
 
-	pComList->CopyResource(pPipeline->GetCurrentRenderTarget(), m_OutputBuffer.Get());
+	pComList->CopyResource(pRenderTarget, m_OutputBuffer.Get());
 
 	// Transition to Render target for any other draws that might happen.
-	transitions[0] = CD3DX12_RESOURCE_BARRIER::Transition(pPipeline->GetCurrentRenderTarget(),
+	transitions[0] = CD3DX12_RESOURCE_BARRIER::Transition(pRenderTarget,
 		D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	transitions[1] = CD3DX12_RESOURCE_BARRIER::Transition(m_OutputBuffer.Get(),
 		D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	pComList->ResourceBarrier(2, transitions);
 }
 
-void QuadricRenderer::InitDrawCall()
+void QuadricRenderer::InitDrawCall(ID3D12GraphicsCommandList* pComList)
 {
-	auto pPipeline = m_pDX12->GetPipeline();
-	auto pComList = pPipeline->commandList;
 	CD3DX12_RESOURCE_BARRIER transitions[2]{
 		CD3DX12_RESOURCE_BARRIER::Transition(m_RasterizerBuffer.Get(),
 		D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_DEST),
@@ -319,8 +298,8 @@ void QuadricRenderer::InitDrawCall()
 	};
 	pComList->ResourceBarrier(2, transitions);
 
-	pPipeline->commandList->CopyResource(m_RasterizerBuffer.Get(), m_RasterizerResetBuffer.Get());
-	pPipeline->commandList->CopyResource(m_ScreenTileBuffer.Get(), m_ScreenTileResetBuffer.Get());
+	pComList->CopyResource(m_RasterizerBuffer.Get(), m_RasterizerResetBuffer.Get());
+	pComList->CopyResource(m_ScreenTileBuffer.Get(), m_ScreenTileResetBuffer.Get());
 
 	transitions[0] = CD3DX12_RESOURCE_BARRIER::Transition(m_RasterizerBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST
 		, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
@@ -333,26 +312,26 @@ void QuadricRenderer::InitDrawCall()
 	
 	CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 	CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_DescriptorHeapSV->GetGPUDescriptorHandleForHeapStart());
-	UINT incrementSize = m_pDX12->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	UINT incrementSize = m_pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	UINT max = UINT_MAX;
-	m_pDX12->GetPipeline()->commandList->ClearUnorderedAccessViewUint(gpuHandle.Offset(incrementSize * DescriptorHeapLayout::RIndex), cpuHandle.Offset(incrementSize * DescriptorHeapLayout::RIndex)
+	pComList->ClearUnorderedAccessViewUint(gpuHandle.Offset(incrementSize * DescriptorHeapLayout::RIndex), cpuHandle.Offset(incrementSize * DescriptorHeapLayout::RIndex)
 		, m_RasterizerIBuffer.Get(), &max, 0, nullptr);
 	cpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 	gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_DescriptorHeapSV->GetGPUDescriptorHandleForHeapStart());
-	m_pDX12->GetPipeline()->commandList->ClearUnorderedAccessViewFloat(gpuHandle.Offset(incrementSize * DescriptorHeapLayout::RDepth), cpuHandle.Offset(incrementSize * DescriptorHeapLayout::RDepth), m_RasterizerDepthBuffer.Get(), (FLOAT*)&m_DepthClearValue, 0, nullptr);
+	pComList->ClearUnorderedAccessViewFloat(gpuHandle.Offset(incrementSize * DescriptorHeapLayout::RDepth), cpuHandle.Offset(incrementSize * DescriptorHeapLayout::RDepth), m_RasterizerDepthBuffer.Get(), (FLOAT*)&m_DepthClearValue, 0, nullptr);
 
 	
 
 
 }
 
-void QuadricRenderer::InitRendering()
+void QuadricRenderer::InitRendering(ID3D12GraphicsCommandList* pComList)
 {
 	//update input data : In separate update function ?
-	XMStoreFloat4(&m_AppData.lightDirection, XMVector4Normalize(XMVector4Transform(XMVectorSet(0.577f, -0.577f, 0.577f, 0), m_pCamera->GetView())));
-	m_AppData.viewProjInv = m_pCamera->GetViewProjectionInverse();
-	m_AppData.viewInv = m_pCamera->GetViewInverse();
-	m_AppData.projInv = XMMatrixInverse(nullptr, m_pCamera->GetViewProjection());
+	XMStoreFloat4(&m_AppData.lightDirection, XMVector4Normalize(XMVector4Transform(XMVectorSet(0.577f, -0.577f, 0.577f, 0), m_CameraMatrices.v)));
+	m_AppData.viewProjInv = m_CameraMatrices.vpInv;
+	m_AppData.viewInv = m_CameraMatrices.vInv;
+	m_AppData.projInv = XMMatrixInverse(nullptr, m_CameraMatrices.vp);
 
 	BYTE* mapped = nullptr;
 	ThrowIfFailed(m_AppDataBuffer->Map(0, nullptr,
@@ -365,21 +344,19 @@ void QuadricRenderer::InitRendering()
 	// https://www.gamedev.net/forums/topic/672063-d3d12-clearunorderedaccessviewfloat-fails/
 	auto cpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 	auto gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_DescriptorHeapSV->GetGPUDescriptorHandleForHeapStart());
-	UINT incrementSize = m_pDX12->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	UINT incrementSize = m_pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-	m_pDX12->GetPipeline()->commandList->ClearUnorderedAccessViewFloat(
+	pComList->ClearUnorderedAccessViewFloat(
 		gpuHandle.Offset(incrementSize * DescriptorHeapLayout::Color),
 		cpuHandle.Offset(incrementSize * DescriptorHeapLayout::Color),
 		m_OutputBuffer.Get(), (FLOAT*)&m_ClearColor, 0, nullptr);
 	cpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 	gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_DescriptorHeapSV->GetGPUDescriptorHandleForHeapStart());
-	m_pDX12->GetPipeline()->commandList->ClearUnorderedAccessViewFloat(
+	pComList->ClearUnorderedAccessViewFloat(
 		gpuHandle.Offset(incrementSize * DescriptorHeapLayout::Depth),
 		cpuHandle.Offset(incrementSize * DescriptorHeapLayout::Depth),
 		m_DepthBuffer.Get(), (FLOAT*)&m_DepthClearValue, 0, nullptr);
 
-	auto pPipeline = m_pDX12->GetPipeline();
-	auto pComList = pPipeline->commandList;
 	//set root sign and parameters
 	pComList->SetComputeRootSignature(m_RootSignature.Get());
 
@@ -395,18 +372,22 @@ void QuadricRenderer::InitRendering()
 
 Dimensions<UINT> QuadricRenderer::GetNrTiles() const
 {
-	auto wDim = m_pDX12->GetWindow()->GetDimensions();
 	auto tDim = m_AppData.tileDimensions;
-	return Dimensions<UINT>{(wDim.width /tDim.width + (wDim.width % tDim.width > 0)), (wDim.height / tDim.height + (wDim.height % tDim.height > 0)) };
+	return Dimensions<UINT>{(m_WindowDimensions.width /tDim.width + (m_WindowDimensions.width % tDim.width > 0))
+		, (m_WindowDimensions.height / tDim.height + (m_WindowDimensions.height % tDim.height > 0)) };
 }
 
-QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
-	:m_pDX12{ pDX12 }, m_pCamera{ pCamera }, m_AppData{}
-	, m_GPStage{pDX12}
-	,m_RStage{pDX12}
-	,m_MStage{pDX12}
+QuadricRenderer::QuadricRenderer(ID3D12Device2* pDevice, UINT windowWidth, UINT windowHeight)
+	:m_pDevice{ pDevice }, m_AppData{}, m_WindowDimensions{ windowWidth ,windowHeight }
+	, m_GPStage{}
+	,m_RStage{}
+	,m_MStage{}
+	, m_CameraMatrices{}
 {
-	m_AppData.windowSize = { m_pDX12->GetWindow()->GetDimensions().width ,m_pDX12->GetWindow()->GetDimensions().height, 0, 0 };
+	SetViewMatrix(DirectX::XMMatrixIdentity());
+	SetProjectionVariables(DirectX::XM_PIDIV2, float(windowWidth)/ windowHeight , 1.0f, 100.0f);
+
+	m_AppData.windowSize = { windowWidth ,windowHeight, 0, 0 };
 	m_AppData.tileDimensions = { 128,128 };
 	m_AppData.quadricsPerRasterizer = 64;
 
@@ -414,52 +395,66 @@ QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
 	UINT screenTiles = tileDim.height * tileDim.width;
 	UINT extraRasterizers = screenTiles * 2;
 	m_AppData.numRasterizers = screenTiles + extraRasterizers;
+}
 
-	InitResources();
-	
+ID3D12Device2* QuadricRenderer::GetDevice() const
+{
+	return m_pDevice;
+}
+
+void QuadricRenderer::SetViewMatrix(const DirectX::XMMATRIX& view)
+{
+	m_CameraMatrices.v = view;
+	m_CameraMatrices.vInv = XMMatrixInverse(nullptr, view);
+	m_CameraMatrices.vp = view * m_CameraMatrices.p;
+	m_CameraMatrices.vpInv = XMMatrixInverse(nullptr, m_CameraMatrices.vp);
+}
+
+void QuadricRenderer::SetProjectionVariables(float fov, float aspectRatio, float nearPlane, float farPlane)
+{
+#ifdef REVERSED_DEPTH
+	//NEAR AND FAR PLANE SWAPPED : Reversed depth gives better distribution of depth
+	m_CameraMatrices.p = XMMatrixPerspectiveFovLH(fov, aspectRatio, farPlane, nearPlane);
+#else
+	m_CameraMatrices.p = XMMatrixPerspectiveFovLH(fov, aspectRatio, nearPlane, farPlane);
+#endif
+	SetViewMatrix(m_CameraMatrices.v); //recalc matrices;
+}
+
+void QuadricRenderer::Initialize(ID3D12GraphicsCommandList* pComList)
+{
+	InitResources(pComList);
+
 	m_GPStage.Init(this);
 	m_RStage.Init(this);
 	m_MStage.Init(this);
+
+	m_Initialized = true;
 }
 
-void QuadricRenderer::Render()
+void QuadricRenderer::RenderFrame(ID3D12GraphicsCommandList* pComList, ID3D12Resource* pRenderTarget, ID3D12Resource* pDepthBuffer)
 {
-	ThrowIfFailed(m_pDX12->GetDevice()->GetDeviceRemovedReason());
+	if (!m_Initialized) throw std::wstring{ L"Quadric Renderer not initialized!" };
 
-	InitRendering();
-
-	auto pPipeline = m_pDX12->GetPipeline();
-	auto pComList = pPipeline->commandList;
+	InitRendering(pComList);
 
 	for (QuadricGeometry* pGeo : m_ToRender)
 	{
-		InitDrawCall();
-		if (m_GPStage.Execute(this, pGeo))
+		InitDrawCall(pComList);
+		if (m_GPStage.Execute(this, pComList, pGeo))
 		{
-			m_RStage.Execute(this);
-			m_MStage.Execute(this);
+			m_RStage.Execute(this, pComList);
+			m_MStage.Execute(this, pComList);
 		}
 	}
 	m_ToRender.clear();
 
-	CopyToBackBuffer();
-}
-
-void QuadricRenderer::Render(Instance& instance)
-{
-	auto pGeo = instance.GetGeometry();
-	m_ToRender.insert(pGeo);
-	pGeo->m_Transforms.push_back(instance.GetTransformMatrix());
+	CopyToBackBuffer(pComList, pRenderTarget, pDepthBuffer);
 }
 
 void QuadricRenderer::Render(QuadricGeometry* pGeo)
 {
 	Render(pGeo, XMMatrixIdentity());
-}
-
-void QuadricRenderer::Render(QuadricGeometry* pGeo, Transform& transform)
-{
-	Render(pGeo, transform.GetWorld());
 }
 
 void QuadricRenderer::Render(QuadricGeometry* pGeo, const DirectX::XMMATRIX& transform)

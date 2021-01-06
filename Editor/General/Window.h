@@ -2,12 +2,6 @@
 #include "Helpers.h"
 #include <cstdint>
 
-template<typename T>
-struct Dimensions
-{
-	T width, height;
-};
-
 class InputListener
 {
 	InputListener* m_pNextListener = nullptr;

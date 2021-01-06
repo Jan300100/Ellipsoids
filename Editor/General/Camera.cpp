@@ -4,9 +4,6 @@
 #include <Windowsx.h>
 #include "Mouse.h"
 
-//
-#include "Definitions.hlsl"
-//
 
 using namespace DirectX;
 
@@ -27,12 +24,7 @@ void Camera::ReCalculateView()
 
 void Camera::CalculateProj()
 {
-#ifdef REVERSED_DEPTH
-	//NEAR AND FAR PLANE SWAPPED : Reversed depth gives better distribution of depth
-	m_Projection = XMMatrixPerspectiveFovLH(m_Fov, m_pWindow->AspectRatio(), m_FarPlane, m_NearPlane);
-#else
 	m_Projection = XMMatrixPerspectiveFovLH(m_Fov, m_pWindow->AspectRatio(), m_NearPlane, m_FarPlane);
-#endif
 }
 
 Camera::Camera(Window* pWindow, const Transform& transform)

@@ -1,15 +1,15 @@
-#include "Instance.h"
+#include "QuadricInstance.h"
 #include "QuadricGeometry.h"
 
 using namespace DirectX;
 
-Instance::Instance(QuadricGeometry* pGeometry)
+QuadricInstance::QuadricInstance(QuadricGeometry* pGeometry)
     :m_pGeometry{ pGeometry }, m_Transform{}
 {
     SetTransform(m_Transform);
 }
 
-DirectX::XMMATRIX Instance::GetTransformMatrix()
+DirectX::XMMATRIX QuadricInstance::GetTransformMatrix()
 {
     XMMATRIX tr = m_Transform.GetWorld();
     //invert (for second-order surfaces) and transpose (for directX)
@@ -17,7 +17,7 @@ DirectX::XMMATRIX Instance::GetTransformMatrix()
     return tr;
 }
 
-void Instance::SetTransform(const Transform& tr)
+void QuadricInstance::SetTransform(const Transform& tr)
 {
     m_Transform = tr;
 }

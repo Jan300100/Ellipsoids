@@ -3,11 +3,9 @@
 #include <dxgi1_6.h>
 #include <d3d12.h>
 #include <wrl.h>
-#include <imgui.h>
 #include <DirectXMath.h>
 #include "d3dx12.h"
 #include "Structs.h"
-#include "Window.h"
 #include "RasterizationStage.h"
 #include "GeometryProcessingStage.h"
 #include "MergeStage.h"
@@ -18,9 +16,11 @@
 //
 
 class QuadricGeometry;
-class Instance;
-class DX12;
-class Camera;
+
+struct CameraMatrices
+{
+	DirectX::XMMATRIX v, vp, vInv, vpInv, p;
+};
 
 class QuadricRenderer
 {
@@ -28,9 +28,7 @@ class QuadricRenderer
 	friend class Stage::Rasterization;
 	friend class Stage::Merge;
 private:
-	DX12* m_pDX12;
-	Camera* m_pCamera;
-
+	ID3D12Device2* m_pDevice;
 	//DATA
 	AppData m_AppData;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_AppDataBuffer; //general data (for both stages?)
@@ -60,10 +58,10 @@ private:
 	Stage::Rasterization m_RStage;
 	Stage::Merge m_MStage;
 
-	void InitResources();
-	void InitDrawCall();
-	void InitRendering();
-	void CopyToBackBuffer();
+	void InitResources(ID3D12GraphicsCommandList* pComList);
+	void InitDrawCall(ID3D12GraphicsCommandList* pComList);
+	void InitRendering(ID3D12GraphicsCommandList* pComList);
+	void CopyToBackBuffer(ID3D12GraphicsCommandList* pComList, ID3D12Resource* pRenderTarget, ID3D12Resource* pDepthBuffer);
 	
 	std::set<QuadricGeometry*> m_ToRender;
 
@@ -75,14 +73,16 @@ private:
 	float m_DepthClearValue = 1;
 #endif
 	Dimensions<UINT> GetNrTiles() const;
-
+	CameraMatrices m_CameraMatrices;
+	bool m_Initialized = false;
+	Dimensions<UINT> m_WindowDimensions;
 public:
-	QuadricRenderer(DX12* pDX12, Camera* pCamera);
-	void SetCamera(Camera* pCamera) { m_pCamera = pCamera; }
-
-	void Render();
-	void Render(Instance& instance);
+	QuadricRenderer(ID3D12Device2* pDevice, UINT windowWidth, UINT windowHeight);
+	ID3D12Device2* GetDevice() const;
+	void SetViewMatrix(const DirectX::XMMATRIX& view);
+	void SetProjectionVariables(float fov, float aspectRatio, float nearPlane, float farPlane);
+	void Initialize(ID3D12GraphicsCommandList* pComList);
+	void RenderFrame(ID3D12GraphicsCommandList* pComList, ID3D12Resource* pRenderTarget, ID3D12Resource* pDepthBuffer = nullptr);
 	void Render(QuadricGeometry* pGeo);
-	void Render(QuadricGeometry* pGeo, Transform& transform);
 	void Render(QuadricGeometry* pGeo, const DirectX::XMMATRIX& transform);
 };

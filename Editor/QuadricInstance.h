@@ -5,12 +5,12 @@
 
 class QuadricGeometry;
 
-class Instance
+class QuadricInstance
 {
 	QuadricGeometry* m_pGeometry;
 	Transform m_Transform;
 public:
-	Instance(QuadricGeometry* pGeometry);
+	QuadricInstance(QuadricGeometry* pGeometry);
 	Transform GetTransform() const { return m_Transform; }
 	DirectX::XMMATRIX GetTransformMatrix();
 	void SetTransform(const Transform& tr);

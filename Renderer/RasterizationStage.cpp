@@ -1,12 +1,11 @@
 #include "RasterizationStage.h"
 #include "QuadricRenderer.h"
 #include <d3dcompiler.h>
-#include "DX12.h"
-#include <vector>
+
 using namespace Microsoft::WRL;
 
-Stage::Rasterization::Rasterization(DX12* pDX12)
-	:Stage{ pDX12 }
+Stage::Rasterization::Rasterization()
+	:Stage{}
 {
 }
 
@@ -19,7 +18,7 @@ void Stage::Rasterization::Init(QuadricRenderer* pRenderer)
 #endif
 	ComPtr<ID3DBlob> errorBlob = nullptr;
 
-	HRESULT hr = D3DCompileFromFile(L"RasterizationShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+	HRESULT hr = D3DCompileFromFile(L"Renderer/RasterizationShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"main", "cs_5_1", compileFlags, 0, &m_Shader, &errorBlob);
 
 	if (errorBlob != nullptr)
@@ -35,14 +34,14 @@ void Stage::Rasterization::Init(QuadricRenderer* pRenderer)
 		m_Shader->GetBufferSize()
 	};
 	computePsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-	ThrowIfFailed(m_pDX12->GetDevice()->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&m_Pso)));
+	ThrowIfFailed(pRenderer->GetDevice()->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&m_Pso)));
 
+	m_Initialized = true;
 }
 
-void Stage::Rasterization::Execute(QuadricRenderer* pRenderer) const
+void Stage::Rasterization::Execute(QuadricRenderer* pRenderer, ID3D12GraphicsCommandList* pComList) const
 {
-	DX12::Pipeline* pPipeline = m_pDX12->GetPipeline();
-	auto pComList = pPipeline->commandList;
+	if (!m_Initialized) throw L"RasterizatonStage not initialized";
 
 	//these are used as input here
 	std::vector< CD3DX12_RESOURCE_BARRIER> barriers{};

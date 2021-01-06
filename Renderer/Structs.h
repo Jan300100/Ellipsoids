@@ -1,25 +1,19 @@
 #pragma once
 #include <DirectXMath.h>
-#include "Transform.h"
-#include "Window.h"
 #include <d3d12.h>
+#include "Helpers.h"
+
+
 
 struct Quadric
 {
-	DirectX::XMFLOAT4X4 equation;
-	Transform transform;
-	DirectX::XMFLOAT3 color = { 1,1,1 };
-};
-
-struct InQuadric
-{
 	DirectX::XMMATRIX transformed;
 	DirectX::XMFLOAT3 color;
-	InQuadric(Quadric& src) :transformed{ DirectX::XMMatrixIdentity()}, color{ src.color }
+	Quadric(const DirectX::XMFLOAT4X4& equation, const DirectX::XMMATRIX& transform, const DirectX::XMFLOAT3& color) :transformed{}, color{ color }
 	{
-		DirectX::XMMATRIX tr = src.transform.GetWorld();
+		DirectX::XMMATRIX tr = transform;
 		tr = XMMatrixInverse(nullptr, tr);
-		transformed = tr * XMLoadFloat4x4(&src.equation) * XMMatrixTranspose(tr);
+		transformed = tr * XMLoadFloat4x4(&equation) * XMMatrixTranspose(tr);
 	}
 };
 

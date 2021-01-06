@@ -2,15 +2,16 @@
 #include <wrl.h>
 #include <d3d12.h>
 #include "Stage.h"
+#include <dxgi1_6.h>
 
-class DX12;
+
 namespace Stage
 {
 	class Rasterization : public Stage
 	{
 	public:
-		Rasterization(DX12* pDX12);
+		Rasterization();
 		virtual void Init(QuadricRenderer* pRenderer) override;
-		void Execute(QuadricRenderer* pRenderer) const;
+		void Execute(QuadricRenderer* pRenderer, ID3D12GraphicsCommandList* pComList) const;
 	};
 }
