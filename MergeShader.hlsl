@@ -1,8 +1,6 @@
 #include "Helpers.hlsl"
 #include "RootSignature.hlsl"
 
-//#define SHOW_TILES
-
 [numthreads(8, 8, 1)]
 void main( uint3 DTid : SV_DispatchThreadID )
 {
@@ -26,11 +24,20 @@ void main( uint3 DTid : SV_DispatchThreadID )
         uint2 virtualTextureLeftTop = GetScreenLeftTop(rasterizerIdx, virtualDimensions, gAppData.tileDimensions);
         uint2 rBufferPixel = virtualTextureLeftTop.xy + DTid.xy;
         float pixelDepth = gRDepthBuffer[rBufferPixel.xy];
+        
+        #ifdef REVERSED_DEPTH
+        if (currentDepth <= pixelDepth)
+        {
+            currentDepth = pixelDepth;
+            currentIdx = gRIBuffer[rBufferPixel.xy];
+        }
+        #else
         if (currentDepth > pixelDepth)
         {
             currentDepth = pixelDepth;
             currentIdx = gRIBuffer[rBufferPixel.xy];
         }
+        #endif
         rasterizerIdx = gRasterizers[rasterizerIdx].nextRasterizerIdx;
     }
     
@@ -72,8 +79,12 @@ void main( uint3 DTid : SV_DispatchThreadID )
         pos.z = mul(mul(float3(pos), q.transform), float3(pos));
         if (pos.z < 0)
             return;
-        pos.z = sqrt(pos.z);
         
+        #ifdef REVERSED_DEPTH
+        pos.z = -sqrt(pos.z);
+        #else
+        pos.z = sqrt(pos.z);
+        #endif
         float3 normal = -mul(float4(pos, 1), q.normalGenerator).xyz;
         normal = normalize(normal);
         float3 lDir = gAppData.lightDirection.xyz;

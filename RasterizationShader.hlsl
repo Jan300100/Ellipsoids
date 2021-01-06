@@ -40,13 +40,29 @@ void main( uint3 DTid : SV_DispatchThreadID )
             pos.z = mul(mul(float3(pos), q.transform), float3(pos));
             if (pos.z > 0) //this pixels covers the ellipsoid
             {
-                pos.z = sqrt(pos.z);
+                #ifdef REVERSED_DEPTH
+                pos.z = -sqrt(pos.z);
                 projPos = mul(float4(pos, 1), q.shearToProj);
-                if (gRDepthBuffer[rBufPixel.xy] > projPos.z)
+                if (projPos.z < 0.0 || projPos.z > 1.0f)
+                    continue;
+                float depth = projPos.z;
+                if (gRDepthBuffer[rBufPixel.xy] <= depth)
                 {
                     gRIBuffer[rBufPixel.xy] = qIdx;
-                    gRDepthBuffer[rBufPixel.xy] = projPos.z;
+                    gRDepthBuffer[rBufPixel.xy] = depth;
                 }
+                #else
+                pos.z = sqrt(pos.z);
+                projPos = mul(float4(pos, 1), q.shearToProj);
+                if (projPos.z < 0.0 || projPos.z > 1.0f)
+                    continue;
+                float depth = projPos.z;
+                if (gRDepthBuffer[rBufPixel.xy] > depth)
+                {
+                    gRIBuffer[rBufPixel.xy] = qIdx;
+                    gRDepthBuffer[rBufPixel.xy] = depth;
+                }
+                #endif
             }
         }
     }

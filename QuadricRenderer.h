@@ -13,6 +13,10 @@
 #include "MergeStage.h"
 #include <set>
 
+//
+#include "Definitions.hlsl"
+//
+
 class QuadricGeometry;
 class Instance;
 class DX12;
@@ -64,8 +68,12 @@ private:
 	std::set<QuadricGeometry*> m_ToRender;
 
 	DirectX::XMFLOAT4 m_ClearColor = { 66 / 255.0f,135 / 255.0f,245 / 255.0f,0 };
-	float m_DepthClearValue = FLT_MAX;
 
+#ifdef REVERSED_DEPTH
+	float m_DepthClearValue = 0;
+#else
+	float m_DepthClearValue = 1;
+#endif
 	Dimensions<UINT> GetNrTiles() const;
 
 public:

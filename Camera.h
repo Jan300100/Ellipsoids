@@ -15,7 +15,7 @@ protected:
 	void CalculateProj();
 	Window* m_pWindow;
 	float m_Fov = DirectX::XM_PIDIV2;
-	float m_NearPlane = 10.0f, m_FarPlane = 100.f;
+	float m_NearPlane = 1.0f, m_FarPlane = 100.0f;
 
 	Transform m_Transform;
 public:
@@ -25,6 +25,7 @@ public:
 	inline DirectX::XMMATRIX GetViewProjection() const { return m_ViewProj; }
 	inline DirectX::XMMATRIX GetViewInverse() const { return m_ViewInverse; }
 	inline DirectX::XMMATRIX GetView() const { return m_View; }
+	float AspectRatio();
 	DirectX::XMVECTOR GetForward() const;
 	DirectX::XMVECTOR GetRight() const;
 	void Offset(const DirectX::XMFLOAT3& offset);
