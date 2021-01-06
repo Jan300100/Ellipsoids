@@ -4,7 +4,11 @@
 #include <wtypes.h>
 #include <comdef.h>
 
-
+template<typename T>
+struct Dimensions
+{
+	T width, height;
+};
 
 //from Frank Luna's book : Introduction to 3D Game Programming with DirectX 12
 class DxException

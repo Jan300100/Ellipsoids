@@ -3,8 +3,8 @@
 #include "Transform.h"
 #include <vector>
 #include <wrl.h>
+#include <dxgi1_6.h>
 
-class DX12;
 
 class QuadricGeometry
 {
@@ -18,11 +18,11 @@ class QuadricGeometry
 	///PER MESH DATA : //contains the transformation matrix for the entire mesh
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_MeshDataBuffer = nullptr;
 public:
-	QuadricGeometry(DX12* pDX12, const std::vector<InQuadric>& quadrics, UINT maxInstances = 1);
+	QuadricGeometry(ID3D12Device2* pDevice, ID3D12GraphicsCommandList* pComList, const std::vector<InQuadric>& quadrics, UINT maxInstances = 1);
 	ID3D12Resource* GetInputBuffer() const { return m_InputBuffer.Get(); }
 	ID3D12Resource* GetTransformBuffer() { return m_MeshDataBuffer.Get(); }
 	UINT UpdateTransforms();
 
 	UINT QuadricsAmount() const { return (UINT)m_Quadrics.size(); }
-	void UpdateBuffers(DX12* pDX12);
+	void UpdateBuffers(ID3D12GraphicsCommandList* pComList);
 };

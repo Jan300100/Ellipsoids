@@ -1,25 +1,23 @@
 #include "GeometryProcessingStage.h"
 #include "QuadricGeometry.h"
 #include "QuadricRenderer.h"
-#include "DX12.h"
 #include <d3dcompiler.h>
 
 using namespace Microsoft::WRL;
 
 
-Stage::GeometryProcessing::GeometryProcessing(DX12* pDX12)
-	:Stage{pDX12}
+Stage::GeometryProcessing::GeometryProcessing()
+	:Stage{}
 {
 	
 }
 
-bool Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, QuadricGeometry* pGeometry) const
+bool Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, ID3D12GraphicsCommandList* pComList, QuadricGeometry* pGeometry) const
 {
+	if (!m_Initialized) throw L"GeometryProcessingStage not initialized";
+
 	UINT amount = pGeometry->UpdateTransforms();
 	if (amount == 0 || pGeometry->QuadricsAmount() == 0) return false;
-
-	DX12::Pipeline* pPipeline = m_pDX12->GetPipeline();
-	auto pComList = pPipeline->commandList;
 
 	std::vector< CD3DX12_RESOURCE_BARRIER> barriers{};
 	barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerBuffer.Get()));
@@ -61,5 +59,7 @@ void Stage::GeometryProcessing::Init(QuadricRenderer* pRenderer)
 		m_Shader->GetBufferSize()
 	};
 	computePsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-	ThrowIfFailed(m_pDX12->GetDevice()->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&m_Pso)));
+	ThrowIfFailed(pRenderer->GetDevice()->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&m_Pso)));
+
+	m_Initialized = true;
 }

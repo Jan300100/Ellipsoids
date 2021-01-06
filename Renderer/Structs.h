@@ -1,8 +1,8 @@
 #pragma once
 #include <DirectXMath.h>
 #include "Transform.h"
-#include "Window.h"
 #include <d3d12.h>
+#include "Helpers.h"
 
 struct Quadric
 {

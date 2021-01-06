@@ -24,6 +24,7 @@ float2 ScreenToNDC(uint2 screen, float2 windowDimensions)
 
 bool SolveQuadratic(float a, float b, float c, out float minValue, out float maxValue)
 {
+    bool returnValue = false;
     minValue = -1;
     maxValue = 1;
     
@@ -35,18 +36,21 @@ bool SolveQuadratic(float a, float b, float c, out float minValue, out float max
         if (discr < 0)
         {
             //nothing
-            return !(c < 0);
+            returnValue = !(c < 0);
         }
-        float d = sqrt(discr);
-        if (a > 0)
+        else
         {
-            d = -d; //signal that its hyperbolic
+            float d = sqrt(discr);
+            if (a > 0)
+            {
+                d = -d; //signal that its hyperbolic
+            }
+            maxValue = -ba + d;
+            minValue = -ba - d;
+            returnValue = true;
         }
-        maxValue = -ba + d;
-        minValue = -ba - d;
-        return true;
     }
-    if (b != 0.0f)
+    else if (b != 0.0f)
     {
         if (b > 0)
         {
@@ -56,9 +60,13 @@ bool SolveQuadratic(float a, float b, float c, out float minValue, out float max
         {
             maxValue = -c / b;
         }
-        return true;
+        returnValue = true;
     }
-    return !(c < 0);
+    else
+    {
+        returnValue = !(c < 0);
+    }
+    return returnValue;
 }
 
 uint2 GetNrTiles(uint2 windowDimensions, uint2 rasterizerDimensions)

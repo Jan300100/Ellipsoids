@@ -32,23 +32,30 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		freopen_s(&pDummy, "CONOUT$", "w", stderr);
 		freopen_s(&pDummy, "CONOUT$", "w", stdout);
 
+
+
 		Window window{ hInstance, 960, 640 };
-
 		DX12 dx12{ &window };
-
 		ImGuiRenderer imguiRenderer{ dx12.GetDevice(), window.GetHandle() };
-		window.AddListener(&imguiRenderer);
-
 		Mouse mouse{};
-		window.AddListener(&mouse);
+		window.AddListener(&imguiRenderer);
+		imguiRenderer.AddListener(&mouse);
 
-		Transform cameraTransform{};
-		cameraTransform.SetPosition({ 0,4.5,-4.f });
-		FreeCamera camera = FreeCamera{ &window, &mouse, cameraTransform };
+		FreeCamera camera = FreeCamera{ &window, &mouse };
+		camera.Offset({ 0,4.5,-4.f });
 
-		QuadricRenderer renderer{ &dx12 };
+
+		dx12.GetPipeline()->commandAllocator->Reset();
+		dx12.GetPipeline()->commandList->Reset(dx12.GetPipeline()->commandAllocator.Get(), nullptr);
+
+		QuadricRenderer renderer{ dx12.GetDevice(), window.GetDimensions().width, window.GetDimensions().height };
+		
+		renderer.Initialize(dx12.GetPipeline()->commandList.Get());
 		renderer.SetProjectionVariables(camera.GetFOV(), window.AspectRatio(), camera.GetNearPlane(), camera.GetFarPlane());
 
+#pragma region InitGeometry
+
+		//initialization
 		DirectX::XMFLOAT3 skinColor{ 1.0f,0.67f,0.45f }, tShirtColor{ 1,0,0 }, pantsColor{ 0,0,1 }, shoeColor{ 0.6f,0.4f,0.1f };
 
 		Quadric head{};
@@ -217,7 +224,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 
 		UINT count = 10;
-		QuadricGeometry dudeGeometry{ &dx12, in , count * count };
+		QuadricGeometry dudeGeometry{ dx12.GetDevice(),dx12.GetPipeline()->commandList.Get() , in , count * count };
 		std::vector<Instance> instances{};
 		for (UINT i = 0; i < count; i++)
 		{
@@ -251,7 +258,17 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 		std::vector<InQuadric> groundInput{};
 		groundInput.push_back(world);
-		QuadricGeometry ground{ &dx12, groundInput };
+		QuadricGeometry ground{ dx12.GetDevice(),dx12.GetPipeline()->commandList.Get() , groundInput };
+		
+#pragma endregion
+
+		// Done recording commands.
+		dx12.GetPipeline()->commandList.Get()->Close();
+		// Add the command list to the queue for execution.
+		ID3D12CommandList* cmdsLists[] = { dx12.GetPipeline()->commandList.Get() };
+		dx12.GetPipeline()->commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+		dx12.GetPipeline()->Flush(); //wait for gpu to finish (== not ideal)
+
 
 		//LOOP
 		MSG msg = {};
@@ -301,7 +318,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 				renderer.Render(i);
 			}
 
-			renderer.Render();
+			renderer.RenderFrame(dx12.GetPipeline()->commandList.Get(), dx12.GetPipeline()->GetCurrentRenderTarget());
 			imguiRenderer.Render(dx12.GetPipeline()->commandList.Get());
 			dx12.Present();
 		}

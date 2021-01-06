@@ -147,8 +147,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\General\DX12.cpp" />
-    <ClCompile Include="..\General\Mouse.cpp" />
     <ClCompile Include="..\ImGui\imgui.cpp">
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">TurnOffAllWarnings</WarningLevel>
       <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</TreatWarningAsError>
@@ -220,8 +218,11 @@
       <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
     </ClCompile>
     <ClCompile Include="General\Camera.cpp" />
+    <ClCompile Include="General\DX12.cpp" />
     <ClCompile Include="General\FreeCamera.cpp" />
     <ClCompile Include="General\ImGuiRenderer.cpp" />
+    <ClCompile Include="General\Mouse.cpp" />
+    <ClCompile Include="General\Window.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -230,8 +231,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\General\DX12.h" />
-    <ClInclude Include="..\General\Mouse.h" />
     <ClInclude Include="..\ImGui\imconfig.h" />
     <ClInclude Include="..\ImGui\imgui.h" />
     <ClInclude Include="..\ImGui\imgui_impl_dx12.h" />
@@ -241,8 +240,11 @@
     <ClInclude Include="..\ImGui\imstb_textedit.h" />
     <ClInclude Include="..\ImGui\imstb_truetype.h" />
     <ClInclude Include="General\Camera.h" />
+    <ClInclude Include="General\DX12.h" />
     <ClInclude Include="General\FreeCamera.h" />
     <ClInclude Include="General\ImGuiRenderer.h" />
+    <ClInclude Include="General\Mouse.h" />
+    <ClInclude Include="General\Window.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

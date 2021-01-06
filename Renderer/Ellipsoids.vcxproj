@@ -20,7 +20,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\General\Transform.cpp" />
-    <ClCompile Include="..\General\Window.cpp" />
     <ClCompile Include="GeometryProcessingStage.cpp" />
     <ClCompile Include="Instance.cpp" />
     <ClCompile Include="MergeStage.cpp" />
@@ -32,7 +31,6 @@
     <ClInclude Include="..\General\d3dx12.h" />
     <ClInclude Include="..\General\Helpers.h" />
     <ClInclude Include="..\General\Transform.h" />
-    <ClInclude Include="..\General\Window.h" />
     <ClInclude Include="GeometryProcessingStage.h" />
     <ClInclude Include="Instance.h" />
     <ClInclude Include="MergeStage.h" />
