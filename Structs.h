@@ -53,7 +53,6 @@ struct ScreenTile
 struct Rasterizer
 {
 	unsigned int screenTileIdx; //indicates position on the screen
-	unsigned int rasterizerIdx;
 	unsigned int nextRasterizerIdx; //if this Tile is saturated with quadrics, they should be added to the next tile instead.
 	unsigned int numQuadrics;
 };

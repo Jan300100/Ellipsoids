@@ -20,14 +20,18 @@ class Camera;
 
 class QuadricRenderer
 {
+	friend class Stage::GeometryProcessing;
+	friend class Stage::Rasterization;
+	friend class Stage::Merge;
 private:
 	DX12* m_pDX12;
 	Camera* m_pCamera;
 
-
 	//DATA
 	AppData m_AppData;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_AppDataBuffer; //general data (for both stages?)
+	//ROOT SIGNATURE
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_RootSignature;
 	//TEXTURES
 	enum DescriptorHeapLayout : unsigned int
 	{
@@ -37,36 +41,24 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DescriptorHeapSV;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_OutputBuffer;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_DepthBuffer;
-
 	//RASTERIZERS:
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerBuffer; //uav buffer, flexible(resize when not big enough?)
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerResetBuffer; //upload buffer to reset screenTiles
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerQBuffer; //uav buffer with outputQuadrics
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerDepthBuffer;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerIBuffer;
-	
 	//SCREENTILES
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_ScreenTileBuffer; //uav buffer, flexible(resize when not big enough?)
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_ScreenTileResetBuffer; //upload buffer to reset screenTiles
 
-	//RS
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_RootSignature;
-
-	//Initialization
-	void InitResources();
-	void InitDrawCall();
-	void InitRendering();
 	//RENDER STAGES
-
-	friend class Stage::GeometryProcessing;
-	friend class Stage::Rasterization;
-	friend class Stage::Merge;
-
 	Stage::GeometryProcessing m_GPStage;
 	Stage::Rasterization m_RStage;
 	Stage::Merge m_MStage;
 
-
+	void InitResources();
+	void InitDrawCall();
+	void InitRendering();
 	void CopyToBackBuffer();
 	
 	std::set<QuadricGeometry*> m_ToRender;

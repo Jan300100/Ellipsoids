@@ -20,7 +20,7 @@ void main( uint3 DTid : SV_DispatchThreadID )
     
     uint2 scrP = uint2(UINT_MAX, (screenLeftTop.y + scanline));
     //PER QUADRIC
-    for (uint qIdx = rasterizer.rasterizerIdx * gAppData.quadricsPerRasterizer; qIdx < rasterizer.rasterizerIdx * gAppData.quadricsPerRasterizer + rasterizer.numQuadrics; qIdx++)
+    for (uint qIdx = rasterizerIndex * gAppData.quadricsPerRasterizer; qIdx < rasterizerIndex * gAppData.quadricsPerRasterizer + rasterizer.numQuadrics; qIdx++)
     {
         OutQuadric q = gRasterizerQBuffer[qIdx];
 

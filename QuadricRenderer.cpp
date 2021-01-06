@@ -189,14 +189,13 @@ void QuadricRenderer::InitResources()
 		nullptr,
 		IID_PPV_ARGS(&m_RasterizerResetBuffer)));
 
-	Rasterizer initial{ UINT_MAX, 0, UINT_MAX , 0};
+	Rasterizer initial{ UINT_MAX, UINT_MAX , 0};
 
 	Rasterizer* rasterizers = nullptr;
 	m_RasterizerResetBuffer->Map(0, nullptr,
 		reinterpret_cast<void**>(&rasterizers));
 	for (unsigned int i = 0; i < m_AppData.numRasterizers; i++)
 	{
-		initial.rasterizerIdx = i;
 		rasterizers[i] = initial;
 	}
 	if (m_RasterizerResetBuffer != nullptr)
