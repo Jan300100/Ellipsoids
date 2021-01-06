@@ -46,7 +46,8 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		cameraTransform.SetPosition({ 0,4.5,-4.f });
 		FreeCamera camera = FreeCamera{ &window, &mouse, cameraTransform };
 
-		QuadricRenderer renderer{ &dx12, &camera };
+		QuadricRenderer renderer{ &dx12 };
+		renderer.SetProjectionVariables(camera.GetFOV(), window.AspectRatio(), camera.GetNearPlane(), camera.GetFarPlane());
 
 		DirectX::XMFLOAT3 skinColor{ 1.0f,0.67f,0.45f }, tShirtColor{ 1,0,0 }, pantsColor{ 0,0,1 }, shoeColor{ 0.6f,0.4f,0.1f };
 
@@ -291,6 +292,9 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 			camera.Update(delta);
 			dx12.NewFrame();
 
+
+
+			renderer.SetViewMatrix(camera.GetView());
 			renderer.Render(&ground);
 			for (Instance& i : instances)
 			{

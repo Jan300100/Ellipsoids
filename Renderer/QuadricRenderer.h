@@ -20,7 +20,11 @@
 class QuadricGeometry;
 class Instance;
 class DX12;
-class Camera;
+
+struct CameraMatrices
+{
+	DirectX::XMMATRIX v, vp, vInv, vpInv, p;
+};
 
 class QuadricRenderer
 {
@@ -29,7 +33,6 @@ class QuadricRenderer
 	friend class Stage::Merge;
 private:
 	DX12* m_pDX12;
-	Camera* m_pCamera;
 
 	//DATA
 	AppData m_AppData;
@@ -75,10 +78,12 @@ private:
 	float m_DepthClearValue = 1;
 #endif
 	Dimensions<UINT> GetNrTiles() const;
-
+	CameraMatrices m_CameraMatrices;
 public:
-	QuadricRenderer(DX12* pDX12, Camera* pCamera);
-	void SetCamera(Camera* pCamera) { m_pCamera = pCamera; }
+	QuadricRenderer(DX12* pDX12);
+
+	void SetViewMatrix(const DirectX::XMMATRIX& view);
+	void SetProjectionVariables(float fov, float aspectRatio, float nearPlane, float farPlane);
 
 	void Render();
 	void Render(Instance& instance);

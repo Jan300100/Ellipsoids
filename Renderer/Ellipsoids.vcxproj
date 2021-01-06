@@ -19,8 +19,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\General\DX12.cpp" />
-    <ClCompile Include="..\General\ImGuiRenderer.cpp" />
     <ClCompile Include="..\General\Transform.cpp" />
     <ClCompile Include="..\General\Window.cpp" />
     <ClCompile Include="GeometryProcessingStage.cpp" />
@@ -32,9 +30,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\General\d3dx12.h" />
-    <ClInclude Include="..\General\DX12.h" />
     <ClInclude Include="..\General\Helpers.h" />
-    <ClInclude Include="..\General\ImGuiRenderer.h" />
     <ClInclude Include="..\General\Transform.h" />
     <ClInclude Include="..\General\Window.h" />
     <ClInclude Include="GeometryProcessingStage.h" />

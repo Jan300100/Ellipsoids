@@ -6,7 +6,6 @@
 #include "Window.h"
 #include <d3dcompiler.h>
 #include <iostream>
-#include "Camera.h"
 #include "QuadricGeometry.h"
 #include "Instance.h"
 
@@ -349,10 +348,10 @@ void QuadricRenderer::InitDrawCall()
 void QuadricRenderer::InitRendering()
 {
 	//update input data : In separate update function ?
-	XMStoreFloat4(&m_AppData.lightDirection, XMVector4Normalize(XMVector4Transform(XMVectorSet(0.577f, -0.577f, 0.577f, 0), m_pCamera->GetView())));
-	m_AppData.viewProjInv = m_pCamera->GetViewProjectionInverse();
-	m_AppData.viewInv = m_pCamera->GetViewInverse();
-	m_AppData.projInv = XMMatrixInverse(nullptr, m_pCamera->GetViewProjection());
+	XMStoreFloat4(&m_AppData.lightDirection, XMVector4Normalize(XMVector4Transform(XMVectorSet(0.577f, -0.577f, 0.577f, 0), m_CameraMatrices.v)));
+	m_AppData.viewProjInv = m_CameraMatrices.vpInv;
+	m_AppData.viewInv = m_CameraMatrices.vInv;
+	m_AppData.projInv = XMMatrixInverse(nullptr, m_CameraMatrices.vp);
 
 	BYTE* mapped = nullptr;
 	ThrowIfFailed(m_AppDataBuffer->Map(0, nullptr,
@@ -400,12 +399,16 @@ Dimensions<UINT> QuadricRenderer::GetNrTiles() const
 	return Dimensions<UINT>{(wDim.width /tDim.width + (wDim.width % tDim.width > 0)), (wDim.height / tDim.height + (wDim.height % tDim.height > 0)) };
 }
 
-QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
-	:m_pDX12{ pDX12 }, m_pCamera{ pCamera }, m_AppData{}
+QuadricRenderer::QuadricRenderer(DX12* pDX12)
+	:m_pDX12{ pDX12 }, m_AppData{}
 	, m_GPStage{pDX12}
 	,m_RStage{pDX12}
 	,m_MStage{pDX12}
+	, m_CameraMatrices{}
 {
+	SetViewMatrix(DirectX::XMMatrixIdentity());
+	SetProjectionVariables(DirectX::XM_PIDIV2, m_pDX12->GetWindow()->AspectRatio() , 1.0f, 100.0f);
+
 	m_AppData.windowSize = { m_pDX12->GetWindow()->GetDimensions().width ,m_pDX12->GetWindow()->GetDimensions().height, 0, 0 };
 	m_AppData.tileDimensions = { 128,128 };
 	m_AppData.quadricsPerRasterizer = 64;
@@ -422,10 +425,27 @@ QuadricRenderer::QuadricRenderer(DX12* pDX12, Camera* pCamera)
 	m_MStage.Init(this);
 }
 
+void QuadricRenderer::SetViewMatrix(const DirectX::XMMATRIX& view)
+{
+	m_CameraMatrices.v = view;
+	m_CameraMatrices.vInv = XMMatrixInverse(nullptr, view);
+	m_CameraMatrices.vp = view * m_CameraMatrices.p;
+	m_CameraMatrices.vpInv = XMMatrixInverse(nullptr, m_CameraMatrices.vp);
+}
+
+void QuadricRenderer::SetProjectionVariables(float fov, float aspectRatio, float nearPlane, float farPlane)
+{
+#ifdef REVERSED_DEPTH
+	//NEAR AND FAR PLANE SWAPPED : Reversed depth gives better distribution of depth
+	m_CameraMatrices.p = XMMatrixPerspectiveFovLH(fov, aspectRatio, farPlane, nearPlane);
+#else
+	m_CameraMatrices.p = XMMatrixPerspectiveFovLH(fov, aspectRatio, nearPlane, farPlane);
+#endif
+	SetViewMatrix(m_CameraMatrices.v); //recalc matrices;
+}
+
 void QuadricRenderer::Render()
 {
-	ThrowIfFailed(m_pDX12->GetDevice()->GetDeviceRemovedReason());
-
 	InitRendering();
 
 	auto pPipeline = m_pDX12->GetPipeline();
