@@ -33,14 +33,8 @@
     <ClCompile Include="MergeStage.cpp">
       <Filter>Pipeline\Merge</Filter>
     </ClCompile>
-    <ClCompile Include="Instance.cpp">
-      <Filter>Geometry</Filter>
-    </ClCompile>
     <ClCompile Include="QuadricGeometry.cpp">
       <Filter>Geometry</Filter>
-    </ClCompile>
-    <ClCompile Include="..\General\Transform.cpp">
-      <Filter>General</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -62,14 +56,8 @@
     <ClInclude Include="MergeStage.h">
       <Filter>Pipeline\Merge</Filter>
     </ClInclude>
-    <ClInclude Include="Instance.h">
-      <Filter>Geometry</Filter>
-    </ClInclude>
     <ClInclude Include="QuadricGeometry.h">
       <Filter>Geometry</Filter>
-    </ClInclude>
-    <ClInclude Include="..\General\Transform.h">
-      <Filter>General</Filter>
     </ClInclude>
     <ClInclude Include="..\General\d3dx12.h">
       <Filter>General</Filter>

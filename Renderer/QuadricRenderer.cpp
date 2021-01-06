@@ -5,7 +5,6 @@
 #include <d3dcompiler.h>
 #include <iostream>
 #include "QuadricGeometry.h"
-#include "Instance.h"
 
 using namespace Microsoft::WRL;
 using namespace DirectX;
@@ -453,21 +452,9 @@ void QuadricRenderer::RenderFrame(ID3D12GraphicsCommandList* pComList, ID3D12Res
 	CopyToBackBuffer(pComList, pRenderTarget, pDepthBuffer);
 }
 
-void QuadricRenderer::Render(Instance& instance)
-{
-	auto pGeo = instance.GetGeometry();
-	m_ToRender.insert(pGeo);
-	pGeo->m_Transforms.push_back(instance.GetTransformMatrix());
-}
-
 void QuadricRenderer::Render(QuadricGeometry* pGeo)
 {
 	Render(pGeo, XMMatrixIdentity());
-}
-
-void QuadricRenderer::Render(QuadricGeometry* pGeo, Transform& transform)
-{
-	Render(pGeo, transform.GetWorld());
 }
 
 void QuadricRenderer::Render(QuadricGeometry* pGeo, const DirectX::XMMATRIX& transform)

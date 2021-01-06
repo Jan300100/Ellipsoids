@@ -56,6 +56,12 @@
     <ClCompile Include="General\Window.cpp">
       <Filter>General</Filter>
     </ClCompile>
+    <ClCompile Include="QuadricInstance.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="General\Transform.cpp">
+      <Filter>General</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ImGui\imconfig.h">
@@ -98,6 +104,12 @@
       <Filter>General</Filter>
     </ClInclude>
     <ClInclude Include="General\Window.h">
+      <Filter>General</Filter>
+    </ClInclude>
+    <ClInclude Include="QuadricInstance.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="General\Transform.h">
       <Filter>General</Filter>
     </ClInclude>
   </ItemGroup>

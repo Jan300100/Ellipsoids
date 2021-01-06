@@ -17,7 +17,6 @@
 //
 
 class QuadricGeometry;
-class Instance;
 
 struct CameraMatrices
 {
@@ -85,8 +84,6 @@ public:
 	void SetProjectionVariables(float fov, float aspectRatio, float nearPlane, float farPlane);
 	void Initialize(ID3D12GraphicsCommandList* pComList);
 	void RenderFrame(ID3D12GraphicsCommandList* pComList, ID3D12Resource* pRenderTarget, ID3D12Resource* pDepthBuffer = nullptr);
-	void Render(Instance& instance);
 	void Render(QuadricGeometry* pGeo);
-	void Render(QuadricGeometry* pGeo, Transform& transform);
 	void Render(QuadricGeometry* pGeo, const DirectX::XMMATRIX& transform);
 };

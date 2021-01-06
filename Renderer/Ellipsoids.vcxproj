@@ -19,9 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\General\Transform.cpp" />
     <ClCompile Include="GeometryProcessingStage.cpp" />
-    <ClCompile Include="Instance.cpp" />
     <ClCompile Include="MergeStage.cpp" />
     <ClCompile Include="QuadricGeometry.cpp" />
     <ClCompile Include="QuadricRenderer.cpp" />
@@ -30,9 +28,7 @@
   <ItemGroup>
     <ClInclude Include="..\General\d3dx12.h" />
     <ClInclude Include="..\General\Helpers.h" />
-    <ClInclude Include="..\General\Transform.h" />
     <ClInclude Include="GeometryProcessingStage.h" />
-    <ClInclude Include="Instance.h" />
     <ClInclude Include="MergeStage.h" />
     <ClInclude Include="QuadricGeometry.h" />
     <ClInclude Include="QuadricRenderer.h" />

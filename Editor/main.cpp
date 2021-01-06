@@ -17,9 +17,16 @@
 #include "FreeCamera.h"
 #include "Structs.h"
 #include "QuadricGeometry.h"
-#include "Instance.h"
+#include "QuadricInstance.h"
 #include "ImGuiRenderer.h"
 
+struct EditQuadric
+{
+	DirectX::XMFLOAT4X4 equation;
+	Transform transform;
+	DirectX::XMFLOAT3 color = { 1,1,1 };
+	Quadric ToQuadric() { return Quadric{ equation, transform.GetWorld(), color }; }
+};
 
 int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 {
@@ -58,7 +65,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		//initialization
 		DirectX::XMFLOAT3 skinColor{ 1.0f,0.67f,0.45f }, tShirtColor{ 1,0,0 }, pantsColor{ 0,0,1 }, shoeColor{ 0.6f,0.4f,0.1f };
 
-		Quadric head{};
+		EditQuadric head{};
 		head.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -68,7 +75,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		head.transform.SetScale({ 1,1,1 });
 		head.transform.SetPosition({ 0,2,0 });
 
-		Quadric body{};
+		EditQuadric body{};
 		body.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -78,7 +85,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		body.transform.SetScale({ 1,2,1 });
 		body.transform.SetPosition({ 0,0,0 });
 
-		Quadric upperArmRight{};
+		EditQuadric upperArmRight{};
 		upperArmRight.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -89,7 +96,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		upperArmRight.transform.SetPosition({ 1.25f,0.6f,0 });
 		upperArmRight.transform.SetRotation({ 0,0,1 });
 
-		Quadric lowerArmRight{};
+		EditQuadric lowerArmRight{};
 		lowerArmRight.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -99,7 +106,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		lowerArmRight.transform.SetScale({ 0.3f,1.0f,0.3f });
 		lowerArmRight.transform.SetPosition({ 1.85f,-0.6f,0 });
 
-		Quadric handRight{};
+		EditQuadric handRight{};
 		handRight.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -109,7 +116,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		handRight.transform.SetScale({ 0.3f,0.5f,0.3f });
 		handRight.transform.SetPosition({ 1.85f,-1.5f,0 });
 
-		Quadric upperArmLeft{};
+		EditQuadric upperArmLeft{};
 		upperArmLeft.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -120,7 +127,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		upperArmLeft.transform.SetPosition({ -1.25f,0.6f,0 });
 		upperArmLeft.transform.SetRotation({ 0,0,-1 });
 
-		Quadric lowerArmLeft{};
+		EditQuadric lowerArmLeft{};
 		lowerArmLeft.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -130,7 +137,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		lowerArmLeft.transform.SetScale({ 0.3f,1.0f,0.3f });
 		lowerArmLeft.transform.SetPosition({ -1.85f,-0.6f,0 });
 
-		Quadric handLeft{};
+		EditQuadric handLeft{};
 		handLeft.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -141,7 +148,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		handLeft.transform.SetPosition({ -1.85f,-1.5f,0 });
 
 		//leg
-		Quadric upperLegRight{};
+		EditQuadric upperLegRight{};
 		upperLegRight.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -151,7 +158,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		upperLegRight.transform.SetScale({ 0.5f,1.5f,0.5f });
 		upperLegRight.transform.SetPosition({ 0.5f,-2.0f,0 });
 
-		Quadric lowerLegRight{};
+		EditQuadric lowerLegRight{};
 		lowerLegRight.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -161,7 +168,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		lowerLegRight.transform.SetScale({ 0.5f,1.5f,0.5f });
 		lowerLegRight.transform.SetPosition({ 0.5f,-3.0f,0 });
 
-		Quadric shoeRight{};
+		EditQuadric shoeRight{};
 		shoeRight.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -172,7 +179,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		shoeRight.transform.SetPosition({ 0.5f,-4.5f,-0.5f });
 
 		//leg
-		Quadric upperLegLeft{};
+		EditQuadric upperLegLeft{};
 		upperLegLeft.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -182,7 +189,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		upperLegLeft.transform.SetScale({ 0.5f,1.5f,0.5f });
 		upperLegLeft.transform.SetPosition({ -0.5f,-2.0f,0 });
 
-		Quadric lowerLegLeft{};
+		EditQuadric lowerLegLeft{};
 		lowerLegLeft.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -192,7 +199,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		lowerLegLeft.transform.SetScale({ 0.5f,1.5f,0.5f });
 		lowerLegLeft.transform.SetPosition({ -0.5f,-3.0f,0 });
 
-		Quadric shoeLeft{};
+		EditQuadric shoeLeft{};
 		shoeLeft.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -202,30 +209,30 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		shoeLeft.transform.SetScale({ 0.5f,0.3f,0.75f });
 		shoeLeft.transform.SetPosition({ -0.5f,-4.5f,-0.5f });
 
-		std::vector<InQuadric> in{};
+		std::vector<Quadric> in{};
 
 		for (size_t i = 0; i < 1; i++)
 		{
-			in.push_back(head);
-			in.push_back(body);
-			in.push_back(upperArmRight);
-			in.push_back(lowerArmRight);
-			in.push_back(handRight);
-			in.push_back(upperArmLeft);
-			in.push_back(lowerArmLeft);
-			in.push_back(handLeft);
-			in.push_back(upperLegRight);
-			in.push_back(lowerLegRight);
-			in.push_back(shoeRight);
-			in.push_back(upperLegLeft);
-			in.push_back(lowerLegLeft);
-			in.push_back(shoeLeft);
+			in.push_back(head.ToQuadric());
+			in.push_back(body.ToQuadric());
+			in.push_back(upperArmRight.ToQuadric());
+			in.push_back(lowerArmRight.ToQuadric());
+			in.push_back(handRight.ToQuadric());
+			in.push_back(upperArmLeft.ToQuadric());
+			in.push_back(lowerArmLeft.ToQuadric());
+			in.push_back(handLeft.ToQuadric());
+			in.push_back(upperLegRight.ToQuadric());
+			in.push_back(lowerLegRight.ToQuadric());
+			in.push_back(shoeRight.ToQuadric());
+			in.push_back(upperLegLeft.ToQuadric());
+			in.push_back(lowerLegLeft.ToQuadric());
+			in.push_back(shoeLeft.ToQuadric());
 		}
 
 
 		UINT count = 10;
 		QuadricGeometry dudeGeometry{ dx12.GetDevice(),dx12.GetPipeline()->commandList.Get() , in , count * count };
-		std::vector<Instance> instances{};
+		std::vector<QuadricInstance> instances{};
 		for (UINT i = 0; i < count; i++)
 		{
 			for (UINT j = 0; j < count; j++)
@@ -237,7 +244,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 			}
 		}
 
-		Quadric ellipsoid{};
+		EditQuadric ellipsoid{};
 		ellipsoid.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
 						0,1,0,0,
@@ -245,7 +252,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 						0,0,0,-1 };
 
 
-		Quadric world{};
+		EditQuadric world{};
 		float range = 10000;
 		world.equation = DirectX::XMFLOAT4X4{
 						1,0,0,0,
@@ -256,8 +263,8 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		world.transform.SetScale({ range,range,range });
 		world.transform.SetPosition({ 0,-range,0 });
 
-		std::vector<InQuadric> groundInput{};
-		groundInput.push_back(world);
+		std::vector<Quadric> groundInput{};
+		groundInput.push_back(world.ToQuadric());
 		QuadricGeometry ground{ dx12.GetDevice(),dx12.GetPipeline()->commandList.Get() , groundInput };
 		
 #pragma endregion
@@ -313,9 +320,9 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 			renderer.SetViewMatrix(camera.GetView());
 			renderer.Render(&ground);
-			for (Instance& i : instances)
+			for (QuadricInstance& i : instances)
 			{
-				renderer.Render(i);
+				renderer.Render(i.GetGeometry(),i.GetTransformMatrix());
 			}
 
 			renderer.RenderFrame(dx12.GetPipeline()->commandList.Get(), dx12.GetPipeline()->GetCurrentRenderTarget());

@@ -26,10 +26,10 @@ UINT QuadricGeometry::UpdateTransforms()
     return amount;
 }
 
-QuadricGeometry::QuadricGeometry(ID3D12Device2* pDevice, ID3D12GraphicsCommandList* pComList, const std::vector<InQuadric>& quadrics, UINT maxInstances)
+QuadricGeometry::QuadricGeometry(ID3D12Device2* pDevice, ID3D12GraphicsCommandList* pComList, const std::vector<Quadric>& quadrics, UINT maxInstances)
     :m_Quadrics{ quadrics }, m_Transforms{}, m_MaxInstances{(maxInstances == 0) ? 1 : maxInstances}
 {
-    size_t byteSize = sizeof(InQuadric) * m_Quadrics.size();
+    size_t byteSize = sizeof(Quadric) * m_Quadrics.size();
     CD3DX12_HEAP_PROPERTIES properties{ CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT) };
     CD3DX12_RESOURCE_DESC desc{ CD3DX12_RESOURCE_DESC::Buffer(byteSize) };
 
@@ -72,7 +72,7 @@ QuadricGeometry::QuadricGeometry(ID3D12Device2* pDevice, ID3D12GraphicsCommandLi
 
 void QuadricGeometry::UpdateBuffers(ID3D12GraphicsCommandList* pComList)
 {
-    size_t byteSize = sizeof(InQuadric) * m_Quadrics.size();
+    size_t byteSize = sizeof(Quadric) * m_Quadrics.size();
 
     D3D12_SUBRESOURCE_DATA subResourceData = {};
     subResourceData.pData = m_Quadrics.data();
