@@ -25,7 +25,6 @@ public:
 	inline DirectX::XMMATRIX GetViewProjection() const { return m_ViewProj; }
 	inline DirectX::XMMATRIX GetViewInverse() const { return m_ViewInverse; }
 	inline DirectX::XMMATRIX GetView() const { return m_View; }
-	float AspectRatio();
 	DirectX::XMVECTOR GetForward() const;
 	DirectX::XMVECTOR GetRight() const;
 	void Offset(const DirectX::XMFLOAT3& offset);
