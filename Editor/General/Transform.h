@@ -9,10 +9,12 @@ class Transform final
 	void CalculateMatrix();
 	Transform* m_pParent = nullptr;
 	bool m_Dirty = true;
+	void* m_pData = nullptr;
 public:
 	Transform() = default;
 	Transform(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& rot, const DirectX::XMFLOAT3& scale, Transform* pParent = nullptr);
-	void SetParent(Transform* pParent) { m_pParent = pParent; }
+	void SetParent(Transform* pParent, void* pData = nullptr) { m_pData = pData; m_pParent = pParent; }
+	void* GetParentData() { return m_pData; }
 	void SetPosition(const DirectX::XMFLOAT3& pos) { m_Dirty = true; m_Position = pos; }
 	void SetRotation(const DirectX::XMFLOAT3& rot) { m_Dirty = true; m_Rotation = rot; }
 	void SetScale(const DirectX::XMFLOAT3& scale) { m_Dirty = true; m_Scale = scale; }

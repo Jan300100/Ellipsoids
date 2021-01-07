@@ -19,7 +19,7 @@ class QuadricGeometry
 	bool m_Initialized = false;
 	std::string m_Name;
 public:
-	QuadricGeometry(UINT maxInstances, const std::string& name = {});
+	QuadricGeometry(UINT maxInstances, const std::string& name = "QuadricGeometry");
 	const std::string& GetName() const { return m_Name; }
 	void SetName(const std::string& name) { m_Name = name; }
 	ID3D12Resource* GetInputBuffer() const { return m_InputBuffer.Get(); }

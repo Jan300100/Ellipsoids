@@ -24,10 +24,10 @@ private:
 	QuadricRenderer m_QRenderer;
 private:
 	std::map<std::string, EditableGeometry> m_Geometry;
-
-	std::vector<SceneNode*> m_pScenes;
+	std::vector<SceneNode*> m_Prefabs;
 	SceneNode* m_pCurrentScene;
-
+	SceneNode* m_pGeometryEditor;
+	QuadricInstance* m_pEditResult;
 public:
 	Editor() = delete;
 	~Editor();

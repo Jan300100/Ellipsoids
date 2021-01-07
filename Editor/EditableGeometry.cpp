@@ -10,5 +10,5 @@ void EditableGeometry::UpdateGeometry(ID3D12Device2* pDevice, ID3D12GraphicsComm
 		q.push_back(eq.ToQuadric());
 	}
 
-	pGeometry->Init(pDevice, pComList, q, pGeometry->GetMaxInstances());
+	pGeometry->Init(pDevice, pComList, q, maxInstances);
 }

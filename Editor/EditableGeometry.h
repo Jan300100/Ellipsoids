@@ -11,5 +11,5 @@ struct EditableGeometry
 	std::vector<EditQuadric> quadrics;
 	void UpdateGeometry(ID3D12Device2* pDevice, ID3D12GraphicsCommandList* pComList);
 	QuadricGeometry* pGeometry;
-	bool selected;
+	UINT maxInstances;
 };

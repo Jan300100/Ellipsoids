@@ -12,7 +12,7 @@ Editor::~Editor()
 	{
 		delete pGeo.second.pGeometry;
 	}
-	for (SceneNode* pNode : m_pScenes)
+	for (SceneNode* pNode : m_Prefabs)
 	{
 		delete pNode;
 	}
@@ -21,8 +21,10 @@ Editor::~Editor()
 Editor::Editor(Window* pWindow, Mouse* pMouse)
 	:m_pWindow{ pWindow }, m_pCamera{}, m_DX12{ pWindow }, m_ImGuiRenderer{ m_DX12.GetDevice(), pWindow->GetHandle() }
 	,m_QRenderer{ m_DX12.GetDevice(), pWindow->GetDimensions().width, pWindow->GetDimensions().height}
+	, m_pCurrentScene{ nullptr }, m_Prefabs{}, m_pGeometryEditor{ new SceneNode{"Editor"} }, m_pEditResult{}
 {
 	m_pCamera = new FreeCamera{pWindow, pMouse };
+	m_pCamera->Offset({ 0.0f,4.5f,-5.0f });
 	m_pWindow->AddListener(&m_ImGuiRenderer);
 }
 
@@ -36,7 +38,7 @@ void Editor::Initialize()
 	//initialization
 	DirectX::XMFLOAT3 skinColor{ 1.0f,0.67f,0.45f }, tShirtColor{ 1,0,0 }, pantsColor{ 0,0,1 }, shoeColor{ 0.6f,0.4f,0.1f };
 
-	EditableGeometry person{ {}, new QuadricGeometry{100, "Person"}, false };
+	EditableGeometry person{ {}, new QuadricGeometry{100, "Person"}, 100 };
 	EditQuadric head{};
 	head.equation = DirectX::XMFLOAT4X4{
 					1,0,0,0,
@@ -199,22 +201,24 @@ void Editor::Initialize()
 	
 	m_Geometry.emplace("Person", person);
 
-	SceneNode* pScene = new SceneNode{};
-	m_pScenes.push_back(pScene);
+	SceneNode* pScene = new SceneNode{"ROOT"};
+	SceneNode* army = new SceneNode{};
+	pScene->AddNode(army);
+	m_Prefabs.push_back(pScene);
 	m_pCurrentScene = pScene;
 
-	UINT count = 10;
+	UINT count = 2;
 	for (UINT i = 0; i < count; i++)
 	{
 		for (UINT j = 0; j < count; j++)
 		{
 			QuadricInstance* pInstance = new QuadricInstance{ person.pGeometry };
 			pInstance->GetTransform().SetPosition({ 5.0f * i ,4.5f ,5.0f * j });
-			pScene->AddElement(pInstance);
+			army->AddElement(pInstance);
 		}
 	}
 
-	EditableGeometry ground{ {}, new QuadricGeometry{1, "World"}, false };
+	EditableGeometry ground{ {}, new QuadricGeometry{20, "World"}, 20 };
 
 	EditQuadric world{};
 	float range = 10000;
@@ -247,6 +251,10 @@ void Editor::Initialize()
 
 void Editor::Update(float dt)
 {
+	ThrowIfFailed(m_DX12.GetPipeline()->commandAllocator->Reset());
+	ThrowIfFailed(m_DX12.GetPipeline()->commandList->Reset(m_DX12.GetPipeline()->commandAllocator.Get(), nullptr));
+
+
 	//UPDATE
 	m_pCamera->Update(dt);
 
@@ -283,49 +291,168 @@ void Editor::Update(float dt)
 
 	if (tileDim[0] >= 32 && tileDim[0] <= 512 && tileDim[1] >= 32 && tileDim[1] <= 512 && numRasterizers <= 1000 && quadricsPerRasterizer <= 512)
 	{
-		ThrowIfFailed(m_DX12.GetPipeline()->commandAllocator->Reset());
-		ThrowIfFailed(m_DX12.GetPipeline()->commandList->Reset(m_DX12.GetPipeline()->commandAllocator.Get(), nullptr));
+		
 		m_QRenderer.SetRasterizerSettings(m_DX12.GetPipeline()->commandList.Get(), numRasterizers, Dimensions<unsigned int>{(UINT)tileDim[0], (UINT)tileDim[1]}, quadricsPerRasterizer);
-		ThrowIfFailed(m_DX12.GetPipeline()->commandList->Close());
-		ID3D12CommandList* cmdsLists[] = { m_DX12.GetPipeline()->commandList.Get() };
-		m_DX12.GetPipeline()->commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
-		m_DX12.GetPipeline()->Flush();
+
 	}
 
-	//SCene graph
+	//scene graph
+	ImGui::Begin("Scene");
+	ImGui::BeginChild("Graph", ImVec2(0, 300));
+	SceneNode* pNode = nullptr;
+	QuadricInstance* pInst = nullptr;
+	static SceneNode* pSelectedNode = nullptr;
+	static QuadricInstance* pSelectedInst = nullptr;
+	m_pCurrentScene->RenderImGui(&pNode, &pInst);
+	ImGui::EndChild();
+	//EDITOR
+	if (pInst)
+	{
+		pSelectedInst = pInst;
+		pSelectedNode = nullptr;
+	}
+	else if (pNode)
+	{
+		pSelectedInst = nullptr;
+		pSelectedNode = pNode;
+	}
+	
 
-	ImGui::ShowDemoWindow();
+	if (pSelectedInst && pSelectedInst != m_pEditResult)
+	{
+		ImGui::BeginChild("Edit");
+		pSelectedInst->RenderEditImGui();
+		if (m_pCurrentScene != m_pGeometryEditor)
+		{
+			ImGui::Button("Edit Geometry");
 
-	ImGui::Begin("SceneGraph");
-	m_pCurrentScene->RenderImGui();
+			if (pSelectedInst->GetParent())
+			{
+				if (ImGui::Button("Remove"))
+				{
+					pSelectedInst->GetParent()->RemoveElement(pSelectedInst, true);
+					pSelectedInst = nullptr;
+				}
+				else if (ImGui::Button("Duplicate"))
+				{
+					pSelectedInst->GetParent()->AddElement(new QuadricInstance{ (*pSelectedInst) });
+				}
+			}
+		}
+		ImGui::EndChild();
+	}
+	else if (pSelectedNode)
+	{
+		ImGui::BeginChild("Edit");
+		pSelectedNode->RenderEditImGui();
+		if (m_pCurrentScene != m_pGeometryEditor)
+		{
+			if (ImGui::Button("Add Child Node"))
+			{
+				pSelectedNode->AddNode(new SceneNode{ pSelectedNode->GetName() + "_CHILD" });
+			}
+
+			if (ImGui::Button("Save as Prefab"))
+			{
+				m_Prefabs.push_back(new SceneNode{ *pSelectedNode });
+			}
+			if (pSelectedNode->GetParent())
+			{
+				if (ImGui::Button("Remove Node"))
+				{
+					pSelectedNode->GetParent()->RemoveNode(pSelectedNode, true);
+					pSelectedNode = nullptr;
+				}
+				else if (ImGui::Button("Duplicate Node"))
+				{
+					pSelectedNode->GetParent()->AddNode(new SceneNode{ (*pSelectedNode) });
+				}
+				else if (ImGui::Button("Isolate"))
+				{
+					m_pCurrentScene = pSelectedNode;
+					pSelectedNode = nullptr;
+				}
+			}
+		}
+		ImGui::EndChild();
+
+	}
+	
 	ImGui::End();
-	//
 
+	ImGui::Begin("Data");
+
+	//prefabs
+	static UINT selectedIdx = UINT_MAX;
+	ImGui::BeginChild("Prefabs", ImVec2(0, 200));
+	ImGui::BeginChild("PrefabList", ImVec2{ 0, 20.0f * min(m_Geometry.size(), 10) });
+	for (UINT i = 0 ; i <  m_Prefabs.size(); i++)
+	{
+		if (ImGui::Selectable((m_Prefabs[i]->GetName()).c_str(), i == selectedIdx))
+		{
+			selectedIdx = i;
+		}
+	}
+	ImGui::EndChild();
+	ImGui::NewLine();
+	if (selectedIdx < m_Prefabs.size())
+	{
+		char buf[64]{};
+		strcpy_s(buf, m_Prefabs[selectedIdx]->GetName().c_str());
+
+
+		if (ImGui::InputText("Name", buf, 64))
+		{
+			m_Prefabs[selectedIdx]->SetName(buf);
+		}
+		ImGui::NewLine();
+
+		if (m_pCurrentScene != m_Prefabs[selectedIdx])
+		{
+			if (ImGui::Button("Set as root"))
+			{
+				m_pCurrentScene = m_Prefabs[selectedIdx];
+			}
+			if (m_pCurrentScene != m_pGeometryEditor)
+			{
+				if (pSelectedNode)
+				{
+					if (ImGui::Button("Instantiate in current node"))
+					{
+						auto newNode = new SceneNode{ *m_Prefabs[selectedIdx] };
+						pSelectedNode->AddNode(newNode);
+						pSelectedNode = newNode;
+					}
+				}
+			}
+			if (ImGui::Button("Delete Prefab"))
+			{
+				delete m_Prefabs[selectedIdx];
+				m_Prefabs[selectedIdx] = m_Prefabs.back();
+				m_Prefabs.pop_back();
+				selectedIdx = UINT_MAX;
+			}
+		}
+	}
+	ImGui::EndChild();
+
+	//geometry
 	static std::string selected = "";
-	static bool show = false;
-	ImGui::Begin("Geometry");
+	ImGui::BeginChild("Geometry");
+	ImGui::BeginChild("GeometryList", ImVec2{ 0, 20.0f * min(m_Geometry.size(), 10)});
 	for (auto pair : m_Geometry)
 	{
 		if (ImGui::Selectable(pair.first.c_str(), pair.first.c_str() == selected))
 		{
 			selected = pair.first.c_str();
-
 		}
 	}
+	ImGui::EndChild();
+	ImGui::NewLine();
+
 	if (m_Geometry.find(selected) != m_Geometry.cend())
 	{
-		if (ImGui::Button("Show Info"))
-		{
-			show = true;
-		}
-	}
-	ImGui::End();
-
-
-	if (show)
-	{
 		EditableGeometry info = m_Geometry[selected];
-		ImGui::Begin("Geometry Info", &show);
 		char buf[64]{};
 		strcpy_s(buf, selected.c_str());
 		if (ImGui::InputText("Name", buf, 64))
@@ -336,14 +463,43 @@ void Editor::Update(float dt)
 			selected = newName;
 			info.pGeometry->SetName(newName);
 		}
+		ImGui::NewLine();
+
 		ImGui::Text((std::to_string(info.quadrics.size()) + " Ellipsoids").c_str());
-		if (ImGui::Button("Edit"))
+		int instances = info.pGeometry->GetMaxInstances();
+		if (ImGui::InputInt("Max Instances", &instances))
 		{
-
+			instances = max(instances, (int)info.pGeometry->GetMaxInstances());
+			if ((UINT)instances > info.pGeometry->GetMaxInstances())
+			{
+				info.maxInstances = (UINT)instances;
+				info.UpdateGeometry(m_DX12.GetDevice(), m_DX12.GetPipeline()->commandList.Get());
+			}
 		}
-		ImGui::End();
+		if (pSelectedNode)
+		{
+			if (ImGui::Button("Add Instance to current node"))
+			{
+				pSelectedInst = new QuadricInstance{ info.pGeometry };
+				pSelectedNode->AddElement(pSelectedInst);
+				pSelectedNode = nullptr;
+			}
+		}
+		if (ImGui::Button("Edit Geometry"))
+		{
+			m_pCurrentScene = m_pGeometryEditor;
+			m_pGeometryEditor->Clear();
+			m_pEditResult = new QuadricInstance{ info.pGeometry };
+			m_pGeometryEditor->AddElement(m_pEditResult);
+		}
 	}
+	ImGui::EndChild();
+	ImGui::End();
 
+	ThrowIfFailed(m_DX12.GetPipeline()->commandList->Close());
+	ID3D12CommandList* cmdsLists[] = { m_DX12.GetPipeline()->commandList.Get() };
+	m_DX12.GetPipeline()->commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	m_DX12.GetPipeline()->Flush();
 }
 
 void Editor::Render()
