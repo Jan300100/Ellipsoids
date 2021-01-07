@@ -6,7 +6,6 @@ using namespace DirectX;
 QuadricInstance::QuadricInstance(QuadricGeometry* pGeometry)
     :m_pGeometry{ pGeometry }, m_Transform{}
 {
-    SetTransform(m_Transform);
 }
 
 DirectX::XMMATRIX QuadricInstance::GetTransformMatrix()
@@ -15,9 +14,4 @@ DirectX::XMMATRIX QuadricInstance::GetTransformMatrix()
     //invert (for second-order surfaces) and transpose (for directX)
     tr = XMMatrixInverse(nullptr, XMMatrixTranspose(tr));
     return tr;
-}
-
-void QuadricInstance::SetTransform(const Transform& tr)
-{
-    m_Transform = tr;
 }

@@ -1,4 +1,6 @@
 #pragma once
+#include "Transform.h"
+#include "QuadricGeometry.h"
 
 struct EditQuadric
 {

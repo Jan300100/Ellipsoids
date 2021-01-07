@@ -11,8 +11,7 @@ class QuadricInstance
 	Transform m_Transform;
 public:
 	QuadricInstance(QuadricGeometry* pGeometry);
-	Transform GetTransform() const { return m_Transform; }
+	Transform& GetTransform() { return m_Transform; }
 	DirectX::XMMATRIX GetTransformMatrix();
-	void SetTransform(const Transform& tr);
 	QuadricGeometry* GetGeometry() const { return m_pGeometry; }
 };

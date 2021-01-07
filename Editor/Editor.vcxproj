@@ -217,6 +217,7 @@
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
       <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
     </ClCompile>
+    <ClCompile Include="EditableGeometry.cpp" />
     <ClCompile Include="Editor.cpp" />
     <ClCompile Include="General\Camera.cpp" />
     <ClCompile Include="General\DX12.cpp" />
@@ -227,6 +228,7 @@
     <ClCompile Include="General\Window.cpp" />
     <ClCompile Include="QuadricInstance.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="SceneNode.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Renderer\Ellipsoids.vcxproj">
@@ -242,6 +244,7 @@
     <ClInclude Include="..\ImGui\imstb_rectpack.h" />
     <ClInclude Include="..\ImGui\imstb_textedit.h" />
     <ClInclude Include="..\ImGui\imstb_truetype.h" />
+    <ClInclude Include="EditableGeometry.h" />
     <ClInclude Include="Editor.h" />
     <ClInclude Include="General\Camera.h" />
     <ClInclude Include="General\DX12.h" />
@@ -251,7 +254,8 @@
     <ClInclude Include="General\Transform.h" />
     <ClInclude Include="General\Window.h" />
     <ClInclude Include="QuadricInstance.h" />
-    <ClInclude Include="Structs.h" />
+    <ClInclude Include="SceneNode.h" />
+    <ClInclude Include="EditQuadric.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

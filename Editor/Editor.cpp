@@ -4,13 +4,17 @@
 #include "Mouse.h"
 #include "Structs.h"
 #include "imgui.h"
-
+#include "SceneNode.h"
 
 Editor::~Editor()
 {
-	for (QuadricGeometry* pGeo : m_Geometry)
+	for (auto  pGeo : m_Geometry)
 	{
-		delete pGeo;
+		delete pGeo.second.pGeometry;
+	}
+	for (SceneNode* pNode : m_pScenes)
+	{
+		delete pNode;
 	}
 }
 
@@ -32,6 +36,7 @@ void Editor::Initialize()
 	//initialization
 	DirectX::XMFLOAT3 skinColor{ 1.0f,0.67f,0.45f }, tShirtColor{ 1,0,0 }, pantsColor{ 0,0,1 }, shoeColor{ 0.6f,0.4f,0.1f };
 
+	EditableGeometry person{ {}, new QuadricGeometry{100, "Person"}, false };
 	EditQuadric head{};
 	head.equation = DirectX::XMFLOAT4X4{
 					1,0,0,0,
@@ -41,6 +46,7 @@ void Editor::Initialize()
 	head.color = skinColor;
 	head.transform.SetScale({ 1,1,1 });
 	head.transform.SetPosition({ 0,2,0 });
+
 
 	EditQuadric body{};
 	body.equation = DirectX::XMFLOAT4X4{
@@ -176,48 +182,39 @@ void Editor::Initialize()
 	shoeLeft.transform.SetScale({ 0.5f,0.3f,0.75f });
 	shoeLeft.transform.SetPosition({ -0.5f,-4.5f,-0.5f });
 
-	std::vector<Quadric> in{};
+	person.quadrics.push_back(head);
+	person.quadrics.push_back(body);
+	person.quadrics.push_back(upperArmRight);
+	person.quadrics.push_back(lowerArmRight);
+	person.quadrics.push_back(handRight);
+	person.quadrics.push_back(upperArmLeft);
+	person.quadrics.push_back(lowerArmLeft);
+	person.quadrics.push_back(handLeft);
+	person.quadrics.push_back(upperLegRight);
+	person.quadrics.push_back(lowerLegRight);
+	person.quadrics.push_back(shoeRight);
+	person.quadrics.push_back(upperLegLeft);
+	person.quadrics.push_back(lowerLegLeft);
+	person.quadrics.push_back(shoeLeft);
+	
+	m_Geometry.emplace("Person", person);
 
-	for (size_t i = 0; i < 1; i++)
-	{
-		in.push_back(head.ToQuadric());
-		in.push_back(body.ToQuadric());
-		in.push_back(upperArmRight.ToQuadric());
-		in.push_back(lowerArmRight.ToQuadric());
-		in.push_back(handRight.ToQuadric());
-		in.push_back(upperArmLeft.ToQuadric());
-		in.push_back(lowerArmLeft.ToQuadric());
-		in.push_back(handLeft.ToQuadric());
-		in.push_back(upperLegRight.ToQuadric());
-		in.push_back(lowerLegRight.ToQuadric());
-		in.push_back(shoeRight.ToQuadric());
-		in.push_back(upperLegLeft.ToQuadric());
-		in.push_back(lowerLegLeft.ToQuadric());
-		in.push_back(shoeLeft.ToQuadric());
-	}
-
+	SceneNode* pScene = new SceneNode{};
+	m_pScenes.push_back(pScene);
+	m_pCurrentScene = pScene;
 
 	UINT count = 10;
-	QuadricGeometry* dudeGeometry = new QuadricGeometry{ m_DX12.GetDevice(),m_DX12.GetPipeline()->commandList.Get() , in , count * count };
 	for (UINT i = 0; i < count; i++)
 	{
 		for (UINT j = 0; j < count; j++)
 		{
-			m_Instances.push_back(dudeGeometry);
-			Transform tr{};
-			tr.SetPosition({ 5.0f * i ,4.5f ,5.0f * j });
-			m_Instances.back().SetTransform(tr);
+			QuadricInstance* pInstance = new QuadricInstance{ person.pGeometry };
+			pInstance->GetTransform().SetPosition({ 5.0f * i ,4.5f ,5.0f * j });
+			pScene->AddElement(pInstance);
 		}
 	}
-	m_Geometry.push_back(dudeGeometry);
 
-	EditQuadric ellipsoid{};
-	ellipsoid.equation = DirectX::XMFLOAT4X4{
-					1,0,0,0,
-					0,1,0,0,
-					0,0,1,0,
-					0,0,0,-1 };
-
+	EditableGeometry ground{ {}, new QuadricGeometry{1, "World"}, false };
 
 	EditQuadric world{};
 	float range = 10000;
@@ -230,12 +227,14 @@ void Editor::Initialize()
 	world.transform.SetScale({ range,range,range });
 	world.transform.SetPosition({ 0,-range,0 });
 
-	std::vector<Quadric> groundInput{};
-	groundInput.push_back(world.ToQuadric());
-	QuadricGeometry* ground = new QuadricGeometry{ m_DX12.GetDevice(),m_DX12.GetPipeline()->commandList.Get() , groundInput };
-	m_Geometry.push_back(ground);
-	//m_Instances.push_back(ground);
+	ground.quadrics.push_back(world);
 
+	m_Geometry.emplace(ground.pGeometry->GetName(), ground);
+	QuadricInstance* pInstance = new QuadricInstance{ ground.pGeometry };
+	pScene->AddElement(pInstance);
+
+	ground.UpdateGeometry(m_DX12.GetDevice(), m_DX12.GetPipeline()->commandList.Get());
+	person.UpdateGeometry(m_DX12.GetDevice(), m_DX12.GetPipeline()->commandList.Get());
 	//
 	// Done recording commands.
 	m_DX12.GetPipeline()->commandList.Get()->Close();
@@ -268,38 +267,91 @@ void Editor::Update(float dt)
 	static bool showTiles = false;
 	static bool reverseDepth = true;
 	static int tileDim[2] = { 128,128 };
+	static int numRasterizers = 256, quadricsPerRasterizer = 64;
 	ImGui::Begin("Renderer Settings");
 	ImGui::Checkbox("Show Tiles", &showTiles);
 	ImGui::Checkbox("Reverse DepthBuffer", &reverseDepth);
 	ImGui::InputInt2("TileDimensions", tileDim);
+	ImGui::InputInt("# Rasterizers", &numRasterizers);
+	ImGui::InputInt("Quadrics / Rasterizer", &quadricsPerRasterizer);
+
 	ImGui::Text(("FPS: " + std::to_string(fps) + "\t" + std::to_string(dt * 1000).substr(0 , 5) + " ms").c_str());
 	ImGui::End();
+	
 	m_QRenderer.ShowTiles(showTiles);
 	m_QRenderer.ReverseDepth(reverseDepth);
 
-	if (tileDim[0] >= 32 && tileDim[0] <= 512 && tileDim[1] >= 32 && tileDim[1] <= 512)
+	if (tileDim[0] >= 32 && tileDim[0] <= 512 && tileDim[1] >= 32 && tileDim[1] <= 512 && numRasterizers <= 1000 && quadricsPerRasterizer <= 512)
 	{
 		ThrowIfFailed(m_DX12.GetPipeline()->commandAllocator->Reset());
 		ThrowIfFailed(m_DX12.GetPipeline()->commandList->Reset(m_DX12.GetPipeline()->commandAllocator.Get(), nullptr));
-		m_QRenderer.SetRasterizerSettings(m_DX12.GetPipeline()->commandList.Get(), 300, Dimensions<unsigned int>{(UINT)tileDim[0], (UINT)tileDim[1]});
+		m_QRenderer.SetRasterizerSettings(m_DX12.GetPipeline()->commandList.Get(), numRasterizers, Dimensions<unsigned int>{(UINT)tileDim[0], (UINT)tileDim[1]}, quadricsPerRasterizer);
 		ThrowIfFailed(m_DX12.GetPipeline()->commandList->Close());
 		ID3D12CommandList* cmdsLists[] = { m_DX12.GetPipeline()->commandList.Get() };
 		m_DX12.GetPipeline()->commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 		m_DX12.GetPipeline()->Flush();
 	}
+
+	//SCene graph
+
+	ImGui::ShowDemoWindow();
+
+	ImGui::Begin("SceneGraph");
+	m_pCurrentScene->RenderImGui();
+	ImGui::End();
+	//
+
+	static std::string selected = "";
+	static bool show = false;
+	ImGui::Begin("Geometry");
+	for (auto pair : m_Geometry)
+	{
+		if (ImGui::Selectable(pair.first.c_str(), pair.first.c_str() == selected))
+		{
+			selected = pair.first.c_str();
+
+		}
+	}
+	if (m_Geometry.find(selected) != m_Geometry.cend())
+	{
+		if (ImGui::Button("Show Info"))
+		{
+			show = true;
+		}
+	}
+	ImGui::End();
+
+
+	if (show)
+	{
+		EditableGeometry info = m_Geometry[selected];
+		ImGui::Begin("Geometry Info", &show);
+		char buf[64]{};
+		strcpy_s(buf, selected.c_str());
+		if (ImGui::InputText("Name", buf, 64))
+		{
+			m_Geometry.erase(selected);
+			auto newName = std::string{ buf };
+			m_Geometry.emplace(newName, info);
+			selected = newName;
+			info.pGeometry->SetName(newName);
+		}
+		ImGui::Text((std::to_string(info.quadrics.size()) + " Ellipsoids").c_str());
+		if (ImGui::Button("Edit"))
+		{
+
+		}
+		ImGui::End();
+	}
+
 }
 
 void Editor::Render()
 {
-
-	
-
 	//QUADRICS
 	m_QRenderer.SetViewMatrix(m_pCamera->GetView());
-	for (QuadricInstance& inst : m_Instances)
-	{
-		m_QRenderer.Render(inst.GetGeometry(), inst.GetTransformMatrix());
-	}
+
+	m_pCurrentScene->Render(&m_QRenderer);
 
 	//RENDER FINAL IMAGE
 	m_DX12.NewFrame();

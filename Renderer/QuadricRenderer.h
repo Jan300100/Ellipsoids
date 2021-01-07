@@ -70,6 +70,12 @@ private:
 	Dimensions<UINT> m_WindowDimensions;
 public:
 	QuadricRenderer(ID3D12Device2* pDevice, UINT windowWidth, UINT windowHeight);
+	~QuadricRenderer() = default;
+	QuadricRenderer(const QuadricRenderer& other) = delete;
+	QuadricRenderer(QuadricRenderer&&) = delete;
+	QuadricRenderer& operator=(const QuadricRenderer& other) = delete;
+	QuadricRenderer& operator=(QuadricRenderer&&) = delete;
+
 	ID3D12Device2* GetDevice() const;
 	void SetViewMatrix(const DirectX::XMMATRIX& view);
 

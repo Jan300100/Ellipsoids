@@ -4,12 +4,15 @@
 #include "QuadricRenderer.h"
 #include "QuadricGeometry.h"
 #include <vector>
+#include <map>
 #include "QuadricInstance.h"
+#include "EditQuadric.h"
+#include "EditableGeometry.h"
 
 class Mouse;
 class Window;
 class Camera;
-
+class SceneNode;
 
 class Editor
 {
@@ -20,8 +23,10 @@ private:
 	ImGuiRenderer m_ImGuiRenderer;
 	QuadricRenderer m_QRenderer;
 private:
-	std::vector<QuadricGeometry*> m_Geometry;
-	std::vector<QuadricInstance> m_Instances;
+	std::map<std::string, EditableGeometry> m_Geometry;
+
+	std::vector<SceneNode*> m_pScenes;
+	SceneNode* m_pCurrentScene;
 
 public:
 	Editor() = delete;
