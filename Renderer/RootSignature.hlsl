@@ -1,5 +1,4 @@
 #include "Structs.hlsl"
-#include "Definitions.hlsl"
 
 uint gNumQuadrics : register(b0);
 ConstantBuffer<AppData> gAppData : register(b1);

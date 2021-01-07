@@ -11,15 +11,12 @@
 #include "MergeStage.h"
 #include <set>
 
-//
-#include "Definitions.hlsl"
-//
-
 class QuadricGeometry;
 
-struct CameraMatrices
+struct CameraValues
 {
 	DirectX::XMMATRIX v, vp, vInv, vpInv, p;
+	float fov, aspectRatio, nearPlane, farPlane;
 };
 
 class QuadricRenderer
@@ -68,7 +65,7 @@ private:
 	DirectX::XMFLOAT4 m_ClearColor = { 66 / 255.0f,135 / 255.0f,245 / 255.0f,0 };
 
 	Dimensions<UINT> GetNrTiles() const;
-	CameraMatrices m_CameraMatrices;
+	CameraValues m_CameraValues;
 	bool m_Initialized = false;
 	Dimensions<UINT> m_WindowDimensions;
 public:
@@ -78,7 +75,7 @@ public:
 
 	void ShowTiles(bool show);
 	void ReverseDepth(bool reverse);
-	void SetRasterizerSettings(ID3D12GraphicsCommandList* pComList, UINT numRasterizers, Dimensions<UINT> rasterizerDimensions = {128,128}, UINT quadricsPerRasterizer = { 64 });
+	void SetRasterizerSettings(ID3D12GraphicsCommandList* pComList, UINT numRasterizers, Dimensions<unsigned int> rasterizerDimensions = {128,128}, UINT quadricsPerRasterizer = { 64 }, bool overrule = false);
 	void SetProjectionVariables(float fov, float aspectRatio, float nearPlane, float farPlane);
 	void Initialize(ID3D12GraphicsCommandList* pComList);
 	void RenderFrame(ID3D12GraphicsCommandList* pComList, ID3D12Resource* pRenderTarget, ID3D12Resource* pDepthBuffer = nullptr);

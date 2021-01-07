@@ -18,6 +18,7 @@ public:
 class Window : public InputListener
 {
 private:
+	bool m_HasTitleBar = true;
 	Dimensions<uint32_t> m_Dimensions;
 	// Window handle.
 	HWND m_Hwnd;
@@ -32,7 +33,7 @@ private:
 	LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 	void SetFullscreen(bool fullscreen);
 public:
-	Window(HINSTANCE hInstance, uint32_t width = 1280, uint32_t height = 720);
+	Window(HINSTANCE hInstance, uint32_t width = 1280, uint32_t height = 720, bool hasTitleBar = true);
 	Window() = delete;
 	~Window() = default;
 	Window(const Window&) = delete;

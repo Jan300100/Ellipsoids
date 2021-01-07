@@ -8,8 +8,8 @@ struct AppData
     uint2 tileDimensions;
     uint quadricsPerRasterizer;
     uint numRasterizers;
-    bool showTiles;
-    bool reverseDepth;
+    uint showTiles;
+    uint reverseDepth;
 };
 
 struct InQuadric

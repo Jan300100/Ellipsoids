@@ -19,55 +19,72 @@ void main( uint3 DTid : SV_DispatchThreadID )
     gRIBuffer.GetDimensions(virtualDimensions.x, virtualDimensions.y);
     float currentDepth = gDepthBuffer[pixel.xy];
     uint currentIdx = UINT_MAX;
-    while (rasterizerIdx < gAppData.numRasterizers)
+    
+    if (gAppData.reverseDepth)
     {
-        uint2 virtualTextureLeftTop = GetScreenLeftTop(rasterizerIdx, virtualDimensions, gAppData.tileDimensions);
-        uint2 rBufferPixel = virtualTextureLeftTop.xy + DTid.xy;
-        float pixelDepth = gRDepthBuffer[rBufferPixel.xy];
+        while (rasterizerIdx < gAppData.numRasterizers)
+        {
+            uint2 virtualTextureLeftTop = GetScreenLeftTop(rasterizerIdx, virtualDimensions, gAppData.tileDimensions);
+            uint2 rBufferPixel = virtualTextureLeftTop.xy + DTid.xy;
+            float pixelDepth = gRDepthBuffer[rBufferPixel.xy];
         
-        #ifdef REVERSED_DEPTH
-        if (currentDepth <= pixelDepth)
-        {
-            currentDepth = pixelDepth;
-            currentIdx = gRIBuffer[rBufferPixel.xy];
+
+            if (currentDepth <= pixelDepth)
+            {
+                currentDepth = pixelDepth;
+                currentIdx = gRIBuffer[rBufferPixel.xy];
+            }
+
+            rasterizerIdx = gRasterizers[rasterizerIdx].nextRasterizerIdx;
         }
-        #else
-        if (currentDepth > pixelDepth)
+    }
+    else
+    {
+        while (rasterizerIdx < gAppData.numRasterizers)
         {
-            currentDepth = pixelDepth;
-            currentIdx = gRIBuffer[rBufferPixel.xy];
+            uint2 virtualTextureLeftTop = GetScreenLeftTop(rasterizerIdx, virtualDimensions, gAppData.tileDimensions);
+            uint2 rBufferPixel = virtualTextureLeftTop.xy + DTid.xy;
+            float pixelDepth = gRDepthBuffer[rBufferPixel.xy];
+
+            if (currentDepth > pixelDepth)
+            {
+                currentDepth = pixelDepth;
+                currentIdx = gRIBuffer[rBufferPixel.xy];
+            }
+
+            rasterizerIdx = gRasterizers[rasterizerIdx].nextRasterizerIdx;
         }
-        #endif
-        rasterizerIdx = gRasterizers[rasterizerIdx].nextRasterizerIdx;
+        
     }
     
-#ifdef SHOW_TILES
-    if (pixel.x % gAppData.tileDimensions.x == 0)
+    if (gAppData.showTiles)
     {
-        gDepthBuffer[pixel.xy] = 0;
-        gBackBuffer[pixel.xy] = float4(1, 0, 0, 1);
-        return;
+        if (pixel.x % gAppData.tileDimensions.x == 0)
+        {
+            gDepthBuffer[pixel.xy] = 0;
+            gBackBuffer[pixel.xy] = float4(1, 0, 0, 1);
+            return;
+        }
+        else if (pixel.y % gAppData.tileDimensions.y == 0)
+        {
+            gDepthBuffer[pixel.xy] = 0;
+            gBackBuffer[pixel.xy] = float4(0, 1, 1, 1);
+            return;
+        }
+        else if ((pixel.x + 1) % gAppData.tileDimensions.x == 0)
+        {
+            gDepthBuffer[pixel.xy] = 0;
+            gBackBuffer[pixel.xy] = float4(0, 1, 0, 1);
+            return;
+        }
+        else if ((pixel.y + 1) % gAppData.tileDimensions.y == 0)
+        {
+            gDepthBuffer[pixel.xy] = 0;
+            gBackBuffer[pixel.xy] = float4(1, 1, 0, 1);
+            return;
+        }
     }
-    else if (pixel.y % gAppData.tileDimensions.y == 0)
-    {
-        gDepthBuffer[pixel.xy] = 0;
-        gBackBuffer[pixel.xy] = float4(0, 1, 1, 1);
-        return;
-    }
-    else if ((pixel.x + 1) % gAppData.tileDimensions.x == 0)
-    {
-        gDepthBuffer[pixel.xy] = 0;
-        gBackBuffer[pixel.xy] = float4(0, 1, 0, 1);
-        return;
-    }
-    else if ((pixel.y + 1)  % gAppData.tileDimensions.y == 0)
-    {
-        gDepthBuffer[pixel.xy] = 0;
-        gBackBuffer[pixel.xy] = float4(1, 1, 0, 1);
-        return;
-    }
-#endif
-    
+   
     
     if (currentIdx != UINT_MAX)
     {   
@@ -80,11 +97,16 @@ void main( uint3 DTid : SV_DispatchThreadID )
         if (pos.z < 0)
             return;
         
-        #ifdef REVERSED_DEPTH
-        pos.z = -sqrt(pos.z);
-        #else
-        pos.z = sqrt(pos.z);
-        #endif
+        if (gAppData.reverseDepth)
+        {
+            pos.z = -sqrt(pos.z);
+           
+        }
+        else
+        {
+            pos.z = sqrt(pos.z);
+           
+        }
         float3 normal = -mul(float4(pos, 1), q.normalGenerator).xyz;
         normal = normalize(normal);
         float3 lDir = gAppData.lightDirection.xyz;

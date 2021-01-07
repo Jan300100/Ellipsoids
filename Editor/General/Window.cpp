@@ -9,7 +9,6 @@ HWND Window::ConstructWindow(const wchar_t* windowClassName, HINSTANCE hInst, co
     int screenHeight = ::GetSystemMetrics(SM_CYSCREEN);
 
     DWORD dwStyle = WS_OVERLAPPEDWINDOW;
-    //WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_OVERLAPPED
 
     RECT windowRect = { 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
     ::AdjustWindowRect(&windowRect, dwStyle, FALSE);
@@ -33,6 +32,12 @@ HWND Window::ConstructWindow(const wchar_t* windowClassName, HINSTANCE hInst, co
         hInst,
         nullptr
     );
+
+    //remove all window styles, check MSDN for details
+    if (!m_HasTitleBar)
+    {
+        SetWindowLong(hWnd, GWL_STYLE, 0);
+    }
 
     assert(hWnd && "Failed to create window");
 
@@ -156,8 +161,8 @@ void Window::SetFullscreen(bool fullscreen)
     }
 }
 
-Window::Window(HINSTANCE hInstance, uint32_t width, uint32_t height)
-    :m_Dimensions{width, height}
+Window::Window(HINSTANCE hInstance, uint32_t width, uint32_t height, bool hasTitleBar)
+    :m_Dimensions{width, height},m_HasTitleBar{hasTitleBar}
 {
     // Windows 10 Creators update adds Per Monitor V2 DPI awareness context.
     // Using this awareness context allows the client area of the window 

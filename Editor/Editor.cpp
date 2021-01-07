@@ -234,7 +234,7 @@ void Editor::Initialize()
 	groundInput.push_back(world.ToQuadric());
 	QuadricGeometry* ground = new QuadricGeometry{ m_DX12.GetDevice(),m_DX12.GetPipeline()->commandList.Get() , groundInput };
 	m_Geometry.push_back(ground);
-	m_Instances.push_back(ground);
+	//m_Instances.push_back(ground);
 
 	//
 	// Done recording commands.
@@ -250,20 +250,49 @@ void Editor::Update(float dt)
 {
 	//UPDATE
 	m_pCamera->Update(dt);
+
+	static UINT frameCtr = 0, fps = UINT(1 / dt);
+	static float ctr = 0.0f;
+	ctr += dt;
+	frameCtr++;
+	if (ctr > 1.0f)
+	{
+		fps = frameCtr;
+		ctr--;
+		frameCtr = 0;
+	}
+
+	//IMGUI
+	m_ImGuiRenderer.NewFrame();
+
+	static bool showTiles = false;
+	static bool reverseDepth = true;
+	static int tileDim[2] = { 128,128 };
+	ImGui::Begin("Renderer Settings");
+	ImGui::Checkbox("Show Tiles", &showTiles);
+	ImGui::Checkbox("Reverse DepthBuffer", &reverseDepth);
+	ImGui::InputInt2("TileDimensions", tileDim);
+	ImGui::Text(("FPS: " + std::to_string(fps) + "\t" + std::to_string(dt * 1000).substr(0 , 5) + " ms").c_str());
+	ImGui::End();
+	m_QRenderer.ShowTiles(showTiles);
+	m_QRenderer.ReverseDepth(reverseDepth);
+
+	if (tileDim[0] >= 32 && tileDim[0] <= 512 && tileDim[1] >= 32 && tileDim[1] <= 512)
+	{
+		ThrowIfFailed(m_DX12.GetPipeline()->commandAllocator->Reset());
+		ThrowIfFailed(m_DX12.GetPipeline()->commandList->Reset(m_DX12.GetPipeline()->commandAllocator.Get(), nullptr));
+		m_QRenderer.SetRasterizerSettings(m_DX12.GetPipeline()->commandList.Get(), 300, Dimensions<unsigned int>{(UINT)tileDim[0], (UINT)tileDim[1]});
+		ThrowIfFailed(m_DX12.GetPipeline()->commandList->Close());
+		ID3D12CommandList* cmdsLists[] = { m_DX12.GetPipeline()->commandList.Get() };
+		m_DX12.GetPipeline()->commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+		m_DX12.GetPipeline()->Flush();
+	}
 }
 
 void Editor::Render()
 {
 
-	//IMGUI
-	m_ImGuiRenderer.NewFrame();
-	static bool show = true;
-	if (show)
-	{
-		ImGui::Begin("Hello world!", &show);
-		ImGui::Text("Let's create something nice!");
-		ImGui::End();
-	}
+	
 
 	//QUADRICS
 	m_QRenderer.SetViewMatrix(m_pCamera->GetView());
