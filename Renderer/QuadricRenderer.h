@@ -67,11 +67,6 @@ private:
 
 	DirectX::XMFLOAT4 m_ClearColor = { 66 / 255.0f,135 / 255.0f,245 / 255.0f,0 };
 
-#ifdef REVERSED_DEPTH
-	float m_DepthClearValue = 0;
-#else
-	float m_DepthClearValue = 1;
-#endif
 	Dimensions<UINT> GetNrTiles() const;
 	CameraMatrices m_CameraMatrices;
 	bool m_Initialized = false;
@@ -80,6 +75,10 @@ public:
 	QuadricRenderer(ID3D12Device2* pDevice, UINT windowWidth, UINT windowHeight);
 	ID3D12Device2* GetDevice() const;
 	void SetViewMatrix(const DirectX::XMMATRIX& view);
+
+	void ShowTiles(bool show);
+	void ReverseDepth(bool reverse);
+	void SetRasterizerSettings(ID3D12GraphicsCommandList* pComList, UINT numRasterizers, Dimensions<UINT> rasterizerDimensions = {128,128}, UINT quadricsPerRasterizer = { 64 });
 	void SetProjectionVariables(float fov, float aspectRatio, float nearPlane, float farPlane);
 	void Initialize(ID3D12GraphicsCommandList* pComList);
 	void RenderFrame(ID3D12GraphicsCommandList* pComList, ID3D12Resource* pRenderTarget, ID3D12Resource* pDepthBuffer = nullptr);

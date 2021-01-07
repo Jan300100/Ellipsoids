@@ -56,7 +56,7 @@ ImGuiRenderer::~ImGuiRenderer()
 	ImGui::DestroyContext();
 }
 
-void ImGuiRenderer::Render(ID3D12GraphicsCommandList* commandList)
+void ImGuiRenderer::RenderUI(ID3D12GraphicsCommandList* commandList)
 {
 	ImGui::Render();
 	auto heap = m_SrvDescHeap.Get();

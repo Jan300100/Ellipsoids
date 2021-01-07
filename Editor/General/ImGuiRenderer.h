@@ -12,6 +12,6 @@ class ImGuiRenderer : public InputListener
 public:
 	ImGuiRenderer(ID3D12Device* pDevice, HWND hwnd);
 	~ImGuiRenderer();
-	void Render(ID3D12GraphicsCommandList* commandList);
+	void RenderUI(ID3D12GraphicsCommandList* commandList);
 	void NewFrame();
 };

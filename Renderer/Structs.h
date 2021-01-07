@@ -37,6 +37,8 @@ struct AppData
 	Dimensions<unsigned int> tileDimensions;
 	unsigned int quadricsPerRasterizer;
 	unsigned int numRasterizers;
+	bool showTiles;
+	bool reverseDepth;
 };
 
 struct ScreenTile

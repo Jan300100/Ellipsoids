@@ -62,7 +62,6 @@ void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 
 
 	//tile G buffers
-
 	UINT sqrtNumR = UINT(ceilf(sqrtf((float)m_AppData.numRasterizers)));
 	texDesc.Width = sqrtNumR * (UINT)m_AppData.tileDimensions.width;
 	texDesc.Height = sqrtNumR * (UINT)m_AppData.tileDimensions.height;
@@ -318,7 +317,9 @@ void QuadricRenderer::InitDrawCall(ID3D12GraphicsCommandList* pComList)
 		, m_RasterizerIBuffer.Get(), &max, 0, nullptr);
 	cpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 	gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_DescriptorHeapSV->GetGPUDescriptorHandleForHeapStart());
-	pComList->ClearUnorderedAccessViewFloat(gpuHandle.Offset(incrementSize * DescriptorHeapLayout::RDepth), cpuHandle.Offset(incrementSize * DescriptorHeapLayout::RDepth), m_RasterizerDepthBuffer.Get(), (FLOAT*)&m_DepthClearValue, 0, nullptr);
+	FLOAT clearVal = (FLOAT)(!m_AppData.reverseDepth);
+
+	pComList->ClearUnorderedAccessViewFloat(gpuHandle.Offset(incrementSize * DescriptorHeapLayout::RDepth), cpuHandle.Offset(incrementSize * DescriptorHeapLayout::RDepth), m_RasterizerDepthBuffer.Get(), &clearVal, 0, nullptr);
 
 	
 
@@ -352,10 +353,14 @@ void QuadricRenderer::InitRendering(ID3D12GraphicsCommandList* pComList)
 		m_OutputBuffer.Get(), (FLOAT*)&m_ClearColor, 0, nullptr);
 	cpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 	gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(m_DescriptorHeapSV->GetGPUDescriptorHandleForHeapStart());
+
+	FLOAT clearVal = (FLOAT)(!m_AppData.reverseDepth);
+
 	pComList->ClearUnorderedAccessViewFloat(
 		gpuHandle.Offset(incrementSize * DescriptorHeapLayout::Depth),
 		cpuHandle.Offset(incrementSize * DescriptorHeapLayout::Depth),
-		m_DepthBuffer.Get(), (FLOAT*)&m_DepthClearValue, 0, nullptr);
+		
+		m_DepthBuffer.Get(), &clearVal, 0, nullptr);
 
 	//set root sign and parameters
 	pComList->SetComputeRootSignature(m_RootSignature.Get());
@@ -390,6 +395,8 @@ QuadricRenderer::QuadricRenderer(ID3D12Device2* pDevice, UINT windowWidth, UINT 
 	m_AppData.windowSize = { windowWidth ,windowHeight, 0, 0 };
 	m_AppData.tileDimensions = { 128,128 };
 	m_AppData.quadricsPerRasterizer = 64;
+	m_AppData.showTiles = false;
+	m_AppData.reverseDepth = true;
 
 	auto tileDim = GetNrTiles();
 	UINT screenTiles = tileDim.height * tileDim.width;
@@ -408,6 +415,23 @@ void QuadricRenderer::SetViewMatrix(const DirectX::XMMATRIX& view)
 	m_CameraMatrices.vInv = XMMatrixInverse(nullptr, view);
 	m_CameraMatrices.vp = view * m_CameraMatrices.p;
 	m_CameraMatrices.vpInv = XMMatrixInverse(nullptr, m_CameraMatrices.vp);
+}
+
+void QuadricRenderer::ShowTiles(bool show)
+{
+	m_AppData.showTiles = show;
+}
+
+void QuadricRenderer::ReverseDepth(bool reverse)
+{
+	m_AppData.reverseDepth = reverse;
+}
+
+void QuadricRenderer::SetRasterizerSettings(ID3D12GraphicsCommandList*, UINT numRasterizers, Dimensions<UINT> rasterizerDimensions, UINT quadricsPerRasterizer)
+{
+	m_AppData.numRasterizers = numRasterizers;
+	m_AppData.tileDimensions = rasterizerDimensions;
+	m_AppData.quadricsPerRasterizer = quadricsPerRasterizer;
 }
 
 void QuadricRenderer::SetProjectionVariables(float fov, float aspectRatio, float nearPlane, float farPlane)

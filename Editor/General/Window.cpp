@@ -8,24 +8,26 @@ HWND Window::ConstructWindow(const wchar_t* windowClassName, HINSTANCE hInst, co
     int screenWidth = ::GetSystemMetrics(SM_CXSCREEN);
     int screenHeight = ::GetSystemMetrics(SM_CYSCREEN);
 
-    RECT windowRect = { 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
-    ::AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
+    DWORD dwStyle = WS_OVERLAPPEDWINDOW;
+    //WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_OVERLAPPED
 
-    m_Dimensions.width = windowRect.right - windowRect.left;
-    m_Dimensions.height = windowRect.bottom - windowRect.top;
+    RECT windowRect = { 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
+    ::AdjustWindowRect(&windowRect, dwStyle, FALSE);
+
+    LONG w{ windowRect.right - windowRect.left }, h{ windowRect.bottom - windowRect.top };
 
     // Center the window within the screen. Clamp to 0, 0 for the top-left corner.
-    int windowX = std::max<int>(0, (screenWidth - m_Dimensions.width) / 2);
-    int windowY = std::max<int>(0, (screenHeight - m_Dimensions.height) / 2);
+    int windowX = std::max<int>(0, (screenWidth - w) / 2);
+    int windowY = std::max<int>(0, (screenHeight - h) / 2);
     HWND hWnd = ::CreateWindowExW(
         NULL,
         windowClassName,
         windowTitle,
-        WS_OVERLAPPEDWINDOW,
+        dwStyle,
         windowX,
         windowY,
-        m_Dimensions.width,
-        m_Dimensions.height,
+        w,
+        h,
         NULL,
         NULL,
         hInst,
@@ -165,7 +167,7 @@ Window::Window(HINSTANCE hInstance, uint32_t width, uint32_t height)
     SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 
     // Window class name. Used for registering / creating the window.
-    const wchar_t* windowClassName = L"DX12WindowClass";
+    const wchar_t* windowClassName = L"QuadricEditorWindow";
     RegisterWindowClass(hInstance, windowClassName);
     m_Hwnd = ConstructWindow(windowClassName, hInstance, L"Ellipsoids",
         m_Dimensions.width, m_Dimensions.height);
