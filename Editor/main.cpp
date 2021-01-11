@@ -34,13 +34,15 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 		editor.Initialize();
 
+
+		
+
+
+
 		//LOOP
 		MSG msg = {};
 		auto start = std::chrono::high_resolution_clock::now();
-		float passed = 0.0f;
-		int framectr = 0;
 
-		float totalTime = 0.0f;
 		while (msg.message != WM_QUIT)
 		{
 			mouse.Update();
@@ -56,15 +58,6 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 			auto end = std::chrono::high_resolution_clock::now();
 			float delta = (float)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1'000'000.0f;
 			start = end;
-			framectr++;
-			passed += delta;
-			totalTime += delta;
-			if (passed > 1.0f)
-			{
-				passed -= 1.0f;
-				std::cout << "FPS: " << framectr << std::endl;
-				framectr = 0;
-			}
 
 			editor.Update(delta);
 
