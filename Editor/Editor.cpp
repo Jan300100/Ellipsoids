@@ -24,7 +24,9 @@ Editor::Editor(Window* pWindow, Mouse* pMouse)
 	, m_pCurrentScene{ nullptr }, m_Prefabs{}, m_pGeometryEditor{ new SceneNode{"Editor"} }, m_pEditResult{}
 {
 	m_pCamera = new FreeCamera{pWindow, pMouse };
-	m_pCamera->Offset({ 0.0f,4.5f,-5.0f });
+	m_pCamera->Offset({ 0.0f,4.5f, -5.f });
+
+
 	m_pWindow->AddListener(&m_ImGuiRenderer);
 }
 
@@ -207,7 +209,7 @@ void Editor::Initialize()
 	m_Prefabs.push_back(pScene);
 	m_pCurrentScene = pScene;
 
-	UINT count = 2;
+	UINT count = 1;
 	for (UINT i = 0; i < count; i++)
 	{
 		for (UINT j = 0; j < count; j++)
@@ -221,7 +223,7 @@ void Editor::Initialize()
 	EditableGeometry ground{ {}, new QuadricGeometry{20, "World"}, 20 };
 
 	EditQuadric world{};
-	float range = 10000;
+	float range = 10;
 	world.equation = DirectX::XMFLOAT4X4{
 					1,0,0,0,
 					0,1,0,0,
@@ -279,9 +281,10 @@ void Editor::Update(float dt)
 	ImGui::Begin("Renderer Settings");
 	ImGui::Checkbox("Show Tiles", &showTiles);
 	ImGui::Checkbox("Reverse DepthBuffer", &reverseDepth);
-	ImGui::InputInt2("TileDimensions", tileDim);
-	ImGui::InputInt("# Rasterizers", &numRasterizers);
-	ImGui::InputInt("Quadrics / Rasterizer", &quadricsPerRasterizer);
+
+	bool changed = (ImGui::InputInt2("TileDimensions", tileDim));
+	changed |= ImGui::InputInt("# Rasterizers", &numRasterizers);
+	changed |= ImGui::InputInt("Quadrics / Rasterizer", &quadricsPerRasterizer);
 
 	ImGui::Text(("FPS: " + std::to_string(fps) + "\t" + std::to_string(dt * 1000).substr(0 , 5) + " ms").c_str());
 	ImGui::End();
@@ -289,7 +292,7 @@ void Editor::Update(float dt)
 	m_QRenderer.ShowTiles(showTiles);
 	m_QRenderer.ReverseDepth(reverseDepth);
 
-	if (tileDim[0] >= 32 && tileDim[0] <= 512 && tileDim[1] >= 32 && tileDim[1] <= 512 && numRasterizers <= 1000 && quadricsPerRasterizer <= 512)
+	if (changed && tileDim[0] >= 32 && tileDim[0] <= 512 && tileDim[1] >= 32 && tileDim[1] <= 512 && numRasterizers <= 1000 && quadricsPerRasterizer <= 512)
 	{
 		
 		m_QRenderer.SetRasterizerSettings(m_DX12.GetPipeline()->commandList.Get(), numRasterizers, Dimensions<unsigned int>{(UINT)tileDim[0], (UINT)tileDim[1]}, quadricsPerRasterizer);
@@ -358,19 +361,22 @@ void Editor::Update(float dt)
 			}
 			if (pSelectedNode->GetParent())
 			{
-				if (ImGui::Button("Remove Node"))
+				if (m_pCurrentScene != pSelectedNode)
 				{
-					pSelectedNode->GetParent()->RemoveNode(pSelectedNode, true);
-					pSelectedNode = nullptr;
-				}
-				else if (ImGui::Button("Duplicate Node"))
-				{
-					pSelectedNode->GetParent()->AddNode(new SceneNode{ (*pSelectedNode) });
-				}
-				else if (ImGui::Button("Isolate"))
-				{
-					m_pCurrentScene = pSelectedNode;
-					pSelectedNode = nullptr;
+					if (ImGui::Button("Isolate"))
+					{
+						m_pCurrentScene = pSelectedNode;
+						pSelectedNode = nullptr;
+					}
+					else if (ImGui::Button("Remove Node"))
+					{
+						pSelectedNode->GetParent()->RemoveNode(pSelectedNode, true);
+						pSelectedNode = nullptr;
+					}
+					else if (ImGui::Button("Duplicate Node"))
+					{
+						pSelectedNode->GetParent()->AddNode(new SceneNode{ (*pSelectedNode) });
+					}
 				}
 			}
 		}
