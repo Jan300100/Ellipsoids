@@ -136,6 +136,8 @@ void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 
 	pComList->ResourceBarrier((UINT)transitions.size(), transitions.data());
 
+
+	SetRasterizerSettings(pComList, 128, {128,128}, 64);
 }
 
 void QuadricRenderer::CopyToBackBuffer(ID3D12GraphicsCommandList* pComList, ID3D12Resource* pRenderTarget, ID3D12Resource*)
@@ -202,7 +204,7 @@ void QuadricRenderer::InitRendering(ID3D12GraphicsCommandList* pComList)
 	XMStoreFloat4(&m_AppData.lightDirection, XMVector4Normalize(XMVector4Transform(XMVectorSet(0.577f, -0.577f, 0.577f, 0), m_CameraValues.v)));
 	m_AppData.viewProjInv = m_CameraValues.vpInv;
 	m_AppData.viewInv = m_CameraValues.vInv;
-	m_AppData.projInv = XMMatrixInverse(nullptr, m_CameraValues.vp);
+	m_AppData.projInv = XMMatrixInverse(nullptr, m_CameraValues.p);
 
 	BYTE* mapped = nullptr;
 	ThrowIfFailed(m_AppDataBuffer->Map(0, nullptr,
@@ -304,6 +306,7 @@ void QuadricRenderer::ReverseDepth(bool reverse)
 void QuadricRenderer::SetRasterizerSettings(ID3D12GraphicsCommandList* pComList, UINT numRasterizers, Dimensions<unsigned int> rasterizerDimensions, UINT quadricsPerRasterizer, bool overrule)
 {
 	if (numRasterizers == 0 || rasterizerDimensions.width == 0 || rasterizerDimensions.height == 0 || quadricsPerRasterizer == 0) return;
+	if (numRasterizers == m_AppData.numRasterizers && m_AppData.tileDimensions == rasterizerDimensions && quadricsPerRasterizer == m_AppData.quadricsPerRasterizer) return;
 
 	if (numRasterizers != m_AppData.numRasterizers || m_AppData.tileDimensions != rasterizerDimensions || overrule)
 	{
