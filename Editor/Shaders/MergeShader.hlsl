@@ -1,5 +1,5 @@
-#include "Helpers.hlsl"
-#include "RootSignature.hlsl"
+#include "Base.hlsl"
+
 
 [numthreads(8, 8, 1)]
 void main( uint3 DTid : SV_DispatchThreadID )

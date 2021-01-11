@@ -11,6 +11,7 @@
 #include "MergeStage.h"
 #include <set>
 
+
 class QuadricGeometry;
 
 struct CameraValues

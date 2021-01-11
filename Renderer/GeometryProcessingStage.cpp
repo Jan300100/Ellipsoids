@@ -5,6 +5,9 @@
 
 using namespace Microsoft::WRL;
 
+#define PROJECT_DIR_STR XSTR(PROJECT_DIR)
+#define XSTR(s) STR(s)
+#define STR(s) #s
 
 Stage::GeometryProcessing::GeometryProcessing()
 	:Stage{}
@@ -43,7 +46,7 @@ void Stage::GeometryProcessing::Init(QuadricRenderer* pRenderer)
 #endif
 	ComPtr<ID3DBlob> errorBlob = nullptr;
 
-	HRESULT hr = D3DCompileFromFile(L"Renderer/GeometryProcessingShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+	HRESULT hr = D3DCompileFromFile(L"Shaders/GeometryProcessingShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"main", "cs_5_1", compileFlags, 0, &m_Shader, &errorBlob);
 
 	if (errorBlob != nullptr)

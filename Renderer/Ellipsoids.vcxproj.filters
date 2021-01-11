@@ -67,12 +67,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Helpers.hlsl">
-      <Filter>Pipeline</Filter>
-    </FxCompile>
-    <FxCompile Include="Structs.hlsl">
-      <Filter>Pipeline</Filter>
-    </FxCompile>
     <FxCompile Include="RasterizationShader.hlsl">
       <Filter>Pipeline\Rasterization</Filter>
     </FxCompile>
@@ -82,7 +76,7 @@
     <FxCompile Include="GeometryProcessingShader.hlsl">
       <Filter>Pipeline\GeometryProcessing</Filter>
     </FxCompile>
-    <FxCompile Include="RootSignature.hlsl">
+    <FxCompile Include="Base.hlsl">
       <Filter>Pipeline</Filter>
     </FxCompile>
   </ItemGroup>

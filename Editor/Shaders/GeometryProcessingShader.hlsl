@@ -1,95 +1,97 @@
-struct AppData
-{
-    row_major float4x4 viewProjInv;
-    row_major float4x4 viewInv;
-    row_major float4x4 projInv;
-    uint2 windowDimensions;
-    float3 lightDirection;
-    uint2 tileDimensions;
-    uint quadricsPerRasterizer;
-    uint numRasterizers;
-};
+#include "Base.hlsl"
 
-struct InQuadric
-{
-    float4x4 transformed;
-    float4 color;
-};
 
-struct OutQuadric
-{
-    float4x4 shearToProj; //Tsp
-    float4x4 normalGenerator; //M
-    float3x3 transform; //Qtilde from the articles
-    float3 color;
-    float2 yRange; //boundingrange of the ellipsoid
-    float2 xRange;
-};
 
-bool SolveQuadratic(float a, float b, float c, out float minValue, out float maxValue)
+OutQuadric Project(InQuadric q, uint instanceIdx);
+void AddQuadric(uint screenTileIdx, OutQuadric quadric);
+
+[numthreads(32, 1, 1)]
+void main( uint3 DTid : SV_DispatchThreadID )
 {
-    bool returnValue = false;
-    minValue = -1;
-    maxValue = 1;
+    if (DTid.x >= gNumQuadrics)
+        return;
+    //PROJECT
+    OutQuadric projected = Project(gQuadricsIn[DTid.x], DTid.z);
+
     
-    if (a != 0.0f)
+    //FILL RASTERIZERS
+    uint2 numTiles = GetNrTiles(gAppData.windowDimensions, gAppData.tileDimensions);
+    uint2 start = NDCToScreen(float2(projected.xRange.x, projected.yRange.y), gAppData.windowDimensions) / gAppData.tileDimensions;
+    uint2 end = NDCToScreen(float2(projected.xRange.y, projected.yRange.x), gAppData.windowDimensions) / gAppData.tileDimensions;
+    if (start.x >= numTiles.x || end.x < 0 || start.y >= numTiles.y || end.y < 0)
+        return;
+    
+    //-1 because these are indices
+    start.x = clamp(start.x, 0, numTiles.x-1);
+    start.y = clamp(start.y, 0, numTiles.y-1);
+    end.x = clamp(end.x, 0, numTiles.x-1);
+    end.y = clamp(end.y, 0, numTiles.y-1);
+    
+    for (uint x = start.x; x <= end.x; x++)
     {
-        float ba = b / (2 * a);
-        float ca = c / a;
-        float discr = ba * ba - ca;
-        if (discr < 0)
+        for (uint y = start.y; y <= end.y; y++)
         {
-            //nothing
-            returnValue = !(c < 0);
-        }
-        else
-        {
-            float d = sqrt(discr);
-            if (a > 0)
+            uint screenIdx = y * numTiles.x + x;
+            if (screenIdx < numTiles.x * numTiles.y)
             {
-                d = -d; //signal that its hyperbolic
+                AddQuadric(screenIdx, projected);
             }
-            maxValue = -ba + d;
-            minValue = -ba - d;
-            returnValue = true;
         }
     }
-    else if (b != 0.0f)
+}
+
+void AddQuadric(uint screenTileIdx, OutQuadric quadric)
+{
+    uint numRasterizers = gAppData.numRasterizers;
+    uint screenHint = gScreenTiles[screenTileIdx].rasterizerHint;
+    uint rIdx = (screenHint < numRasterizers) * screenHint;
+    while (rIdx < numRasterizers)
     {
-        if (b > 0)
+        if (gRasterizers[rIdx].screenTileIdx == UINT_MAX)
         {
-            minValue = -c / b;
+            //try claim for this screenTile
+            uint original;
+            InterlockedCompareExchange(gRasterizers[rIdx].screenTileIdx, UINT_MAX, screenTileIdx, original);
+            if (original == UINT_MAX)
+            {
+                //we claimed the rasterizer, append to linkedlist
+                uint llIdx;
+                InterlockedCompareExchange(gScreenTiles[screenTileIdx].rasterizerHint, UINT_MAX, rIdx, llIdx);
+                while (llIdx < numRasterizers)
+                {
+                    InterlockedCompareExchange(gRasterizers[llIdx].nextRasterizerIdx, UINT_MAX, rIdx, llIdx);
+                }
+            }
+        }
+        else if (gRasterizers[rIdx].screenTileIdx == screenTileIdx)
+        {
+            uint value = gRasterizers[rIdx].numQuadrics;
+            if (value < gAppData.quadricsPerRasterizer)
+            {
+                //try add to this rasterizer
+                uint qIdx;
+                InterlockedCompareExchange(gRasterizers[rIdx].numQuadrics, value, value + 1, qIdx);
+                if (qIdx == value)
+                {
+                    //spot secured : add the quadric
+                    uint rasterizerOffset = rIdx * gAppData.quadricsPerRasterizer;
+                    gRasterizerQBuffer[rasterizerOffset + qIdx] = quadric;
+                    rIdx = UINT_MAX;
+                }
+            }
+            else
+            {
+                uint hint = gRasterizers[rIdx].nextRasterizerIdx;
+                rIdx = (hint > rIdx && hint < gAppData.numRasterizers) ? hint : rIdx + 1;
+            }
         }
         else
         {
-            maxValue = -c / b;
+            rIdx++;
         }
-        returnValue = true;
     }
-    else
-    {
-        returnValue = !(c < 0);
-    }
-    return returnValue;
 }
 
-
-float ScreenToNDC(uint screen, float dimension)
-{
-    return (screen / dimension - 0.5f) * 2.0f;
-}
-
-float2 ScreenToNDC(uint2 screen, float2 windowDimensions)
-{
-    return float2(ScreenToNDC(screen.x, windowDimensions.x),
-     -ScreenToNDC(screen.y, windowDimensions.y));
-}
-
-////
-//GLOBAL VARS
-ConstantBuffer<AppData> gAppData : register(b1);
-StructuredBuffer<float4x4> gMeshData : register(t0); //transform of the ellipsoids
-/////
 
 OutQuadric Project(InQuadric input, uint instanceIdx)
 {
@@ -112,13 +114,11 @@ OutQuadric Project(InQuadric input, uint instanceIdx)
     float4x4 sheared = mul(mul(output.shearToProj, projected), transpose(output.shearToProj));
     sheared = mul((-1 / projected[2][2]), sheared);
     
-    //THIS IS THE QTILDE from the articles
     output.transform = float3x3(
         sheared[0][0], sheared[0][1], sheared[0][3],
         sheared[1][0], sheared[1][1], sheared[1][3],
         sheared[3][0], sheared[3][1], sheared[3][3]
     );
-   
     
     //this one is needed later
     float4x4 tsd = mul(output.shearToProj, gAppData.viewProjInv);
@@ -207,33 +207,4 @@ OutQuadric Project(InQuadric input, uint instanceIdx)
     output.color = input.color.rgb;
 
     return output;
-}
-
-
-void Shade(uint2 pixel, OutQuadric q)
-{
-    //check if pixel covered by Q
-    float2 pixelNDC = ScreenToNDC(pixel, gAppData.windowDimensions);
-    float3 pos = float3(pixelNDC.x, pixelNDC.y, 1);
-    pos.z = mul(mul(float3(pos), q.transform), float3(pos));
-    if (pos.z > 0)
-    {
-        //covered by Q
-        pos.z = sqrt(pos.z);
-        float4 projPos = mul(float4(pos, 1), q.shearToProj);
-        if (projPos.z < 0.0 || projPos.z > 1.0f)
-            continue;
-        float depth = projPos.z;
-        if (gDepthBuffer[pixel.xy] > depth)
-        {
-            //shading
-            float3 normal = -mul(float4(pos, 1), q.normalGenerator).xyz;
-            normal = normalize(normal);
-            float3 lDir = gAppData.lightDirection.xyz;
-            float lambertDot = dot(normal, lDir);
-            float4 diffuse = float4(q.color, 1) * lambertDot;
-            gColorBuffer[pixel.xy] = diffuse;
-            gDepthBuffer[pixel.xy] = depth;
-        }
-    }
 }
