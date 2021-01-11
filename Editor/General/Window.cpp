@@ -92,8 +92,6 @@ LRESULT Window::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         case VK_ESCAPE:
             ::PostQuitMessage(0);
             break;
-        case VK_F11:
-            SetFullscreen(!m_Fullscreen);
         }
         break;
     case WM_SYSKEYUP:
