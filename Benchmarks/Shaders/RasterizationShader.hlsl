@@ -1,5 +1,4 @@
-#include "Helpers.hlsl"
-#include "RootSignature.hlsl"
+#include "Base.hlsl"
 
 [numthreads(32, 1, 1)]
 void main( uint3 DTid : SV_DispatchThreadID )
@@ -40,29 +39,32 @@ void main( uint3 DTid : SV_DispatchThreadID )
             pos.z = mul(mul(float3(pos), q.transform), float3(pos));
             if (pos.z > 0) //this pixels covers the ellipsoid
             {
-                #ifdef REVERSED_DEPTH
-                pos.z = -sqrt(pos.z);
-                projPos = mul(float4(pos, 1), q.shearToProj);
-                if (projPos.z < 0.0 || projPos.z > 1.0f)
-                    continue;
-                float depth = projPos.z;
-                if (gRDepthBuffer[rBufPixel.xy] <= depth)
+                if (gAppData.reverseDepth)
                 {
-                    gRIBuffer[rBufPixel.xy] = qIdx;
-                    gRDepthBuffer[rBufPixel.xy] = depth;
+                    pos.z = -sqrt(pos.z);
+                    projPos = mul(float4(pos, 1), q.shearToProj);
+                    if (projPos.z < 0.0 || projPos.z > 1.0f)
+                        continue;
+                    float depth = projPos.z;
+                    if (gRDepthBuffer[rBufPixel.xy] <= depth)
+                    {
+                        gRIBuffer[rBufPixel.xy] = qIdx;
+                        gRDepthBuffer[rBufPixel.xy] = depth;
+                    }
                 }
-                #else
-                pos.z = sqrt(pos.z);
-                projPos = mul(float4(pos, 1), q.shearToProj);
-                if (projPos.z < 0.0 || projPos.z > 1.0f)
-                    continue;
-                float depth = projPos.z;
-                if (gRDepthBuffer[rBufPixel.xy] > depth)
+                else
                 {
-                    gRIBuffer[rBufPixel.xy] = qIdx;
-                    gRDepthBuffer[rBufPixel.xy] = depth;
+                    pos.z = sqrt(pos.z);
+                    projPos = mul(float4(pos, 1), q.shearToProj);
+                    if (projPos.z < 0.0 || projPos.z > 1.0f)
+                        continue;
+                    float depth = projPos.z;
+                    if (gRDepthBuffer[rBufPixel.xy] > depth)
+                    {
+                        gRIBuffer[rBufPixel.xy] = qIdx;
+                        gRDepthBuffer[rBufPixel.xy] = depth;
+                    }
                 }
-                #endif
             }
         }
     }

@@ -14,7 +14,6 @@
 #include "Mouse.h"
 #include <chrono>
 #include <iostream>
-#include "Editor.h"
 
 int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 {
@@ -29,11 +28,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 
 		Window window{ hInstance, 1600, 900 };
 		Mouse mouse{};
-		Editor editor{&window, &mouse};
 		window.AddListener(&mouse);
-
-		editor.Initialize();
-
 
 		
 
@@ -56,12 +51,12 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 			//FRAMECOUNTER
 
 			auto end = std::chrono::high_resolution_clock::now();
-			float delta = (float)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1'000'000.0f;
+			//float delta = (float)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1'000'000.0f;
 			start = end;
 
-			editor.Update(delta);
+			//UPDATE
 
-			editor.Render();
+			//RENDER
 		}
 	}
 	catch (DxException& e)

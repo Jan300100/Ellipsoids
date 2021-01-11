@@ -1,5 +1,66 @@
 #define UINT_MAX 0xffffffff
 
+struct AppData
+{
+    row_major float4x4 viewProjInv;
+    row_major float4x4 viewInv;
+    row_major float4x4 projInv;
+    uint2 windowDimensions;
+    float3 lightDirection;
+    uint2 tileDimensions;
+    uint quadricsPerRasterizer;
+    uint numRasterizers;
+    uint showTiles;
+    uint reverseDepth;
+};
+
+struct InQuadric
+{
+    float4x4 transformed;
+    float4 color;
+};
+
+struct OutQuadric
+{
+    float4x4 shearToProj;
+    float4x4 normalGenerator;
+    float3x3 transform;
+    float3 color;
+    float2 yRange;
+    float2 xRange;
+};
+
+struct ScreenTile
+{
+    uint rasterizerHint;
+};
+
+struct Rasterizer
+{
+    uint screenTileIdx;
+    uint nextRasterizerIdx; //linked list
+    uint numQuadrics;
+};
+
+
+uint gNumQuadrics : register(b0);
+ConstantBuffer<AppData> gAppData : register(b1);
+
+StructuredBuffer<float4x4> gMeshData : register(t0);
+StructuredBuffer<InQuadric> gQuadricsIn : register(t1);
+
+RWStructuredBuffer<Rasterizer> gRasterizers : register(u0);
+RWStructuredBuffer<ScreenTile> gScreenTiles : register(u1);
+RWStructuredBuffer<OutQuadric> gRasterizerQBuffer : register(u2);
+
+//desc heap
+RWTexture2D<float4> gBackBuffer : register(u3);
+RWTexture2D<uint> gRIBuffer : register(u4);
+RWTexture2D<float> gDepthBuffer : register(u5);
+RWTexture2D<float> gRDepthBuffer : register(u6);
+
+
+
 uint NDCToScreen(float ndc, float dimension)
 {
     return (ndc / 2.0f + 0.5f) * dimension;
@@ -83,3 +144,6 @@ uint2 GetScreenLeftTop(uint index, uint2 textureDimensions, uint2 rasterizerDime
     screenLeftTop.y = (index / nrTilesHorizontal) * rasterizerDimensions.y;
     return screenLeftTop;
 }
+
+
+

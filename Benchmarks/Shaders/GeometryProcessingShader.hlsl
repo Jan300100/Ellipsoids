@@ -1,5 +1,5 @@
-#include "RootSignature.hlsl"
-#include "Helpers.hlsl"
+#include "Base.hlsl"
+
 
 
 OutQuadric Project(InQuadric q, uint instanceIdx);

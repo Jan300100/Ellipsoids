@@ -48,7 +48,7 @@ void Stage::Merge::Init(QuadricRenderer* pRenderer)
 #endif
 	ComPtr<ID3DBlob> errorBlob = nullptr;
 
-	HRESULT hr = D3DCompileFromFile(L"Renderer/MergeShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+	HRESULT hr = D3DCompileFromFile(L"Shaders/MergeShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"main", "cs_5_1", compileFlags, 0, &m_Shader, &errorBlob);
 
 	if (errorBlob != nullptr)

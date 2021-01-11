@@ -8,6 +8,8 @@ template<typename T>
 struct Dimensions
 {
 	T width, height;
+	bool operator==(const Dimensions<T>& rhs) { return (this->width == rhs.width) && (this->height == rhs.height); }
+	bool operator!=(const Dimensions<T>& rhs) { return !((*this) == rhs); }
 };
 
 //from Frank Luna's book : Introduction to 3D Game Programming with DirectX 12
