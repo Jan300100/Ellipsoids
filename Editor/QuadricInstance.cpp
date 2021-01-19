@@ -12,10 +12,7 @@ QuadricInstance::QuadricInstance(QuadricGeometry* pGeometry)
 
 DirectX::XMMATRIX QuadricInstance::GetTransformMatrix()
 {
-    XMMATRIX tr = m_Transform.GetWorld();
-    //invert (for second-order surfaces) and transpose (for directX)
-    tr = XMMatrixInverse(nullptr, XMMatrixTranspose(tr));
-    return tr;
+    return  m_Transform.GetWorld();
 }
 
 void QuadricInstance::RenderEditImGui()

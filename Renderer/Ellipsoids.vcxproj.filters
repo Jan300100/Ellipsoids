@@ -19,6 +19,9 @@
     <Filter Include="Geometry">
       <UniqueIdentifier>{3d0973cc-a67d-4e50-9aba-d57ed67110a2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{0cd7d50d-4265-4c8e-9c6f-62c20ea420e1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="QuadricRenderer.cpp">
@@ -67,17 +70,17 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="RasterizationShader.hlsl">
-      <Filter>Pipeline\Rasterization</Filter>
+    <FxCompile Include="Shaders\Base.hlsl">
+      <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="MergeShader.hlsl">
-      <Filter>Pipeline\Merge</Filter>
+    <FxCompile Include="Shaders\GeometryProcessingShader.hlsl">
+      <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="GeometryProcessingShader.hlsl">
-      <Filter>Pipeline\GeometryProcessing</Filter>
+    <FxCompile Include="Shaders\MergeShader.hlsl">
+      <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="Base.hlsl">
-      <Filter>Pipeline</Filter>
+    <FxCompile Include="Shaders\RasterizationShader.hlsl">
+      <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>
