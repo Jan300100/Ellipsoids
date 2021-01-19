@@ -80,9 +80,10 @@ public:
 	ID3D12Device2* GetDevice() const;
 	void SetViewMatrix(const DirectX::XMMATRIX& view);
 
+	void SetClearColor(float r, float g, float b, float a);
 	void ShowTiles(bool show);
 	void ReverseDepth(bool reverse);
-	void SetRasterizerSettings(ID3D12GraphicsCommandList* pComList, UINT numRasterizers, Dimensions<unsigned int> rasterizerDimensions = {128,128}, UINT quadricsPerRasterizer = { 64 }, bool overrule = false);
+	void SetRendererSettings(ID3D12GraphicsCommandList* pComList, UINT numRasterizers, Dimensions<unsigned int> rasterizerDimensions = {128,128}, UINT quadricsPerRasterizer = { 64 }, bool overrule = false);
 	void SetProjectionVariables(float fov, float aspectRatio, float nearPlane, float farPlane);
 	void Initialize(ID3D12GraphicsCommandList* pComList);
 	void RenderFrame(ID3D12GraphicsCommandList* pComList, ID3D12Resource* pRenderTarget, ID3D12Resource* pDepthBuffer = nullptr);

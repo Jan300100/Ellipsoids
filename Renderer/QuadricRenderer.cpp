@@ -137,7 +137,7 @@ void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 	pComList->ResourceBarrier((UINT)transitions.size(), transitions.data());
 
 
-	SetRasterizerSettings(pComList, 128, {128,128}, 64);
+	SetRendererSettings(pComList, 128, {128,128}, 64);
 }
 
 void QuadricRenderer::CopyToBackBuffer(ID3D12GraphicsCommandList* pComList, ID3D12Resource* pRenderTarget, ID3D12Resource*)
@@ -261,17 +261,14 @@ QuadricRenderer::QuadricRenderer(ID3D12Device2* pDevice, UINT windowWidth, UINT 
 	,m_MStage{}
 	, m_CameraValues{}
 {
-	SetViewMatrix(DirectX::XMMatrixIdentity());
-	SetProjectionVariables(DirectX::XM_PIDIV2, float(windowWidth)/ windowHeight , 1.0f, 100.0f);
 	m_AppData.windowSize = { windowWidth ,windowHeight, 0, 0 };
 	m_AppData.showTiles = false;
 	m_AppData.reverseDepth = true;
-
-
-
 	m_AppData.tileDimensions = { 128,128 };
 	m_AppData.quadricsPerRasterizer = 64;
 
+	SetViewMatrix(DirectX::XMMatrixIdentity());
+	SetProjectionVariables(DirectX::XM_PIDIV2, float(windowWidth)/ windowHeight , 1.0f, 100.0f);
 
 	auto tileDim = GetNrTiles();
 	UINT screenTiles = tileDim.height * tileDim.width;
@@ -292,6 +289,11 @@ void QuadricRenderer::SetViewMatrix(const DirectX::XMMATRIX& view)
 	m_CameraValues.vpInv = XMMatrixInverse(nullptr, m_CameraValues.vp);
 }
 
+void QuadricRenderer::SetClearColor(float r, float g, float b, float a)
+{
+	m_ClearColor = { r,g,b,a };
+}
+
 void QuadricRenderer::ShowTiles(bool show)
 {
 	m_AppData.showTiles = show;
@@ -303,7 +305,7 @@ void QuadricRenderer::ReverseDepth(bool reverse)
 	SetProjectionVariables(m_CameraValues.fov, m_CameraValues.aspectRatio, m_CameraValues.nearPlane, m_CameraValues.farPlane);
 }
 
-void QuadricRenderer::SetRasterizerSettings(ID3D12GraphicsCommandList* pComList, UINT numRasterizers, Dimensions<unsigned int> rasterizerDimensions, UINT quadricsPerRasterizer, bool overrule)
+void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, UINT numRasterizers, Dimensions<unsigned int> rasterizerDimensions, UINT quadricsPerRasterizer, bool overrule)
 {
 	if (numRasterizers == 0 || rasterizerDimensions.width == 0 || rasterizerDimensions.height == 0 || quadricsPerRasterizer == 0) return;
 	if (numRasterizers == m_AppData.numRasterizers && m_AppData.tileDimensions == rasterizerDimensions && quadricsPerRasterizer == m_AppData.quadricsPerRasterizer) return;
@@ -517,7 +519,7 @@ void QuadricRenderer::SetProjectionVariables(float fov, float aspectRatio, float
 void QuadricRenderer::Initialize(ID3D12GraphicsCommandList* pComList)
 {
 	InitResources(pComList);
-	SetRasterizerSettings(pComList, m_AppData.numRasterizers, m_AppData.tileDimensions, m_AppData.quadricsPerRasterizer,true);
+	SetRendererSettings(pComList, m_AppData.numRasterizers, m_AppData.tileDimensions, m_AppData.quadricsPerRasterizer,true);
 
 	m_GPStage.Init(this);
 	m_RStage.Init(this);
@@ -554,5 +556,6 @@ void QuadricRenderer::Render(QuadricGeometry* pGeo)
 void QuadricRenderer::Render(QuadricGeometry* pGeo, const DirectX::XMMATRIX& transform)
 {
 	m_ToRender.insert(pGeo);
-	pGeo->m_Transforms.push_back(transform);
+	auto tr = XMMatrixInverse(nullptr, XMMatrixTranspose(transform));
+	pGeo->m_Transforms.push_back(tr);
 }

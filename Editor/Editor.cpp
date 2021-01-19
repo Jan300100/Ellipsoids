@@ -24,6 +24,7 @@ Editor::Editor(Window* pWindow, Mouse* pMouse)
 	, m_pCurrentScene{ nullptr }, m_Prefabs{}, m_pGeometryEditor{ new SceneNode{"Editor"} }, m_pEditResult{}
 {
 	m_pCamera = new FreeCamera{pWindow, pMouse };
+	
 	m_pCamera->Offset({ 0.0f,4.5f, -5.f });
 
 
@@ -35,12 +36,12 @@ void Editor::Initialize()
 	m_DX12.GetPipeline()->commandAllocator->Reset();
 	m_DX12.GetPipeline()->commandList->Reset(m_DX12.GetPipeline()->commandAllocator.Get(), nullptr);
 	m_QRenderer.Initialize(m_DX12.GetPipeline()->commandList.Get());
-	m_QRenderer.SetProjectionVariables(m_pCamera->GetFOV(), m_pWindow->AspectRatio(), m_pCamera->GetNearPlane(), m_pCamera->GetFarPlane());
+	m_QRenderer.SetProjectionVariables(m_pCamera->GetFOV(), m_pWindow->AspectRatio(), m_pCamera->GetNearPlane(), 200.0f);
 
 	//initialization
 	DirectX::XMFLOAT3 skinColor{ 1.0f,0.67f,0.45f }, tShirtColor{ 1,0,0 }, pantsColor{ 0,0,1 }, shoeColor{ 0.6f,0.4f,0.1f };
 
-	EditableGeometry person{ {}, new QuadricGeometry{100, "Person"}, 100 };
+	EditableGeometry person{ {}, new QuadricGeometry{"Person"}, 400 };
 	EditQuadric head{};
 	head.equation = DirectX::XMFLOAT4X4{
 					1,0,0,0,
@@ -209,7 +210,7 @@ void Editor::Initialize()
 	m_Prefabs.push_back(pScene);
 	m_pCurrentScene = pScene;
 
-	UINT count = 1;
+	UINT count = 20;
 	for (UINT i = 0; i < count; i++)
 	{
 		for (UINT j = 0; j < count; j++)
@@ -220,16 +221,16 @@ void Editor::Initialize()
 		}
 	}
 
-	EditableGeometry ground{ {}, new QuadricGeometry{20, "World"}, 20 };
+	EditableGeometry ground{ {}, new QuadricGeometry{"World"}, 20 };
 
 	EditQuadric world{};
-	float range = 10;
+	float range = 10'000;
 	world.equation = DirectX::XMFLOAT4X4{
 					1,0,0,0,
 					0,1,0,0,
 					0,0,1,0,
 					0,0,0,-1 };
-	world.color = { 75 / 255.0f,168 / 255.0f,59 / 255.0f };
+	world.color = { 75 / 255.0f,168.0f / 255.0f,59 / 255.0f };
 	world.transform.SetScale({ range,range,range });
 	world.transform.SetPosition({ 0,-range,0 });
 
@@ -292,10 +293,10 @@ void Editor::Update(float dt)
 	m_QRenderer.ShowTiles(showTiles);
 	m_QRenderer.ReverseDepth(reverseDepth);
 
-	if (changed && tileDim[0] >= 32 && tileDim[0] <= 512 && tileDim[1] >= 32 && tileDim[1] <= 512 && numRasterizers <= 1000 && quadricsPerRasterizer <= 512)
+	if (tileDim[0] >= 32 && tileDim[0] <= 512 && tileDim[1] >= 32 && tileDim[1] <= 512 && numRasterizers <= 1000 && quadricsPerRasterizer <= 512)
 	{
 		
-		m_QRenderer.SetRasterizerSettings(m_DX12.GetPipeline()->commandList.Get(), numRasterizers, Dimensions<unsigned int>{(UINT)tileDim[0], (UINT)tileDim[1]}, quadricsPerRasterizer);
+		m_QRenderer.SetRendererSettings(m_DX12.GetPipeline()->commandList.Get(), numRasterizers, Dimensions<unsigned int>{(UINT)tileDim[0], (UINT)tileDim[1]}, quadricsPerRasterizer);
 
 	}
 
@@ -512,7 +513,6 @@ void Editor::Render()
 {
 	//QUADRICS
 	m_QRenderer.SetViewMatrix(m_pCamera->GetView());
-
 	m_pCurrentScene->Render(&m_QRenderer);
 
 	//RENDER FINAL IMAGE

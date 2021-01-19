@@ -9,6 +9,7 @@ struct Quadric
 {
 	DirectX::XMMATRIX transformed;
 	DirectX::XMFLOAT3 color;
+	Quadric() = default;
 	Quadric(const DirectX::XMFLOAT4X4& equation, const DirectX::XMMATRIX& transform, const DirectX::XMFLOAT3& color) :transformed{}, color{ color }
 	{
 		DirectX::XMMATRIX tr = transform;

@@ -92,7 +92,7 @@ void QuadricGeometry::Init(ID3D12Device2* pDevice, ID3D12GraphicsCommandList* pC
 
 }
 
-QuadricGeometry::QuadricGeometry(UINT maxInstances, const std::string& name)
-    :m_Quadrics{ }, m_Transforms{}, m_Name{name}, m_MaxInstances{ (maxInstances == 0) ? 1 : maxInstances }
+QuadricGeometry::QuadricGeometry(const std::string& name)
+    :m_Quadrics{ }, m_Transforms{}, m_Name{name}, m_MaxInstances{ 0 }
 {
 }
