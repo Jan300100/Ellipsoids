@@ -1,6 +1,0 @@
-numQuadrics: 1600
-numRasterizers: 256
-rDimensionsX: 128
-rDimensionsY: 128
-qPerRasterizer: 32
-numInstances: 1
