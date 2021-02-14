@@ -210,7 +210,7 @@ void Editor::Initialize()
 	m_Prefabs.push_back(pScene);
 	m_pCurrentScene = pScene;
 
-	UINT count = 20;
+	UINT count = 2;
 	for (UINT i = 0; i < count; i++)
 	{
 		for (UINT j = 0; j < count; j++)
