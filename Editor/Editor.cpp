@@ -41,7 +41,7 @@ void Editor::Initialize()
 	//initialization
 	DirectX::XMFLOAT3 skinColor{ 1.0f,0.67f,0.45f }, tShirtColor{ 1,0,0 }, pantsColor{ 0,0,1 }, shoeColor{ 0.6f,0.4f,0.1f };
 
-	EditableGeometry person{ {}, new QuadricGeometry{"Person"}, 400 };
+	EditableGeometry person{ {}, new QuadricGeometry{"Person"}, 1200 };
 	EditQuadric head{};
 	head.equation = DirectX::XMFLOAT4X4{
 					1,0,0,0,
