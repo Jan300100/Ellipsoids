@@ -55,9 +55,8 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 			float delta = (float)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1'000'000.0f;
 			start = end;
 
-			editor.Update(delta);
 
-			editor.Render();
+			editor.Frame(delta);
 		}
 	}
 	catch (DxException& e)

@@ -11,8 +11,11 @@
 #endif
 #include <pix3.h>
 
+#define USE_IMGUI 1
+
 Editor::~Editor()
 {
+	m_DX12.GetPipeline()->Flush();
 	for (auto  pGeo : m_Geometry)
 	{
 		delete pGeo.second.pGeometry;
@@ -38,10 +41,13 @@ Editor::Editor(Window* pWindow, Mouse* pMouse)
 
 void Editor::Initialize()
 {
-	m_DX12.GetPipeline()->commandAllocator->Reset();
-	m_DX12.GetPipeline()->commandList->Reset(m_DX12.GetPipeline()->commandAllocator.Get(), nullptr);
+	m_DX12.GetPipeline()->commandAllocator[m_DX12.GetPipeline()->currentRT]->Reset();
+	m_DX12.GetPipeline()->commandList->Reset(m_DX12.GetPipeline()->commandAllocator[m_DX12.GetPipeline()->currentRT].Get(), nullptr);
 	m_QRenderer.Initialize(m_DX12.GetPipeline()->commandList.Get());
 	m_QRenderer.SetProjectionVariables(m_pCamera->GetFOV(), m_pWindow->AspectRatio(), m_pCamera->GetNearPlane(), 200.0f);
+	m_QRenderer.SetRendererSettings(m_DX12.GetPipeline()->commandList.Get(), 512, Dimensions<unsigned int>{128,128}, 96);
+	m_QRenderer.ShowTiles(true);
+	m_QRenderer.ReverseDepth(true);
 
 	//initialization
 	DirectX::XMFLOAT3 skinColor{ 1.0f,0.67f,0.45f }, tShirtColor{ 1,0,0 }, pantsColor{ 0,0,1 }, shoeColor{ 0.6f,0.4f,0.1f };
@@ -257,12 +263,16 @@ void Editor::Initialize()
 
 }
 
+void Editor::Frame(float dt)
+{
+	m_DX12.NewFrame(); //resets cmdlist
+	Update(dt); //fills cmdlists
+	Render(); //fills cmdlist
+	m_DX12.Present(); //executes cmdlist
+}
+
 void Editor::Update(float dt)
 {
-	ThrowIfFailed(m_DX12.GetPipeline()->commandAllocator->Reset());
-	ThrowIfFailed(m_DX12.GetPipeline()->commandList->Reset(m_DX12.GetPipeline()->commandAllocator.Get(), nullptr));
-
-
 	//UPDATE
 	m_pCamera->Update(dt);
 
@@ -278,6 +288,7 @@ void Editor::Update(float dt)
 	}
 
 	//IMGUI
+#if USE_IMGUI
 	m_ImGuiRenderer.NewFrame();
 
 	static bool showTiles = false;
@@ -507,11 +518,7 @@ void Editor::Update(float dt)
 	}
 	ImGui::EndChild();
 	ImGui::End();
-
-	ThrowIfFailed(m_DX12.GetPipeline()->commandList->Close());
-	ID3D12CommandList* cmdsLists[] = { m_DX12.GetPipeline()->commandList.Get() };
-	m_DX12.GetPipeline()->commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
-	m_DX12.GetPipeline()->Flush();
+#endif
 }
 
 void Editor::Render()
@@ -521,12 +528,8 @@ void Editor::Render()
 	m_QRenderer.SetViewMatrix(m_pCamera->GetView());
 	m_pCurrentScene->Render(&m_QRenderer);
 
-	//RENDER FINAL IMAGE
-	m_DX12.NewFrame();
-	{
-		PIXScopedEvent(m_DX12.GetPipeline()->commandList.Get(), 0, "RenderFrame");
-		m_QRenderer.RenderFrame(m_DX12.GetPipeline()->commandList.Get(), m_DX12.GetPipeline()->GetCurrentRenderTarget());
-		m_ImGuiRenderer.RenderUI(m_DX12.GetPipeline()->commandList.Get());
-	}
-	m_DX12.Present();
+	m_QRenderer.RenderFrame(m_DX12.GetPipeline()->commandList.Get(), m_DX12.GetPipeline()->GetCurrentRenderTarget());
+#if USE_IMGUI
+	m_ImGuiRenderer.RenderUI(m_DX12.GetPipeline()->commandList.Get());
+#endif
 }
