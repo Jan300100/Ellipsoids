@@ -16,6 +16,7 @@
 #include <iostream>
 #include "Editor.h"
 
+
 int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 {
 	try
@@ -27,17 +28,12 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		freopen_s(&pDummy, "CONOUT$", "w", stderr);
 		freopen_s(&pDummy, "CONOUT$", "w", stdout);
 
-		Window window{ hInstance, 1600, 900 };
+		Window window{ hInstance, 1280, 720 };
 		Mouse mouse{};
 		Editor editor{&window, &mouse};
 		window.AddListener(&mouse);
 
 		editor.Initialize();
-
-
-		
-
-
 
 		//LOOP
 		MSG msg = {};

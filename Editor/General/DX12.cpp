@@ -2,6 +2,11 @@
 #include "Helpers.h"
 #include "Window.h"
 
+#ifndef USE_PIX
+#define USE_PIX
+#endif
+#include <pix3.h>
+
 using namespace Microsoft::WRL;
 
 
@@ -57,8 +62,6 @@ void DX12::Present()
 	CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(m_pGraphics->GetCurrentRenderTarget(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 	m_pGraphics->commandList->ResourceBarrier(1, &transition);
-
-
 	// Done recording commands.
 	ThrowIfFailed(m_pGraphics->commandList->Close());
 
@@ -68,7 +71,6 @@ void DX12::Present()
 
 	// Swap the back and front buffers
 	ThrowIfFailed(m_pGraphics->swapChain->Present(0, 0));
-
 	m_pGraphics->currentRT = (m_pGraphics->currentRT + 1) % m_pGraphics->rtvCount;
 	m_pGraphics->Flush(); //wait for gpu to finish (== not ideal)
 }

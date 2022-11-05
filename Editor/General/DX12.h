@@ -33,7 +33,7 @@ struct DX12::Pipeline
 	UINT64 cpuFence = 0;
 	Microsoft::WRL::ComPtr<ID3D12Fence> gpuFence;
 	//
-	static const int rtvCount = 2;
+	static const int rtvCount = 3;
 	int currentRT = 0;
 	Microsoft::WRL::ComPtr<ID3D12Resource> renderTargets[rtvCount];
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtvHeap;

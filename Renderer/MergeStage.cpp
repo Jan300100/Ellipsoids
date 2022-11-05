@@ -2,6 +2,11 @@
 #include "QuadricRenderer.h"
 #include <d3dcompiler.h>
 
+#ifndef USE_PIX
+#define USE_PIX
+#endif
+#include <pix3.h>
+
 using namespace Microsoft::WRL;
 
 Stage::Merge::Merge()
@@ -12,6 +17,8 @@ Stage::Merge::Merge()
 
 void Stage::Merge::Execute(QuadricRenderer* pRenderer, ID3D12GraphicsCommandList* pComList) const
 {
+	PIXScopedEvent(pComList, 0, "Stage::Merge");
+
 	if (!m_Initialized) throw L"MergeState not initialized";
 
 	//these are used as input here

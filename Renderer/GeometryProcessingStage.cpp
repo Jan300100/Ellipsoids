@@ -3,6 +3,11 @@
 #include "QuadricRenderer.h"
 #include <d3dcompiler.h>
 
+#ifndef USE_PIX
+#define USE_PIX
+#endif
+#include <pix3.h>
+
 using namespace Microsoft::WRL;
 
 #define PROJECT_DIR_STR XSTR(PROJECT_DIR)
@@ -17,6 +22,7 @@ Stage::GeometryProcessing::GeometryProcessing()
 
 bool Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, ID3D12GraphicsCommandList* pComList, QuadricGeometry* pGeometry) const
 {
+	PIXScopedEvent(pComList, 0, "Stage::GeometryProcessing");
 	if (!m_Initialized) throw L"GeometryProcessingStage not initialized";
 
 	UINT amount = pGeometry->UpdateTransforms();
@@ -32,7 +38,6 @@ bool Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, ID3D12Graphi
 	pComList->SetComputeRootShaderResourceView(3, pGeometry->GetInputBuffer()->GetGPUVirtualAddress());
 
 	pComList->SetPipelineState(m_Pso.Get());
-
 	pComList->Dispatch((pGeometry->QuadricsAmount() / 32) + ((pGeometry->QuadricsAmount() % 32) > 0), 1, amount);
 	return true;
 }

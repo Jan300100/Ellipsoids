@@ -13,6 +13,11 @@
 #include "DX12.h"
 #include <iostream>
 
+#ifndef USE_PIX
+#define USE_PIX
+#endif
+#include <pix3.h>
+
 // Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -58,6 +63,8 @@ ImGuiRenderer::~ImGuiRenderer()
 
 void ImGuiRenderer::RenderUI(ID3D12GraphicsCommandList* commandList)
 {
+	PIXScopedEvent(commandList, 0, "ImGuiRenderer::RenderUI");
+
 	ImGui::Render();
 	auto heap = m_SrvDescHeap.Get();
 	commandList->SetDescriptorHeaps(1, &heap);

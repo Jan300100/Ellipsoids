@@ -6,6 +6,11 @@
 #include "imgui.h"
 #include "SceneNode.h"
 
+#ifndef USE_PIX
+#define USE_PIX
+#endif
+#include <pix3.h>
+
 Editor::~Editor()
 {
 	for (auto  pGeo : m_Geometry)
@@ -41,7 +46,7 @@ void Editor::Initialize()
 	//initialization
 	DirectX::XMFLOAT3 skinColor{ 1.0f,0.67f,0.45f }, tShirtColor{ 1,0,0 }, pantsColor{ 0,0,1 }, shoeColor{ 0.6f,0.4f,0.1f };
 
-	EditableGeometry person{ {}, new QuadricGeometry{"Person"}, 400 };
+	EditableGeometry person{ {}, new QuadricGeometry{"Person"}, 5000 };
 	EditQuadric head{};
 	head.equation = DirectX::XMFLOAT4X4{
 					1,0,0,0,
@@ -210,7 +215,7 @@ void Editor::Initialize()
 	m_Prefabs.push_back(pScene);
 	m_pCurrentScene = pScene;
 
-	UINT count = 2;
+	UINT count = 40;
 	for (UINT i = 0; i < count; i++)
 	{
 		for (UINT j = 0; j < count; j++)
@@ -221,7 +226,7 @@ void Editor::Initialize()
 		}
 	}
 
-	EditableGeometry ground{ {}, new QuadricGeometry{"World"}, 20 };
+	EditableGeometry ground{ {}, new QuadricGeometry{"World"}, 2 };
 
 	EditQuadric world{};
 	float range = 10'000;
@@ -511,6 +516,7 @@ void Editor::Update(float dt)
 
 void Editor::Render()
 {
+
 	//QUADRICS
 	m_QRenderer.SetViewMatrix(m_pCamera->GetView());
 	m_pCurrentScene->Render(&m_QRenderer);
@@ -518,6 +524,7 @@ void Editor::Render()
 	//RENDER FINAL IMAGE
 	m_DX12.NewFrame();
 	{
+		PIXScopedEvent(m_DX12.GetPipeline()->commandList.Get(), 0, "RenderFrame");
 		m_QRenderer.RenderFrame(m_DX12.GetPipeline()->commandList.Get(), m_DX12.GetPipeline()->GetCurrentRenderTarget());
 		m_ImGuiRenderer.RenderUI(m_DX12.GetPipeline()->commandList.Get());
 	}
