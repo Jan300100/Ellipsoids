@@ -196,6 +196,7 @@ void DX12::Pipeline::Flush()
 
 void DX12::Pipeline::WaitForFence(int index)
 {
+	PIXScopedEvent(0, "WaitForFence: %d", index);
 	if (gpuFence[index]->GetCompletedValue() < cpuFence[index])
 	{
 		HANDLE e = CreateEventEx(nullptr, FALSE, false, EVENT_ALL_ACCESS);
