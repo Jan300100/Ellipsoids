@@ -73,11 +73,7 @@ void DX12::Present()
 	m_pGraphics->commandQueue->Signal(m_pGraphics->gpuFence[m_pGraphics->currentRT].Get(), m_pGraphics->cpuFence[m_pGraphics->currentRT]);
 
 	// Swap the back and front buffers
-	HRESULT hr = m_pGraphics->swapChain->Present(0, 0);
-	if (FAILED(hr))
-	{
-		ThrowIfFailed(m_Device->GetDeviceRemovedReason());
-	}
+	ThrowIfFailed( m_pGraphics->swapChain->Present(0, 0));
 
 	m_pGraphics->currentRT = static_cast<IDXGISwapChain3*>(m_pGraphics->swapChain.Get())->GetCurrentBackBufferIndex();
 	m_pGraphics->WaitForFence(m_pGraphics->currentRT);
@@ -179,11 +175,14 @@ DX12::Pipeline::Pipeline(ID3D12Device2* pDevice, IDXGIFactory4* pFactory, Window
 		&rtvHeapDesc, IID_PPV_ARGS(rtvHeap.GetAddressOf())));
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle(rtvHeap->GetCPUDescriptorHandleForHeapStart());
+
+	std::wstring name = L"RenderTarget";
 	for (int i = 0; i < rtvCount; i++)
 	{
 		ThrowIfFailed(swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTargets[i])));
 		pDevice->CreateRenderTargetView(renderTargets[i].Get(), nullptr, rtvHeapHandle);
 		rtvHeapHandle.Offset(pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
+		renderTargets[i]->SetName((name + std::to_wstring(i)).c_str());
 	}
 }
 

@@ -48,6 +48,8 @@ void Stage::GeometryProcessing::Init(QuadricRenderer* pRenderer)
 	UINT compileFlags = 0;
 #if defined(DEBUG) || defined(_DEBUG)  
 	compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+	compileFlags = D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #endif
 	ComPtr<ID3DBlob> errorBlob = nullptr;
 

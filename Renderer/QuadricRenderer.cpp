@@ -26,6 +26,7 @@ void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
 		IID_PPV_ARGS(&m_AppDataBuffer));
+	m_AppDataBuffer->SetName(L"AppDataBuffer");
 
 	//Output Texture
 	D3D12_RESOURCE_DESC texDesc;
@@ -50,7 +51,7 @@ void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 		D3D12_RESOURCE_STATE_COMMON,
 		nullptr,
 		IID_PPV_ARGS(&m_OutputBuffer)));
-	m_OutputBuffer->SetName(L"m_OutputTexture");
+	m_OutputBuffer->SetName(L"OutputTexture");
 
 	//depth Texture
 	texDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
@@ -84,6 +85,7 @@ void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE srvHeapHandle(m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 	CD3DX12_CPU_DESCRIPTOR_HANDLE srvHeapHandleSV(m_DescriptorHeapSV->GetCPUDescriptorHandleForHeapStart());
+	m_DescriptorHeap->SetName(L"m_DescriptorHeap");
 	m_DescriptorHeapSV->SetName(L"m_DescriptorHeapSV");
 	m_pDevice->CreateUnorderedAccessView(m_OutputBuffer.Get(), nullptr, &uavDesc, srvHeapHandle);
 	m_pDevice->CreateUnorderedAccessView(m_OutputBuffer.Get(), nullptr, &uavDesc, srvHeapHandleSV);
@@ -225,6 +227,10 @@ void QuadricRenderer::InitRendering(ID3D12GraphicsCommandList* pComList)
 	if (m_AppDataBuffer != nullptr)
 		m_AppDataBuffer->Unmap(0, nullptr);
 	
+	// Set Descriptor Heaps
+	ID3D12DescriptorHeap* descHeaps[]{ m_DescriptorHeapSV.Get() };
+	pComList->SetDescriptorHeaps(_countof(descHeaps), descHeaps);
+
 	// Clear the buffers
 	// https://www.gamedev.net/forums/topic/672063-d3d12-clearunorderedaccessviewfloat-fails/
 	auto cpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart());
@@ -248,9 +254,6 @@ void QuadricRenderer::InitRendering(ID3D12GraphicsCommandList* pComList)
 
 	//set root sign and parameters
 	pComList->SetComputeRootSignature(m_RootSignature.Get());
-
-	ID3D12DescriptorHeap* descHeaps[]{ m_DescriptorHeapSV.Get() };
-	pComList->SetDescriptorHeaps(_countof(descHeaps), descHeaps);
 
 	pComList->SetComputeRootConstantBufferView(1,m_AppDataBuffer->GetGPUVirtualAddress());
 	pComList->SetComputeRootUnorderedAccessView(4, m_RasterizerBuffer->GetGPUVirtualAddress());
@@ -355,7 +358,7 @@ void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, U
 			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
 			IID_PPV_ARGS(&m_RasterizerIBuffer)));
-		m_RasterizerIBuffer->SetName(L"RIndexBuffer");
+		m_RasterizerIBuffer->SetName(L"RasterizerIndexBuffer");
 
 		texDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
 		ThrowIfFailed(m_pDevice->CreateCommittedResource(
@@ -365,7 +368,7 @@ void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, U
 			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
 			IID_PPV_ARGS(&m_RasterizerDepthBuffer)));
-		m_RasterizerDepthBuffer->SetName(L"RDepthBuffer");
+		m_RasterizerDepthBuffer->SetName(L"RasterizerDepthBuffer");
 
 		//descriptors
 		D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
@@ -403,6 +406,7 @@ void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, U
 			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
 			nullptr,
 			IID_PPV_ARGS(&m_ScreenTileBuffer)));
+		m_ScreenTileBuffer->SetName(L"ScreenTileBuffer");
 
 		//uploadBuffer
 		properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD);
@@ -414,6 +418,8 @@ void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, U
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(&m_ScreenTileResetBuffer)));
+		m_ScreenTileResetBuffer->SetName(L"ScreenTileResetBuffer");
+
 
 		ScreenTile* tiles = nullptr;
 		m_ScreenTileResetBuffer->Map(0, nullptr,
@@ -475,9 +481,9 @@ void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, U
 			IID_PPV_ARGS(&m_RasterizerQBuffer)));
 
 		//init resources
-		m_RasterizerBuffer->SetName(L"m_RasterizerBuffer");
-		m_RasterizerResetBuffer->SetName(L"m_RasterizerResetBuffer");
-		m_RasterizerQBuffer->SetName(L"m_RasterizerQBuffer");
+		m_RasterizerBuffer->SetName(L"RasterizerBuffer");
+		m_RasterizerResetBuffer->SetName(L"RasterizerResetBuffer");
+		m_RasterizerQBuffer->SetName(L"RasterizerQBuffer");
 
 		std::vector< CD3DX12_RESOURCE_BARRIER>transitions{};
 		transitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_RasterizerIBuffer.Get(),
@@ -504,7 +510,7 @@ void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, U
 			nullptr,
 			IID_PPV_ARGS(&m_RasterizerQBuffer)));
 
-		m_RasterizerQBuffer->SetName(L"m_RasterizerQBuffer");
+		m_RasterizerQBuffer->SetName(L"RasterizerQBuffer");
 
 	}
 
@@ -554,7 +560,7 @@ void QuadricRenderer::RenderFrame(ID3D12GraphicsCommandList* pComList, ID3D12Res
 
 	for (QuadricGeometry* pGeo : m_ToRender)
 	{
-		PIXScopedEvent(pComList, 0, "QuadricRenderer::DrawCall");
+		PIXScopedEvent(pComList, 0, "QuadricRenderer::DrawCall: %s", pGeo->GetName().c_str());
 		InitDrawCall(pComList);
 		if (m_GPStage.Execute(this, pComList, pGeo))
 		{

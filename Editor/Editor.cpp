@@ -11,7 +11,7 @@
 #endif
 #include <pix3.h>
 
-#define USE_IMGUI 1
+#define USE_IMGUI 0
 
 Editor::~Editor()
 {
@@ -35,7 +35,6 @@ Editor::Editor(Window* pWindow, Mouse* pMouse)
 	
 	m_pCamera->Offset({ 0.0f,4.5f, -5.f });
 
-
 	m_pWindow->AddListener(&m_ImGuiRenderer);
 }
 
@@ -45,7 +44,7 @@ void Editor::Initialize()
 	m_DX12.GetPipeline()->commandList->Reset(m_DX12.GetPipeline()->commandAllocator[m_DX12.GetPipeline()->currentRT].Get(), nullptr);
 	m_QRenderer.Initialize(m_DX12.GetPipeline()->commandList.Get());
 	m_QRenderer.SetProjectionVariables(m_pCamera->GetFOV(), m_pWindow->AspectRatio(), m_pCamera->GetNearPlane(), 200.0f);
-	m_QRenderer.SetRendererSettings(m_DX12.GetPipeline()->commandList.Get(), 512, Dimensions<unsigned int>{128,128}, 96);
+	m_QRenderer.SetRendererSettings(m_DX12.GetPipeline()->commandList.Get(), 1024, Dimensions<unsigned int>{64,64}, 128);
 	m_QRenderer.ShowTiles(true);
 	m_QRenderer.ReverseDepth(true);
 
