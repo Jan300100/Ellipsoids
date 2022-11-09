@@ -1,4 +1,6 @@
 #pragma once
+
+
 #include "DX12.h"
 #include "ImGuiRenderer.h"
 #include "QuadricRenderer.h"
@@ -28,6 +30,9 @@ private:
 	SceneNode* m_pCurrentScene;
 	SceneNode* m_pGeometryEditor;
 	QuadricInstance* m_pEditResult;
+
+	void Update(float dt);
+	void Render();
 public:
 	Editor() = delete;
 	~Editor();
@@ -37,6 +42,6 @@ public:
 	Editor& operator=(Editor&&) = delete;
 	Editor(Window* pWindow, Mouse* pMouse);
 	void Initialize();
-	void Update(float dt);
-	void Render();
+	void Frame(float dt);
+
 };

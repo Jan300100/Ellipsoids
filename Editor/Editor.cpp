@@ -6,8 +6,16 @@
 #include "imgui.h"
 #include "SceneNode.h"
 
+#ifndef USE_PIX
+#define USE_PIX
+#endif
+#include <pix3.h>
+
+#define USE_IMGUI 0
+
 Editor::~Editor()
 {
+	m_DX12.GetPipeline()->Flush();
 	for (auto  pGeo : m_Geometry)
 	{
 		delete pGeo.second.pGeometry;
@@ -27,21 +35,24 @@ Editor::Editor(Window* pWindow, Mouse* pMouse)
 	
 	m_pCamera->Offset({ 0.0f,4.5f, -5.f });
 
-
 	m_pWindow->AddListener(&m_ImGuiRenderer);
 }
 
 void Editor::Initialize()
 {
-	m_DX12.GetPipeline()->commandAllocator->Reset();
-	m_DX12.GetPipeline()->commandList->Reset(m_DX12.GetPipeline()->commandAllocator.Get(), nullptr);
+	m_DX12.GetPipeline()->commandAllocator[m_DX12.GetPipeline()->currentRT]->Reset();
+	m_DX12.GetPipeline()->commandList->Reset(m_DX12.GetPipeline()->commandAllocator[m_DX12.GetPipeline()->currentRT].Get(), nullptr);
 	m_QRenderer.Initialize(m_DX12.GetPipeline()->commandList.Get());
 	m_QRenderer.SetProjectionVariables(m_pCamera->GetFOV(), m_pWindow->AspectRatio(), m_pCamera->GetNearPlane(), 200.0f);
+	m_QRenderer.SetRendererSettings(m_DX12.GetPipeline()->commandList.Get(), 1024, Dimensions<unsigned int>{64,64}, 128);
+	m_QRenderer.ShowTiles(true);
+	m_QRenderer.ReverseDepth(true);
 
 	//initialization
 	DirectX::XMFLOAT3 skinColor{ 1.0f,0.67f,0.45f }, tShirtColor{ 1,0,0 }, pantsColor{ 0,0,1 }, shoeColor{ 0.6f,0.4f,0.1f };
 
-	EditableGeometry person{ {}, new QuadricGeometry{"Person"}, 1200 };
+	EditableGeometry person{ {}, new QuadricGeometry{"Person"}, 5000 };
+
 	EditQuadric head{};
 	head.equation = DirectX::XMFLOAT4X4{
 					1,0,0,0,
@@ -210,7 +221,7 @@ void Editor::Initialize()
 	m_Prefabs.push_back(pScene);
 	m_pCurrentScene = pScene;
 
-	UINT count = 20;
+	UINT count = 40;
 	for (UINT i = 0; i < count; i++)
 	{
 		for (UINT j = 0; j < count; j++)
@@ -221,7 +232,7 @@ void Editor::Initialize()
 		}
 	}
 
-	EditableGeometry ground{ {}, new QuadricGeometry{"World"}, 20 };
+	EditableGeometry ground{ {}, new QuadricGeometry{"World"}, 2 };
 
 	EditQuadric world{};
 	float range = 10'000;
@@ -252,12 +263,16 @@ void Editor::Initialize()
 
 }
 
+void Editor::Frame(float dt)
+{
+	m_DX12.NewFrame(); //resets cmdlist
+	Update(dt); //fills cmdlists
+	Render(); //fills cmdlist
+	m_DX12.Present(); //executes cmdlist
+}
+
 void Editor::Update(float dt)
 {
-	ThrowIfFailed(m_DX12.GetPipeline()->commandAllocator->Reset());
-	ThrowIfFailed(m_DX12.GetPipeline()->commandList->Reset(m_DX12.GetPipeline()->commandAllocator.Get(), nullptr));
-
-
 	//UPDATE
 	m_pCamera->Update(dt);
 
@@ -273,6 +288,7 @@ void Editor::Update(float dt)
 	}
 
 	//IMGUI
+#if USE_IMGUI
 	m_ImGuiRenderer.NewFrame();
 
 	static bool showTiles = false;
@@ -502,24 +518,18 @@ void Editor::Update(float dt)
 	}
 	ImGui::EndChild();
 	ImGui::End();
-
-	ThrowIfFailed(m_DX12.GetPipeline()->commandList->Close());
-	ID3D12CommandList* cmdsLists[] = { m_DX12.GetPipeline()->commandList.Get() };
-	m_DX12.GetPipeline()->commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
-	m_DX12.GetPipeline()->Flush();
+#endif
 }
 
 void Editor::Render()
 {
+
 	//QUADRICS
 	m_QRenderer.SetViewMatrix(m_pCamera->GetView());
 	m_pCurrentScene->Render(&m_QRenderer);
 
-	//RENDER FINAL IMAGE
-	m_DX12.NewFrame();
-	{
-		m_QRenderer.RenderFrame(m_DX12.GetPipeline()->commandList.Get(), m_DX12.GetPipeline()->GetCurrentRenderTarget());
-		m_ImGuiRenderer.RenderUI(m_DX12.GetPipeline()->commandList.Get());
-	}
-	m_DX12.Present();
+	m_QRenderer.RenderFrame(m_DX12.GetPipeline()->commandList.Get(), m_DX12.GetPipeline()->GetCurrentRenderTarget());
+#if USE_IMGUI
+	m_ImGuiRenderer.RenderUI(m_DX12.GetPipeline()->commandList.Get());
+#endif
 }

@@ -2,6 +2,11 @@
 #include "QuadricRenderer.h"
 #include <d3dcompiler.h>
 
+#ifndef USE_PIX
+#define USE_PIX
+#endif
+#include <pix3.h>
+
 using namespace Microsoft::WRL;
 
 Stage::Rasterization::Rasterization()
@@ -41,6 +46,8 @@ void Stage::Rasterization::Init(QuadricRenderer* pRenderer)
 
 void Stage::Rasterization::Execute(QuadricRenderer* pRenderer, ID3D12GraphicsCommandList* pComList) const
 {
+	PIXScopedEvent(pComList, 0, "Stage::Rasterization");
+
 	if (!m_Initialized) throw L"RasterizatonStage not initialized";
 
 	//these are used as input here

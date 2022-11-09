@@ -2,6 +2,11 @@
 #include "Helpers.h"
 #include "Window.h"
 
+#ifndef USE_PIX
+#define USE_PIX
+#endif
+#include <pix3.h>
+
 using namespace Microsoft::WRL;
 
 
@@ -57,8 +62,6 @@ void DX12::Present()
 	CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(m_pGraphics->GetCurrentRenderTarget(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 	m_pGraphics->commandList->ResourceBarrier(1, &transition);
-
-
 	// Done recording commands.
 	ThrowIfFailed(m_pGraphics->commandList->Close());
 
@@ -66,17 +69,21 @@ void DX12::Present()
 	ID3D12CommandList* cmdsLists[] = { m_pGraphics->commandList.Get() };
 	m_pGraphics->commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 
-	// Swap the back and front buffers
-	ThrowIfFailed(m_pGraphics->swapChain->Present(0, 0));
+	m_pGraphics->cpuFence[m_pGraphics->currentRT]++;
+	m_pGraphics->commandQueue->Signal(m_pGraphics->gpuFence[m_pGraphics->currentRT].Get(), m_pGraphics->cpuFence[m_pGraphics->currentRT]);
 
-	m_pGraphics->currentRT = (m_pGraphics->currentRT + 1) % m_pGraphics->rtvCount;
-	m_pGraphics->Flush(); //wait for gpu to finish (== not ideal)
+	// Swap the back and front buffers
+	ThrowIfFailed( m_pGraphics->swapChain->Present(0, 0));
+
+	m_pGraphics->currentRT = static_cast<IDXGISwapChain3*>(m_pGraphics->swapChain.Get())->GetCurrentBackBufferIndex();
+	m_pGraphics->WaitForFence(m_pGraphics->currentRT);
+
 }
 
 void DX12::NewFrame()
 {
-	ThrowIfFailed(m_pGraphics->commandAllocator->Reset());
-	ThrowIfFailed(m_pGraphics->commandList->Reset(m_pGraphics->commandAllocator.Get(), nullptr));
+	ThrowIfFailed(m_pGraphics->commandAllocator[m_pGraphics->currentRT]->Reset());
+	ThrowIfFailed(m_pGraphics->commandList->Reset(m_pGraphics->commandAllocator[m_pGraphics->currentRT].Get(), nullptr));
 
 	// Indicate a state transition on the resource usage.
 	CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(m_pGraphics->GetCurrentRenderTarget(),
@@ -97,9 +104,18 @@ void DX12::NewFrame()
 
 DX12::Pipeline::Pipeline(ID3D12Device2* pDevice, IDXGIFactory4* pFactory, Window* pWindow)
 {
-	//FENCE
-	ThrowIfFailed(pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE,
-		IID_PPV_ARGS(&gpuFence)));
+	//FENCES
+	for (size_t i = 0; i < rtvCount; i++)
+	{
+		cpuFence[i] = 0;
+		ThrowIfFailed(pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE,
+			IID_PPV_ARGS(&gpuFence[i])));
+
+		ThrowIfFailed(pDevice->CreateCommandAllocator(
+			D3D12_COMMAND_LIST_TYPE_DIRECT,
+			IID_PPV_ARGS(commandAllocator[i].GetAddressOf())));
+	}
+
 
 	//COMMAND OBJECTS
 	D3D12_COMMAND_QUEUE_DESC queueDesc = {};
@@ -107,14 +123,12 @@ DX12::Pipeline::Pipeline(ID3D12Device2* pDevice, IDXGIFactory4* pFactory, Window
 	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 	ThrowIfFailed(pDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&commandQueue)));
 
-	ThrowIfFailed(pDevice->CreateCommandAllocator(
-		D3D12_COMMAND_LIST_TYPE_DIRECT,
-		IID_PPV_ARGS(commandAllocator.GetAddressOf())));
+	
 
 	ThrowIfFailed(pDevice->CreateCommandList(
 		0,
 		D3D12_COMMAND_LIST_TYPE_DIRECT,
-		commandAllocator.Get(), // Associated command allocator
+		commandAllocator[currentRT].Get(), // Associated command allocator
 		nullptr,                   // Initial PipelineStateObject
 		IID_PPV_ARGS(commandList.GetAddressOf())));
 
@@ -161,24 +175,32 @@ DX12::Pipeline::Pipeline(ID3D12Device2* pDevice, IDXGIFactory4* pFactory, Window
 		&rtvHeapDesc, IID_PPV_ARGS(rtvHeap.GetAddressOf())));
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle(rtvHeap->GetCPUDescriptorHandleForHeapStart());
+
+	std::wstring name = L"RenderTarget";
 	for (int i = 0; i < rtvCount; i++)
 	{
 		ThrowIfFailed(swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTargets[i])));
 		pDevice->CreateRenderTargetView(renderTargets[i].Get(), nullptr, rtvHeapHandle);
 		rtvHeapHandle.Offset(pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
+		renderTargets[i]->SetName((name + std::to_wstring(i)).c_str());
 	}
 }
 
 void DX12::Pipeline::Flush()
 {
-	cpuFence++;
+	cpuFence[currentRT]++;
 
-	commandQueue->Signal(gpuFence.Get(), cpuFence);
+	commandQueue->Signal(gpuFence[currentRT].Get(), cpuFence[currentRT]);
+	WaitForFence(currentRT);
+}
 
-	if (gpuFence->GetCompletedValue() < cpuFence)
+void DX12::Pipeline::WaitForFence(int index)
+{
+	PIXScopedEvent(0, "WaitForFence: %d", index);
+	if (gpuFence[index]->GetCompletedValue() < cpuFence[index])
 	{
 		HANDLE e = CreateEventEx(nullptr, FALSE, false, EVENT_ALL_ACCESS);
-		gpuFence->SetEventOnCompletion(cpuFence, e);
+		gpuFence[index]->SetEventOnCompletion(cpuFence[index], e);
 		WaitForSingleObject(e, INFINITE);
 		CloseHandle(e);
 	}

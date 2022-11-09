@@ -29,15 +29,19 @@ struct DX12::Pipeline
 	Microsoft::WRL::ComPtr<IDXGISwapChain> swapChain;
 	Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueue;
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
-	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator;
-	UINT64 cpuFence = 0;
-	Microsoft::WRL::ComPtr<ID3D12Fence> gpuFence;
+
 	//
-	static const int rtvCount = 2;
+	static const int rtvCount = 3;
 	int currentRT = 0;
+
+	UINT64 cpuFence[rtvCount];
+	Microsoft::WRL::ComPtr<ID3D12Fence> gpuFence[rtvCount];
+	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator[rtvCount];
+
 	Microsoft::WRL::ComPtr<ID3D12Resource> renderTargets[rtvCount];
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtvHeap;
 	Pipeline(ID3D12Device2* pDevice, IDXGIFactory4* pFactory, Window* pWindow);
+	void WaitForFence(int index);
 	void Flush();
 	ID3D12Resource* GetCurrentRenderTarget() { return renderTargets[currentRT].Get(); }
 	~Pipeline() { Flush(); }

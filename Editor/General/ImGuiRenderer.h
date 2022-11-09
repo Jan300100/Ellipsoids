@@ -1,4 +1,5 @@
 #pragma once
+
 #include <wrl.h>
 #include "Window.h"
 struct ID3D12Device;
