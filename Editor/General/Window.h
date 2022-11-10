@@ -31,7 +31,6 @@ private:
 	void RegisterWindowClass(HINSTANCE hInst, const wchar_t* windowClassName);
 	static LRESULT CALLBACK WndProcStatic(HWND, UINT, WPARAM, LPARAM);
 	LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
-	void SetFullscreen(bool fullscreen);
 public:
 	Window(HINSTANCE hInstance, uint32_t width = 1280, uint32_t height = 720, bool hasTitleBar = true);
 	Window() = delete;
@@ -41,6 +40,7 @@ public:
 	Window& operator=(const Window&) = delete;
 	Window& operator=(Window&&) = delete;
 	float AspectRatio() const;
+	void SetFullscreen(bool fullscreen);
 public:
 	HWND GetHandle();
 	Dimensions<uint32_t> GetDimensions();

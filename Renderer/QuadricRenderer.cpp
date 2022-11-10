@@ -144,7 +144,7 @@ void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 	pComList->ResourceBarrier((UINT)transitions.size(), transitions.data());
 
 
-	SetRendererSettings(pComList, 128, {128,128}, 64);
+	SetRendererSettings(pComList, 512, {64,64}, 128);
 }
 
 void QuadricRenderer::CopyToBackBuffer(ID3D12GraphicsCommandList* pComList, ID3D12Resource* pRenderTarget, ID3D12Resource*)

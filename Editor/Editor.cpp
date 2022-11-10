@@ -11,7 +11,7 @@
 #endif
 #include <pix3.h>
 
-#define USE_IMGUI 0
+#define USE_IMGUI 1
 
 Editor::~Editor()
 {
@@ -44,7 +44,7 @@ void Editor::Initialize()
 	m_DX12.GetPipeline()->commandList->Reset(m_DX12.GetPipeline()->commandAllocator[m_DX12.GetPipeline()->currentRT].Get(), nullptr);
 	m_QRenderer.Initialize(m_DX12.GetPipeline()->commandList.Get());
 	m_QRenderer.SetProjectionVariables(m_pCamera->GetFOV(), m_pWindow->AspectRatio(), m_pCamera->GetNearPlane(), 200.0f);
-	m_QRenderer.SetRendererSettings(m_DX12.GetPipeline()->commandList.Get(), 1024, Dimensions<unsigned int>{64,64}, 128);
+	//m_QRenderer.SetRendererSettings(m_DX12.GetPipeline()->commandList.Get(), 1024, Dimensions<unsigned int>{64,64}, 128);
 	m_QRenderer.ShowTiles(true);
 	m_QRenderer.ReverseDepth(true);
 
@@ -311,9 +311,8 @@ void Editor::Update(float dt)
 
 	if (tileDim[0] >= 32 && tileDim[0] <= 512 && tileDim[1] >= 32 && tileDim[1] <= 512 && numRasterizers <= 1000 && quadricsPerRasterizer <= 512)
 	{
-		
+		m_DX12.GetPipeline()->Flush(); //make better pls, some kind of ringbuffer maybe?
 		m_QRenderer.SetRendererSettings(m_DX12.GetPipeline()->commandList.Get(), numRasterizers, Dimensions<unsigned int>{(UINT)tileDim[0], (UINT)tileDim[1]}, quadricsPerRasterizer);
-
 	}
 
 	//scene graph
