@@ -18,13 +18,13 @@ UploadManager::UploadManager(ID3D12Device2* pDevice)
 	m_pHeap->SetName(L"UploadHeap");
 }
 
-void* UploadManager::Map(ID3D12Resource* pResource)
+void* UploadManager::Map(ID3D12Resource*)
 {
 	// create temporary uploadobject
 	return nullptr;
 }
 
-void UploadManager::UnMap(ID3D12Resource* pResource)
+void UploadManager::UnMap(ID3D12Resource*)
 {
 	// issue copy command and 
 	// destroy temporary object after.

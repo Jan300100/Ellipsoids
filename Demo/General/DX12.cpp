@@ -69,7 +69,7 @@ void DX12::Present()
 	// Swap the back and front buffers
 	ThrowIfFailed(m_pGraphics->swapChain->Present(0, 0));
 
-	m_pGraphics->currentRT = (m_pGraphics->currentRT + 1) % m_pGraphics->rtvCount;
+	m_pGraphics->currentRT = static_cast<IDXGISwapChain3*>(m_pGraphics->swapChain.Get())->GetCurrentBackBufferIndex();
 	m_pGraphics->Flush(); //wait for gpu to finish (== not ideal)
 }
 

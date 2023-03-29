@@ -14,7 +14,7 @@ protected:
 	void ReCalculateView();
 	void CalculateProj();
 	Window* m_pWindow;
-	float m_Fov = DirectX::XM_PIDIV2;
+	float m_Fov = DirectX::XM_PI / 4;
 	float m_NearPlane = 1.0f, m_FarPlane = 100.0f;
 
 	Transform m_Transform;

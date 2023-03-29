@@ -65,6 +65,9 @@ void DX12::Present()
 	// Done recording commands.
 	ThrowIfFailed(m_pGraphics->commandList->Close());
 
+	// make sure this is not in use anymore.
+	m_pGraphics->WaitForFence(m_pGraphics->currentRT);
+
 	// Add the command list to the queue for execution.
 	ID3D12CommandList* cmdsLists[] = { m_pGraphics->commandList.Get() };
 	m_pGraphics->commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
@@ -72,12 +75,12 @@ void DX12::Present()
 	m_pGraphics->cpuFence[m_pGraphics->currentRT]++;
 	m_pGraphics->commandQueue->Signal(m_pGraphics->gpuFence[m_pGraphics->currentRT].Get(), m_pGraphics->cpuFence[m_pGraphics->currentRT]);
 
-	// Swap the back and front buffers
-	ThrowIfFailed( m_pGraphics->swapChain->Present(0, 0));
+	//// Swap the back and front buffers
+	m_pGraphics->swapChain->Present(0, 0);
+
+	ThrowIfFailed(GetDevice()->GetDeviceRemovedReason());
 
 	m_pGraphics->currentRT = static_cast<IDXGISwapChain3*>(m_pGraphics->swapChain.Get())->GetCurrentBackBufferIndex();
-	m_pGraphics->WaitForFence(m_pGraphics->currentRT);
-
 }
 
 void DX12::NewFrame()

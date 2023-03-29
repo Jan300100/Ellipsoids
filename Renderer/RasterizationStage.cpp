@@ -1,6 +1,7 @@
 #include "RasterizationStage.h"
 #include "QuadricRenderer.h"
 #include <d3dcompiler.h>
+#include <array>
 
 #ifndef USE_PIX
 #define USE_PIX
@@ -20,6 +21,8 @@ void Stage::Rasterization::Init(QuadricRenderer* pRenderer)
 	UINT compileFlags = 0;
 #if defined(DEBUG) || defined(_DEBUG)  
 	compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+	compileFlags = D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #endif
 	ComPtr<ID3DBlob> errorBlob = nullptr;
 
@@ -29,6 +32,28 @@ void Stage::Rasterization::Init(QuadricRenderer* pRenderer)
 	if (errorBlob != nullptr)
 		OutputDebugStringA((char*)errorBlob->GetBufferPointer());
 	ThrowIfFailed(hr);
+
+#if defined(DEBUG) || defined(_DEBUG)  
+	// pdb gen
+	ID3DBlob* pdbBlob = nullptr;
+
+	hr = D3DGetBlobPart(
+		m_Shader->GetBufferPointer(),
+		m_Shader->GetBufferSize(),
+		D3D_BLOB_PDB,
+		NULL,
+		&pdbBlob
+	);
+	ThrowIfFailed(hr);
+
+	FILE* pdbFile = nullptr;
+	_wfopen_s(&pdbFile, L"RasterizationShader.pdb", L"wb");
+	if (pdbFile)
+	{
+		fwrite(pdbBlob->GetBufferPointer(), 1, pdbBlob->GetBufferSize(), pdbFile);
+		fclose(pdbFile);
+	}
+#endif
 
 	//PSO
 	D3D12_COMPUTE_PIPELINE_STATE_DESC computePsoDesc{};
@@ -51,11 +76,12 @@ void Stage::Rasterization::Execute(QuadricRenderer* pRenderer, ID3D12GraphicsCom
 	if (!m_Initialized) throw L"RasterizatonStage not initialized";
 
 	//these are used as input here
-	std::vector< CD3DX12_RESOURCE_BARRIER> barriers{};
-	barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerIBuffer.Get()));
-	barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerDepthBuffer.Get()));
-	barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerBuffer.Get()));
-	barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerQBuffer.Get()));
+	std::array<CD3DX12_RESOURCE_BARRIER, 4> barriers;
+	barriers[0] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerIBuffer.Get());
+	barriers[1] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerDepthBuffer.Get());
+	barriers[2] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerBuffer.Get());
+	barriers[3] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerQBuffer.Get());
+
 	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
 
 	pComList->SetPipelineState(m_Pso.Get());

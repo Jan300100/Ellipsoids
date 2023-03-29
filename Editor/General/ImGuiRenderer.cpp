@@ -27,7 +27,7 @@ bool ImGuiRenderer::HandleInput(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 	return (ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantCaptureMouse);
 }
 
-ImGuiRenderer::ImGuiRenderer(ID3D12Device* pDevice, HWND hwnd)
+ImGuiRenderer::ImGuiRenderer(ID3D12Device* pDevice, HWND hwnd, UINT numFramesInFlight)
 {
 	///IMGUI
 	IMGUI_CHECKVERSION();
@@ -46,7 +46,7 @@ ImGuiRenderer::ImGuiRenderer(ID3D12Device* pDevice, HWND hwnd)
 	{
 		// Setup Platform/Renderer backends
 		ImGui_ImplWin32_Init(hwnd);
-		ImGui_ImplDX12_Init(pDevice, 2,
+		ImGui_ImplDX12_Init(pDevice, numFramesInFlight + 1,
 			DXGI_FORMAT_R8G8B8A8_UNORM, m_SrvDescHeap.Get(),
 			m_SrvDescHeap->GetCPUDescriptorHandleForHeapStart(),
 			m_SrvDescHeap->GetGPUDescriptorHandleForHeapStart());

@@ -10,6 +10,7 @@
 #define USE_PIX
 #endif
 #include <pix3.h>
+#include <iostream>
 
 #define USE_IMGUI 1
 
@@ -27,8 +28,8 @@ Editor::~Editor()
 }
 
 Editor::Editor(Window* pWindow, Mouse* pMouse)
-	:m_pWindow{ pWindow }, m_pCamera{}, m_DX12{ pWindow }, m_ImGuiRenderer{ m_DX12.GetDevice(), pWindow->GetHandle() }
-	,m_QRenderer{ m_DX12.GetDevice(), pWindow->GetDimensions().width, pWindow->GetDimensions().height}
+	:m_pWindow{ pWindow }, m_pCamera{}, m_DX12{ pWindow }, m_ImGuiRenderer{ m_DX12.GetDevice(), pWindow->GetHandle(), m_DX12.GetPipeline()->rtvCount }
+	,m_QRenderer{ m_DX12.GetDevice(), pWindow->GetDimensions().width, pWindow->GetDimensions().height, m_DX12.GetPipeline()->rtvCount}
 	, m_pCurrentScene{ nullptr }, m_Prefabs{}, m_pGeometryEditor{ new SceneNode{"Editor"} }, m_pEditResult{}
 {
 	m_pCamera = new FreeCamera{pWindow, pMouse };
@@ -309,7 +310,7 @@ void Editor::Update(float dt)
 	m_QRenderer.ShowTiles(showTiles);
 	m_QRenderer.ReverseDepth(reverseDepth);
 
-	if (tileDim[0] >= 32 && tileDim[0] <= 512 && tileDim[1] >= 32 && tileDim[1] <= 512 && numRasterizers <= 1000 && quadricsPerRasterizer <= 512)
+	if (changed && tileDim[0] >= 32 && tileDim[0] <= 512 && tileDim[1] >= 32 && tileDim[1] <= 512 && numRasterizers <= 1000 && quadricsPerRasterizer <= 512)
 	{
 		m_DX12.GetPipeline()->Flush(); //make better pls, some kind of ringbuffer maybe?
 		m_QRenderer.SetRendererSettings(m_DX12.GetPipeline()->commandList.Get(), numRasterizers, Dimensions<unsigned int>{(UINT)tileDim[0], (UINT)tileDim[1]}, quadricsPerRasterizer);
@@ -522,12 +523,11 @@ void Editor::Update(float dt)
 
 void Editor::Render()
 {
-
 	//QUADRICS
 	m_QRenderer.SetViewMatrix(m_pCamera->GetView());
 	m_pCurrentScene->Render(&m_QRenderer);
 
-	m_QRenderer.RenderFrame(m_DX12.GetPipeline()->commandList.Get(), m_DX12.GetPipeline()->GetCurrentRenderTarget());
+	m_QRenderer.RenderFrame(m_DX12.GetPipeline()->commandList.Get(), m_DX12.GetPipeline()->currentRT, m_DX12.GetPipeline()->GetCurrentRenderTarget());
 #if USE_IMGUI
 	m_ImGuiRenderer.RenderUI(m_DX12.GetPipeline()->commandList.Get());
 #endif
