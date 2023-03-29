@@ -11,6 +11,8 @@
 #include "MergeStage.h"
 #include <set>
 #include <queue>
+#include <memory>
+#include "DeferredDeleteQueue.h"
 
 class QuadricGeometry;
 
@@ -28,19 +30,9 @@ class QuadricRenderer
 private:
 	ID3D12Device2* m_pDevice;
 	//DATA
-	UINT m_NumBackBuffers;
+
 	AppData m_AppData;
-
-	UINT m_Hysteresis;
-
-	struct PendingDeleteResource
-	{
-		ID3D12Resource* resource;
-		UINT pendingFrames;
-
-	};
-	std::vector<PendingDeleteResource> m_DeferredDeleteQueue;
-	std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> m_AppDataBuffers; //general data (for both stages?)
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_AppDataBuffer; //general data (for both stages?)
 
 	//ROOT SIGNATURE
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_RootSignature;
@@ -70,10 +62,8 @@ private:
 
 	void InitResources(ID3D12GraphicsCommandList* pComList);
 	void InitDrawCall(ID3D12GraphicsCommandList* pComList);
-	void InitRendering(ID3D12GraphicsCommandList* pComList, UINT backBufferIndex);
+	void InitRendering(ID3D12GraphicsCommandList* pComList);
 	void CopyToBackBuffer(ID3D12GraphicsCommandList* pComList, ID3D12Resource* pRenderTarget, ID3D12Resource* pDepthBuffer);
-	
-	void ExecuteDeferredDelete();
 
 	std::set<QuadricGeometry*> m_ToRender;
 
@@ -83,6 +73,8 @@ private:
 	CameraValues m_CameraValues;
 	bool m_Initialized = false;
 	Dimensions<UINT> m_WindowDimensions;
+
+	std::unique_ptr<DeferredDeleteQueue> m_DeferredDeleteQueue;
 public:
 	QuadricRenderer(ID3D12Device2* pDevice, UINT windowWidth, UINT windowHeight, UINT numBackBuffers);
 	~QuadricRenderer() = default;
@@ -100,7 +92,9 @@ public:
 	void SetRendererSettings(ID3D12GraphicsCommandList* pComList, UINT numRasterizers, Dimensions<unsigned int> rasterizerDimensions = {128,128}, UINT quadricsPerRasterizer = { 64 }, bool overrule = false);
 	void SetProjectionVariables(float fov, float aspectRatio, float nearPlane, float farPlane);
 	void Initialize(ID3D12GraphicsCommandList* pComList);
-	void RenderFrame(ID3D12GraphicsCommandList* pComList, UINT backBufferIndex, ID3D12Resource* pRenderTarget, ID3D12Resource* pDepthBuffer = nullptr);
+	void RenderFrame(ID3D12GraphicsCommandList* pComList, ID3D12Resource* pRenderTarget, ID3D12Resource* pDepthBuffer = nullptr);
 	void Render(QuadricGeometry* pGeo);
 	void Render(QuadricGeometry* pGeo, const DirectX::XMMATRIX& transform);
+
+	DeferredDeleteQueue* GetDeferredDeleteQueue() const;
 };

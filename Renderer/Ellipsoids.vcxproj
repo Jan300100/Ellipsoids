@@ -19,15 +19,16 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="DeferredDeleteQueue.cpp" />
     <ClCompile Include="GeometryProcessingStage.cpp" />
     <ClCompile Include="MergeStage.cpp" />
     <ClCompile Include="QuadricGeometry.cpp" />
     <ClCompile Include="QuadricRenderer.cpp" />
     <ClCompile Include="RasterizationStage.cpp" />
-    <ClCompile Include="UploadManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3dx12.h" />
+    <ClInclude Include="DeferredDeleteQueue.h" />
     <ClInclude Include="GeometryProcessingStage.h" />
     <ClInclude Include="Helpers.h" />
     <ClInclude Include="MergeStage.h" />
@@ -36,7 +37,6 @@
     <ClInclude Include="RasterizationStage.h" />
     <ClInclude Include="Stage.h" />
     <ClInclude Include="Structs.h" />
-    <ClInclude Include="UploadManager.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\Base.hlsl">

@@ -527,7 +527,7 @@ void Editor::Render()
 	m_QRenderer.SetViewMatrix(m_pCamera->GetView());
 	m_pCurrentScene->Render(&m_QRenderer);
 
-	m_QRenderer.RenderFrame(m_DX12.GetPipeline()->commandList.Get(), m_DX12.GetPipeline()->currentRT, m_DX12.GetPipeline()->GetCurrentRenderTarget());
+	m_QRenderer.RenderFrame(m_DX12.GetPipeline()->commandList.Get(), m_DX12.GetPipeline()->GetCurrentRenderTarget());
 #if USE_IMGUI
 	m_ImGuiRenderer.RenderUI(m_DX12.GetPipeline()->commandList.Get());
 #endif
