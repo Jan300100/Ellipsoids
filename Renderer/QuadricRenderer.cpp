@@ -16,23 +16,12 @@ using namespace DirectX;
 
 void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 {
-	m_AppDataUploadBuffers.resize(m_NumBackBuffers);
 	m_AppDataBuffers.resize(m_NumBackBuffers);
 	for (size_t i = 0; i < m_NumBackBuffers; i++)
 	{
-		CD3DX12_HEAP_PROPERTIES properties = { CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD) };
+		CD3DX12_HEAP_PROPERTIES properties = { CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT) };
 		CD3DX12_RESOURCE_DESC desc = { CD3DX12_RESOURCE_DESC::Buffer((sizeof(AppData) + 255) & ~255) };
-		ThrowIfFailed(m_pDevice->CreateCommittedResource(
-			&properties,
-			D3D12_HEAP_FLAG_NONE,
-			&desc,
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			nullptr,
-			IID_PPV_ARGS(&m_AppDataUploadBuffers[i])));
-		std::wstring name = L"AppDataUploadBuffer" + std::to_wstring(i);
-		m_AppDataUploadBuffers[i]->SetName(name.c_str());
 
-		properties = { CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT) };
 		ThrowIfFailed(m_pDevice->CreateCommittedResource(
 			&properties,
 			D3D12_HEAP_FLAG_NONE,
@@ -40,7 +29,7 @@ void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
 			IID_PPV_ARGS(&m_AppDataBuffers[i])));
-		name = L"AppDataBuffer" + std::to_wstring(i);
+		std::wstring name = L"AppDataBuffer" + std::to_wstring(i);
 		m_AppDataBuffers[i]->SetName(name.c_str());
 	}
 	
@@ -188,6 +177,30 @@ void QuadricRenderer::CopyToBackBuffer(ID3D12GraphicsCommandList* pComList, ID3D
 	pComList->ResourceBarrier(2, transitions);
 }
 
+void QuadricRenderer::ExecuteDeferredDelete()
+{
+	for (size_t i = 0; i < m_DeferredDeleteQueue.size(); i++)
+	{
+		PendingDeleteResource& r = m_DeferredDeleteQueue[i];
+		if (r.pendingFrames > m_Hysteresis)
+		{
+			if (r.resource)
+			{
+				r.resource->Release();
+				r.resource = nullptr;
+			}
+
+			m_DeferredDeleteQueue[i] = m_DeferredDeleteQueue.back();
+			m_DeferredDeleteQueue.pop_back();
+			i--;
+		}
+		else
+		{
+			r.pendingFrames++;
+		}
+	}
+}
+
 void QuadricRenderer::InitDrawCall(ID3D12GraphicsCommandList* pComList)
 {
 	PIXScopedEvent(pComList, 0, "QuadricRenderer::InitDrawCall");
@@ -236,26 +249,40 @@ void QuadricRenderer::InitRendering(ID3D12GraphicsCommandList* pComList, UINT ba
 	m_AppData.viewInv = m_CameraValues.vInv;
 	m_AppData.projInv = XMMatrixInverse(nullptr, m_CameraValues.p);
 
+	ID3D12Resource* tempResource;
+	CD3DX12_HEAP_PROPERTIES properties = { CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD) };
+	CD3DX12_RESOURCE_DESC desc = { CD3DX12_RESOURCE_DESC::Buffer((sizeof(AppData) + 255) & ~255) };
+	ThrowIfFailed(m_pDevice->CreateCommittedResource(
+		&properties,
+		D3D12_HEAP_FLAG_NONE,
+		&desc,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&tempResource)));
+
 	BYTE* mapped = nullptr;
-	ThrowIfFailed(m_AppDataUploadBuffers[backBufferIndex]->Map(0, nullptr,
+	ThrowIfFailed(tempResource->Map(0, nullptr,
 		reinterpret_cast<void**>(&mapped)));
 
 	memcpy(mapped, &m_AppData, sizeof(AppData));
-	if (m_AppDataUploadBuffers[backBufferIndex] != nullptr)
-		m_AppDataUploadBuffers[backBufferIndex]->Unmap(0, nullptr);
+	if (tempResource != nullptr)
+		tempResource->Unmap(0, nullptr);
 
 	CD3DX12_RESOURCE_BARRIER barriers[2] = { CD3DX12_RESOURCE_BARRIER::Transition(m_AppDataBuffers[backBufferIndex].Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST),
-		CD3DX12_RESOURCE_BARRIER::Transition(m_AppDataUploadBuffers[backBufferIndex].Get(),D3D12_RESOURCE_STATE_GENERIC_READ , D3D12_RESOURCE_STATE_COPY_SOURCE) };
+		CD3DX12_RESOURCE_BARRIER::Transition(tempResource,D3D12_RESOURCE_STATE_GENERIC_READ , D3D12_RESOURCE_STATE_COPY_SOURCE) };
 	pComList->ResourceBarrier(2, barriers);
 
-	pComList->CopyResource(m_AppDataBuffers[backBufferIndex].Get(), m_AppDataUploadBuffers[backBufferIndex].Get());
+	pComList->CopyResource(m_AppDataBuffers[backBufferIndex].Get(), tempResource);
 
 	barriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(m_AppDataBuffers[backBufferIndex].Get(),
 		D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COMMON);
-	barriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(m_AppDataUploadBuffers[backBufferIndex].Get(),
-		D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_GENERIC_READ);
-	pComList->ResourceBarrier(2, barriers);
-	
+	pComList->ResourceBarrier(1, barriers);
+
+	PendingDeleteResource r;
+	r.pendingFrames = 0;
+	r.resource = tempResource;
+	m_DeferredDeleteQueue.push_back(r);
+
 	// Set Descriptor Heaps
 	ID3D12DescriptorHeap* descHeaps[]{ m_DescriptorHeapSV.Get() };
 	pComList->SetDescriptorHeaps(_countof(descHeaps), descHeaps);
@@ -305,6 +332,7 @@ QuadricRenderer::QuadricRenderer(ID3D12Device2* pDevice, UINT windowWidth, UINT 
 	,m_MStage{}
 	, m_CameraValues{}
 	, m_NumBackBuffers{ numBackBuffers }
+	, m_Hysteresis{ numBackBuffers  * 2} // to get some leeway
 {
 	m_AppData.windowSize = { windowWidth ,windowHeight, 0, 0 };
 	m_AppData.showTiles = false;
@@ -586,6 +614,8 @@ void QuadricRenderer::RenderFrame(ID3D12GraphicsCommandList* pComList, UINT back
 
 	if (!m_Initialized) throw std::wstring{ L"Quadric Renderer not initialized!" };
 	
+	ExecuteDeferredDelete();
+
 	InitRendering(pComList, backBufferIndex);
 
 	for (QuadricGeometry* pGeo : m_ToRender)

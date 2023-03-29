@@ -10,6 +10,7 @@
 #include "GeometryProcessingStage.h"
 #include "MergeStage.h"
 #include <set>
+#include <queue>
 
 class QuadricGeometry;
 
@@ -30,8 +31,16 @@ private:
 	UINT m_NumBackBuffers;
 	AppData m_AppData;
 
+	UINT m_Hysteresis;
+
+	struct PendingDeleteResource
+	{
+		ID3D12Resource* resource;
+		UINT pendingFrames;
+
+	};
+	std::vector<PendingDeleteResource> m_DeferredDeleteQueue;
 	std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> m_AppDataBuffers; //general data (for both stages?)
-	std::vector < Microsoft::WRL::ComPtr<ID3D12Resource>> m_AppDataUploadBuffers; //general data (for both stages?)
 
 	//ROOT SIGNATURE
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_RootSignature;
@@ -64,6 +73,8 @@ private:
 	void InitRendering(ID3D12GraphicsCommandList* pComList, UINT backBufferIndex);
 	void CopyToBackBuffer(ID3D12GraphicsCommandList* pComList, ID3D12Resource* pRenderTarget, ID3D12Resource* pDepthBuffer);
 	
+	void ExecuteDeferredDelete();
+
 	std::set<QuadricGeometry*> m_ToRender;
 
 	DirectX::XMFLOAT4 m_ClearColor = { 66 / 255.0f,135 / 255.0f,245 / 255.0f,0 };
