@@ -31,7 +31,7 @@ struct DX12::Pipeline
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
 
 	//
-	static const int rtvCount = 3;
+	static const int rtvCount = 2;
 	int currentRT = 0;
 
 	UINT64 cpuFence[rtvCount];
