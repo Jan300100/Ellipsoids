@@ -15,6 +15,8 @@ class QuadricGeometry
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_InputBuffer = nullptr; //has the cpu data
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_InputUploadBuffer = nullptr; //uploads the inputquadrics data to the gpu
 	///PER MESH DATA : //contains the transformation matrix for the entire mesh
+
+
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_MeshDataBuffer = nullptr;
 	bool m_Initialized = false;
 	std::string m_Name;
@@ -24,7 +26,7 @@ public:
 	void SetName(const std::string& name) { m_Name = name; }
 	ID3D12Resource* GetInputBuffer() const { return m_InputBuffer.Get(); }
 	ID3D12Resource* GetTransformBuffer() { return m_MeshDataBuffer.Get(); }
-	UINT UpdateTransforms();
+	UINT UpdateTransforms(ID3D12GraphicsCommandList* pComList, class QuadricRenderer* pRenderer);
 
 	UINT GetMaxInstances() const { return m_MaxInstances; }
 	void Init(ID3D12Device2* pDevice, ID3D12GraphicsCommandList* pComList, const std::vector<Quadric>& quadrics ,UINT maxInstances = 1);

@@ -1,16 +1,32 @@
 #include "QuadricGeometry.h"
+#include "QuadricRenderer.h"
 #include "d3dx12.h"
 #include "Helpers.h"
 #include <iostream>
 
 using namespace DirectX;
 
-UINT QuadricGeometry::UpdateTransforms()
+UINT QuadricGeometry::UpdateTransforms(ID3D12GraphicsCommandList* pComList, QuadricRenderer* pRenderer)
 {
     if (!m_Initialized) return 0;
 
+    // create temp resource and queue for delete :D
+    ID3D12Resource* tempResource;
+
+    // singleframe upload resource
+    CD3DX12_HEAP_PROPERTIES properties = { CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD) };
+    CD3DX12_RESOURCE_DESC desc = { CD3DX12_RESOURCE_DESC::Buffer(sizeof(DirectX::XMMATRIX) * m_MaxInstances) };
+    pRenderer->GetDevice()->CreateCommittedResource(
+        &properties,
+        D3D12_HEAP_FLAG_NONE,
+        &desc,
+        D3D12_RESOURCE_STATE_GENERIC_READ,
+        nullptr,
+        IID_PPV_ARGS(&tempResource));
+    pRenderer->GetDeferredDeleteQueue()->QueueForDelete(tempResource);
+
     BYTE* mapped = nullptr;
-    m_MeshDataBuffer->Map(0, nullptr,
+    tempResource->Map(0, nullptr,
         reinterpret_cast<void**>(&mapped));
     UINT amount = (UINT)m_Transforms.size();
 
@@ -20,8 +36,18 @@ UINT QuadricGeometry::UpdateTransforms()
     }
 
     memcpy(mapped, m_Transforms.data(), sizeof(XMMATRIX) * amount);
-    if (m_MeshDataBuffer != nullptr)
-        m_MeshDataBuffer->Unmap(0, nullptr);
+    if (tempResource != nullptr)
+        tempResource->Unmap(0, nullptr);
+
+    // queue copy
+    CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_MeshDataBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
+    pComList->ResourceBarrier(1, &barrier);
+
+    pComList->CopyResource(m_MeshDataBuffer.Get(), tempResource);
+
+    barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_MeshDataBuffer.Get(),
+        D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COMMON);
+    pComList->ResourceBarrier(1, &barrier);
 
     m_Transforms.clear();
     return amount;
@@ -74,19 +100,15 @@ void QuadricGeometry::Init(ID3D12Device2* pDevice, ID3D12GraphicsCommandList* pC
     m_MaxInstances = (maxInstances == 0) ? 1 : maxInstances;
     //create transform data
     //Constant Buffer
-    properties = { CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD) };
+    properties = { CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT) };
     desc = { CD3DX12_RESOURCE_DESC::Buffer(sizeof(DirectX::XMMATRIX) * m_MaxInstances) };
     pDevice->CreateCommittedResource(
         &properties,
         D3D12_HEAP_FLAG_NONE,
         &desc,
-        D3D12_RESOURCE_STATE_GENERIC_READ,
+        D3D12_RESOURCE_STATE_COMMON,
         nullptr,
         IID_PPV_ARGS(&m_MeshDataBuffer));
-
-    //set data
-    UpdateTransforms();
-    
 
     m_Initialized = true;
 

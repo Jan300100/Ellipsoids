@@ -19,15 +19,16 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="DeferredDeleteQueue.cpp" />
     <ClCompile Include="GeometryProcessingStage.cpp" />
     <ClCompile Include="MergeStage.cpp" />
     <ClCompile Include="QuadricGeometry.cpp" />
     <ClCompile Include="QuadricRenderer.cpp" />
     <ClCompile Include="RasterizationStage.cpp" />
-    <ClCompile Include="UploadManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3dx12.h" />
+    <ClInclude Include="DeferredDeleteQueue.h" />
     <ClInclude Include="GeometryProcessingStage.h" />
     <ClInclude Include="Helpers.h" />
     <ClInclude Include="MergeStage.h" />
@@ -36,7 +37,6 @@
     <ClInclude Include="RasterizationStage.h" />
     <ClInclude Include="Stage.h" />
     <ClInclude Include="Structs.h" />
-    <ClInclude Include="UploadManager.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\Base.hlsl">
@@ -217,12 +217,12 @@
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\packages\WinPixEventRuntime.1.0.220810001\build\WinPixEventRuntime.targets" Condition="Exists('..\packages\WinPixEventRuntime.1.0.220810001\build\WinPixEventRuntime.targets')" />
+    <Import Project="..\packages\WinPixEventRuntime.1.0.230302001\build\WinPixEventRuntime.targets" Condition="Exists('..\packages\WinPixEventRuntime.1.0.230302001\build\WinPixEventRuntime.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\WinPixEventRuntime.1.0.220810001\build\WinPixEventRuntime.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\WinPixEventRuntime.1.0.220810001\build\WinPixEventRuntime.targets'))" />
+    <Error Condition="!Exists('..\packages\WinPixEventRuntime.1.0.230302001\build\WinPixEventRuntime.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\WinPixEventRuntime.1.0.230302001\build\WinPixEventRuntime.targets'))" />
   </Target>
 </Project>

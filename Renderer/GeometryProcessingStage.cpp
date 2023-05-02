@@ -26,7 +26,7 @@ bool Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, ID3D12Graphi
 	PIXScopedEvent(pComList, 0, "Stage::GeometryProcessing");
 	if (!m_Initialized) throw L"GeometryProcessingStage not initialized";
 
-	UINT amount = pGeometry->UpdateTransforms();
+	UINT amount = pGeometry->UpdateTransforms(pComList, pRenderer);
 	if (amount == 0 || pGeometry->QuadricsAmount() == 0) return false;
 
 	std::array< CD3DX12_RESOURCE_BARRIER, 3> barriers{};
