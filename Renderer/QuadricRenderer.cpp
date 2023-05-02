@@ -432,29 +432,38 @@ void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, U
 			IID_PPV_ARGS(&m_ScreenTileBuffer)));
 		m_ScreenTileBuffer->SetName(L"ScreenTileBuffer");
 
-		//uploadBuffer
-		properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD);
 		desc = CD3DX12_RESOURCE_DESC::Buffer(byteSize);
+		ThrowIfFailed(m_pDevice->CreateCommittedResource(
+			&properties,
+			D3D12_HEAP_FLAG_NONE,
+			&desc,
+			D3D12_RESOURCE_STATE_COPY_DEST,
+			nullptr,
+			IID_PPV_ARGS(&m_ScreenTileResetBuffer)));
+		m_ScreenTileResetBuffer->SetName(L"ScreenTileBuffer");
+
+		//uploadBuffer
+		ID3D12Resource* screenTileInitialData;
+		properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD);
 		ThrowIfFailed(m_pDevice->CreateCommittedResource(
 			&properties,
 			D3D12_HEAP_FLAG_NONE,
 			&desc,
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
-			IID_PPV_ARGS(&m_ScreenTileResetBuffer)));
-		m_ScreenTileResetBuffer->SetName(L"ScreenTileResetBuffer");
+			IID_PPV_ARGS(&screenTileInitialData)));
 
 
 		ScreenTile* tiles = nullptr;
-		m_ScreenTileResetBuffer->Map(0, nullptr,
+		screenTileInitialData->Map(0, nullptr,
 			reinterpret_cast<void**>(&tiles));
 		for (UINT i = 0; i < GetNrTiles().width * GetNrTiles().height; i++)
 		{
 			tiles[i].rasterizerHint = UINT_MAX;
 		}
 
-		if (m_ScreenTileResetBuffer != nullptr)
-			m_ScreenTileResetBuffer->Unmap(0, nullptr);
+		if (screenTileInitialData != nullptr)
+			screenTileInitialData->Unmap(0, nullptr);
 
 		//RASTERIZERS
 		// Create the buffer that will be a UAV with rasterizers
@@ -469,28 +478,37 @@ void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, U
 			nullptr,
 			IID_PPV_ARGS(&m_RasterizerBuffer)));
 
-		//uploadBuffer
-		properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD);
 		desc = CD3DX12_RESOURCE_DESC::Buffer(byteSize);
+		ThrowIfFailed(m_pDevice->CreateCommittedResource(
+			&properties,
+			D3D12_HEAP_FLAG_NONE,
+			&desc,
+			D3D12_RESOURCE_STATE_COPY_DEST,
+			nullptr,
+			IID_PPV_ARGS(&m_RasterizerResetBuffer)));
+
+		//uploadBuffer
+		ID3D12Resource* rasterizerInitialData;
+		properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE::D3D12_HEAP_TYPE_UPLOAD);
 		ThrowIfFailed(m_pDevice->CreateCommittedResource(
 			&properties,
 			D3D12_HEAP_FLAG_NONE,
 			&desc,
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
-			IID_PPV_ARGS(&m_RasterizerResetBuffer)));
+			IID_PPV_ARGS(&rasterizerInitialData)));
 
 		Rasterizer initial{ UINT_MAX, UINT_MAX , 0 };
 
 		Rasterizer* rasterizers = nullptr;
-		m_RasterizerResetBuffer->Map(0, nullptr,
+		rasterizerInitialData->Map(0, nullptr,
 			reinterpret_cast<void**>(&rasterizers));
 		for (unsigned int i = 0; i < m_AppData.numRasterizers; i++)
 		{
 			rasterizers[i] = initial;
 		}
-		if (m_RasterizerResetBuffer != nullptr)
-			m_RasterizerResetBuffer->Unmap(0, nullptr);
+		if (rasterizerInitialData != nullptr)
+			rasterizerInitialData->Unmap(0, nullptr);
 
 		//QBuffer
 		byteSize = sizeof(OutQuadric) * m_AppData.numRasterizers * m_AppData.quadricsPerRasterizer;
@@ -509,14 +527,23 @@ void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, U
 		m_RasterizerResetBuffer->SetName(L"RasterizerResetBuffer");
 		m_RasterizerQBuffer->SetName(L"RasterizerQBuffer");
 
+		pComList->CopyResource(m_RasterizerResetBuffer.Get(), rasterizerInitialData);
+		pComList->CopyResource(m_ScreenTileResetBuffer.Get(), screenTileInitialData);
+
 		std::vector< CD3DX12_RESOURCE_BARRIER>transitions{};
 		transitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_RasterizerIBuffer.Get(),
 			D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 		transitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_RasterizerDepthBuffer.Get(),
 			D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+		transitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_RasterizerResetBuffer.Get(),
+			D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE));
+		transitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_ScreenTileResetBuffer.Get(),
+			D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE));
 
 		pComList->ResourceBarrier((UINT)transitions.size(), transitions.data());
 
+		GetDeferredDeleteQueue()->QueueForDelete(screenTileInitialData);
+		GetDeferredDeleteQueue()->QueueForDelete(rasterizerInitialData);
 	}
 	else if (quadricsPerRasterizer != m_AppData.quadricsPerRasterizer)
 	{
