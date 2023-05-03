@@ -16,7 +16,7 @@
 
 Editor::~Editor()
 {
-	m_DX12.GetPipeline()->Flush();
+	m_DX12.GetGraphicsInterface()->Flush();
 	for (auto  pGeo : m_Geometry)
 	{
 		delete pGeo.second.pGeometry;
@@ -28,8 +28,8 @@ Editor::~Editor()
 }
 
 Editor::Editor(Window* pWindow, Mouse* pMouse)
-	:m_pWindow{ pWindow }, m_pCamera{}, m_DX12{ pWindow }, m_ImGuiRenderer{ m_DX12.GetDevice(), pWindow->GetHandle(), m_DX12.GetPipeline()->rtvCount }
-	,m_QRenderer{ m_DX12.GetDevice(), pWindow->GetDimensions().width, pWindow->GetDimensions().height, m_DX12.GetPipeline()->rtvCount}
+	:m_pWindow{ pWindow }, m_pCamera{}, m_DX12{ pWindow }, m_ImGuiRenderer{ m_DX12.GetDevice(), pWindow->GetHandle(), m_DX12.GetGraphicsInterface()->k_numBackBuffers }
+	,m_QRenderer{ m_DX12.GetDevice(), pWindow->GetDimensions().width, pWindow->GetDimensions().height, m_DX12.GetGraphicsInterface()->k_numBackBuffers}
 	, m_pCurrentScene{ nullptr }, m_Prefabs{}, m_pGeometryEditor{ new SceneNode{"Editor"} }, m_pEditResult{}
 {
 	m_pCamera = new FreeCamera{pWindow, pMouse };
@@ -41,9 +41,9 @@ Editor::Editor(Window* pWindow, Mouse* pMouse)
 
 void Editor::Initialize()
 {
-	m_DX12.GetPipeline()->commandAllocator[m_DX12.GetPipeline()->currentRT]->Reset();
-	m_DX12.GetPipeline()->commandList->Reset(m_DX12.GetPipeline()->commandAllocator[m_DX12.GetPipeline()->currentRT].Get(), nullptr);
-	m_QRenderer.Initialize(m_DX12.GetPipeline()->commandList.Get());
+	m_DX12.GetGraphicsInterface()->commandAllocator[m_DX12.GetGraphicsInterface()->currentRT]->Reset();
+	m_DX12.GetGraphicsInterface()->commandList->Reset(m_DX12.GetGraphicsInterface()->commandAllocator[m_DX12.GetGraphicsInterface()->currentRT].Get(), nullptr);
+	m_QRenderer.Initialize(m_DX12.GetGraphicsInterface()->commandList.Get());
 	m_QRenderer.SetProjectionVariables(m_pCamera->GetFOV(), m_pWindow->AspectRatio(), m_pCamera->GetNearPlane(), 200.0f);
 	//m_QRenderer.SetRendererSettings(m_DX12.GetPipeline()->commandList.Get(), 1024, Dimensions<unsigned int>{64,64}, 128);
 	m_QRenderer.ShowTiles(true);
@@ -252,15 +252,15 @@ void Editor::Initialize()
 	QuadricInstance* pInstance = new QuadricInstance{ ground.pGeometry };
 	pScene->AddElement(pInstance);
 
-	ground.UpdateGeometry(m_DX12.GetDevice(), m_DX12.GetPipeline()->commandList.Get());
-	person.UpdateGeometry(m_DX12.GetDevice(), m_DX12.GetPipeline()->commandList.Get());
+	ground.UpdateGeometry(m_DX12.GetDevice(), m_DX12.GetGraphicsInterface()->commandList.Get());
+	person.UpdateGeometry(m_DX12.GetDevice(), m_DX12.GetGraphicsInterface()->commandList.Get());
 	//
 	// Done recording commands.
-	m_DX12.GetPipeline()->commandList.Get()->Close();
+	m_DX12.GetGraphicsInterface()->commandList.Get()->Close();
 	// Add the command list to the queue for execution.
-	ID3D12CommandList* cmdsLists[] = { m_DX12.GetPipeline()->commandList.Get() };
-	m_DX12.GetPipeline()->commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
-	m_DX12.GetPipeline()->Flush();
+	ID3D12CommandList* cmdsLists[] = { m_DX12.GetGraphicsInterface()->commandList.Get() };
+	m_DX12.GetGraphicsInterface()->commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	m_DX12.GetGraphicsInterface()->Flush();
 
 }
 
@@ -312,8 +312,8 @@ void Editor::Update(float dt)
 
 	if (changed && tileDim[0] >= 32 && tileDim[0] <= 512 && tileDim[1] >= 32 && tileDim[1] <= 512 && numRasterizers <= 1000 && quadricsPerRasterizer <= 512)
 	{
-		m_DX12.GetPipeline()->Flush(); //make better pls, some kind of ringbuffer maybe?
-		m_QRenderer.SetRendererSettings(m_DX12.GetPipeline()->commandList.Get(), numRasterizers, Dimensions<unsigned int>{(UINT)tileDim[0], (UINT)tileDim[1]}, quadricsPerRasterizer);
+		m_DX12.GetGraphicsInterface()->Flush(); //make better pls, some kind of ringbuffer maybe?
+		m_QRenderer.SetRendererSettings(m_DX12.GetGraphicsInterface()->commandList.Get(), numRasterizers, Dimensions<unsigned int>{(UINT)tileDim[0], (UINT)tileDim[1]}, quadricsPerRasterizer);
 	}
 
 	//scene graph
@@ -496,7 +496,7 @@ void Editor::Update(float dt)
 			if ((UINT)instances > info.pGeometry->GetMaxInstances())
 			{
 				info.maxInstances = (UINT)instances;
-				info.UpdateGeometry(m_DX12.GetDevice(), m_DX12.GetPipeline()->commandList.Get());
+				info.UpdateGeometry(m_DX12.GetDevice(), m_DX12.GetGraphicsInterface()->commandList.Get());
 			}
 		}
 		if (pSelectedNode)
@@ -527,8 +527,8 @@ void Editor::Render()
 	m_QRenderer.SetViewMatrix(m_pCamera->GetView());
 	m_pCurrentScene->Render(&m_QRenderer);
 
-	m_QRenderer.RenderFrame(m_DX12.GetPipeline()->commandList.Get(), m_DX12.GetPipeline()->GetCurrentRenderTarget());
+	m_QRenderer.RenderFrame(m_DX12.GetGraphicsInterface()->commandList.Get(), m_DX12.GetGraphicsInterface()->GetCurrentRenderTarget());
 #if USE_IMGUI
-	m_ImGuiRenderer.RenderUI(m_DX12.GetPipeline()->commandList.Get());
+	m_ImGuiRenderer.RenderUI(m_DX12.GetGraphicsInterface()->commandList.Get());
 #endif
 }
