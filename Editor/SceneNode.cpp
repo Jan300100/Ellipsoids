@@ -142,7 +142,6 @@ void SceneNode::RenderImGui(SceneNode** outSelectedNode, QuadricInstance** outSe
 
 void SceneNode::RenderEditImGui()
 {
-
 	char buf[64]{};
 	strcpy_s(buf, m_Name.c_str());
 	if (ImGui::InputText("Name", buf, 64))
@@ -162,7 +161,6 @@ void SceneNode::RenderEditImGui()
 	m_Transform.SetScale(sc);
 
 	ImGui::NewLine();
-
 }
 
 SceneNode* SceneNode::GetParent()

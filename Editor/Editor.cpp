@@ -52,7 +52,7 @@ void Editor::Initialize()
 	//initialization
 	DirectX::XMFLOAT3 skinColor{ 1.0f,0.67f,0.45f }, tShirtColor{ 1,0,0 }, pantsColor{ 0,0,1 }, shoeColor{ 0.6f,0.4f,0.1f };
 
-	EditableGeometry person{ {}, new QuadricGeometry{"Person"}, 5000 };
+	EditableGeometry person{ {}, new QuadricGeometry{"Person"} };
 
 	EditQuadric head{};
 	head.equation = DirectX::XMFLOAT4X4{
@@ -233,7 +233,7 @@ void Editor::Initialize()
 		}
 	}
 
-	EditableGeometry ground{ {}, new QuadricGeometry{"World"}, 2 };
+	EditableGeometry ground{ {}, new QuadricGeometry{"World"} };
 
 	EditQuadric world{};
 	float range = 10'000;
@@ -252,8 +252,8 @@ void Editor::Initialize()
 	QuadricInstance* pInstance = new QuadricInstance{ ground.pGeometry };
 	pScene->AddElement(pInstance);
 
-	ground.UpdateGeometry(m_DX12.GetDevice(), m_DX12.GetGraphicsInterface()->commandList.Get());
-	person.UpdateGeometry(m_DX12.GetDevice(), m_DX12.GetGraphicsInterface()->commandList.Get());
+	ground.UpdateGeometry(&m_QRenderer, m_DX12.GetGraphicsInterface()->commandList.Get());
+	person.UpdateGeometry(&m_QRenderer, m_DX12.GetGraphicsInterface()->commandList.Get());
 	//
 	// Done recording commands.
 	m_DX12.GetGraphicsInterface()->commandList.Get()->Close();
@@ -489,16 +489,8 @@ void Editor::Update(float dt)
 		ImGui::NewLine();
 
 		ImGui::Text((std::to_string(info.quadrics.size()) + " Ellipsoids").c_str());
-		int instances = info.pGeometry->GetMaxInstances();
-		if (ImGui::InputInt("Max Instances", &instances))
-		{
-			instances = max(instances, (int)info.pGeometry->GetMaxInstances());
-			if ((UINT)instances > info.pGeometry->GetMaxInstances())
-			{
-				info.maxInstances = (UINT)instances;
-				info.UpdateGeometry(m_DX12.GetDevice(), m_DX12.GetGraphicsInterface()->commandList.Get());
-			}
-		}
+		info.UpdateGeometry(&m_QRenderer, m_DX12.GetGraphicsInterface()->commandList.Get());
+
 		if (pSelectedNode)
 		{
 			if (ImGui::Button("Add Instance to current node"))
@@ -519,14 +511,18 @@ void Editor::Update(float dt)
 	ImGui::EndChild();
 	ImGui::End();
 #endif
+
+	m_pCurrentScene->Render(&m_QRenderer);
+	for (auto it : m_Geometry)
+	{
+		it.second.pGeometry->UpdateTransforms(m_DX12.GetGraphicsInterface()->commandList.Get(), &m_QRenderer);
+	}
 }
 
 void Editor::Render()
 {
 	//QUADRICS
 	m_QRenderer.SetViewMatrix(m_pCamera->GetView());
-	m_pCurrentScene->Render(&m_QRenderer);
-
 	m_QRenderer.RenderFrame(m_DX12.GetGraphicsInterface()->commandList.Get(), m_DX12.GetGraphicsInterface()->GetCurrentRenderTarget());
 #if USE_IMGUI
 	m_ImGuiRenderer.RenderUI(m_DX12.GetGraphicsInterface()->commandList.Get());

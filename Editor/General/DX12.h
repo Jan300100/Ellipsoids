@@ -34,7 +34,7 @@ struct DX12::Graphics
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
 
 	//
-	static constexpr int k_numBackBuffers = 2;
+	static constexpr UINT k_numBackBuffers = 2;
 	int currentRT = 0;
 
 	UINT64 cpuFence[k_numBackBuffers];
@@ -54,10 +54,16 @@ struct DX12::Copy
 {
 	Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueue;
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
+	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator;
 
-	UINT64 cpuFence[DX12::Graphics::k_numBackBuffers];
-	Microsoft::WRL::ComPtr<ID3D12Fence> gpuFence[DX12::Graphics::k_numBackBuffers];
-	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator[DX12::Graphics::k_numBackBuffers];
+	struct Buffer
+	{
+		static constexpr size_t k_numBuffers = 2; // 2 == double buffered
+
+		UINT64 cpuFence[k_numBuffers];
+		Microsoft::WRL::ComPtr<ID3D12Fence> gpuFence[k_numBuffers];
+
+	};
 };
 
 
