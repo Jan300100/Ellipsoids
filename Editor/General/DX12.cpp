@@ -47,7 +47,7 @@ DX12::DX12(Window* pWindow)
 
 	//GRAPHICS
 	//********
-	m_pGraphics = new Pipeline{ m_Device.Get(),factory.Get(), m_pWindow };
+	m_pGraphics = new Graphics{ m_Device.Get(),factory.Get(), m_pWindow };
 
 }
 
@@ -104,10 +104,10 @@ void DX12::NewFrame()
 	m_pGraphics->commandList->OMSetRenderTargets(1, &handle, FALSE, NULL);
 }
 
-DX12::Pipeline::Pipeline(ID3D12Device2* pDevice, IDXGIFactory4* pFactory, Window* pWindow)
+DX12::Graphics::Graphics(ID3D12Device2* pDevice, IDXGIFactory4* pFactory, Window* pWindow)
 {
 	//FENCES
-	for (size_t i = 0; i < rtvCount; i++)
+	for (size_t i = 0; i < k_numBackBuffers; i++)
 	{
 		cpuFence[i] = 0;
 		ThrowIfFailed(pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE,
@@ -154,7 +154,7 @@ DX12::Pipeline::Pipeline(ID3D12Device2* pDevice, IDXGIFactory4* pFactory, Window
 	sd.SampleDesc.Count = 1;
 	sd.SampleDesc.Quality = 0;
 	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	sd.BufferCount = rtvCount;
+	sd.BufferCount = k_numBackBuffers;
 	sd.OutputWindow = pWindow->GetHandle();
 	sd.Windowed = true;
 	sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
@@ -169,7 +169,7 @@ DX12::Pipeline::Pipeline(ID3D12Device2* pDevice, IDXGIFactory4* pFactory, Window
 
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
 	ZeroMemory(&rtvHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
-	rtvHeapDesc.NumDescriptors = rtvCount;
+	rtvHeapDesc.NumDescriptors = k_numBackBuffers;
 	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	rtvHeapDesc.NodeMask = 0;
@@ -179,7 +179,7 @@ DX12::Pipeline::Pipeline(ID3D12Device2* pDevice, IDXGIFactory4* pFactory, Window
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle(rtvHeap->GetCPUDescriptorHandleForHeapStart());
 
 	std::wstring name = L"RenderTarget";
-	for (int i = 0; i < rtvCount; i++)
+	for (int i = 0; i < k_numBackBuffers; i++)
 	{
 		ThrowIfFailed(swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTargets[i])));
 		pDevice->CreateRenderTargetView(renderTargets[i].Get(), nullptr, rtvHeapHandle);
@@ -188,7 +188,7 @@ DX12::Pipeline::Pipeline(ID3D12Device2* pDevice, IDXGIFactory4* pFactory, Window
 	}
 }
 
-void DX12::Pipeline::Flush()
+void DX12::Graphics::Flush()
 {
 	cpuFence[currentRT]++;
 
@@ -196,7 +196,7 @@ void DX12::Pipeline::Flush()
 	WaitForFence(currentRT);
 }
 
-void DX12::Pipeline::WaitForFence(int index)
+void DX12::Graphics::WaitForFence(int index)
 {
 	PIXScopedEvent(0, "WaitForFence: %d", index);
 	if (gpuFence[index]->GetCompletedValue() < cpuFence[index])

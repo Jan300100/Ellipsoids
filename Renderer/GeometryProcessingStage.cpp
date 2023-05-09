@@ -18,7 +18,6 @@ using namespace Microsoft::WRL;
 Stage::GeometryProcessing::GeometryProcessing()
 	:Stage{}
 {
-	
 }
 
 bool Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, ID3D12GraphicsCommandList* pComList, QuadricGeometry* pGeometry) const
@@ -26,20 +25,19 @@ bool Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, ID3D12Graphi
 	PIXScopedEvent(pComList, 0, "Stage::GeometryProcessing");
 	if (!m_Initialized) throw L"GeometryProcessingStage not initialized";
 
-	UINT amount = pGeometry->UpdateTransforms(pComList, pRenderer);
-	if (amount == 0 || pGeometry->QuadricsAmount() == 0) return false;
+	if (pGeometry->QuadricsAmount() == 0) return false;
 
 	std::array< CD3DX12_RESOURCE_BARRIER, 3> barriers{};
 	barriers[0] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerBuffer.Get());
 	barriers[1] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerQBuffer.Get());
 	barriers[2] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_ScreenTileBuffer.Get());
 	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
-	pComList->SetComputeRoot32BitConstant(0, pGeometry->QuadricsAmount(), 0);
+	pComList->SetComputeRoot32BitConstant(0, (UINT)pGeometry->QuadricsAmount(), 0);
 	pComList->SetComputeRootShaderResourceView(2, pGeometry->GetTransformBuffer()->GetGPUVirtualAddress());
 	pComList->SetComputeRootShaderResourceView(3, pGeometry->GetInputBuffer()->GetGPUVirtualAddress());
 
 	pComList->SetPipelineState(m_Pso.Get());
-	pComList->Dispatch((pGeometry->QuadricsAmount() / 32) + ((pGeometry->QuadricsAmount() % 32) > 0), 1, amount);
+	pComList->Dispatch((UINT)(pGeometry->QuadricsAmount() / 32) + ((pGeometry->QuadricsAmount() % 32) > 0), 1, (UINT)pGeometry->GetNumInstances());
 	return true;
 }
 

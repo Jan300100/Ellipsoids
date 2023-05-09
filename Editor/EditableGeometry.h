@@ -9,7 +9,6 @@ class QuadricGeometry;
 struct EditableGeometry
 {
 	std::vector<EditQuadric> quadrics;
-	void UpdateGeometry(ID3D12Device2* pDevice, ID3D12GraphicsCommandList* pComList);
+	void UpdateGeometry(QuadricRenderer* pRenderer, ID3D12GraphicsCommandList* pComList);
 	QuadricGeometry* pGeometry;
-	UINT maxInstances;
 };
