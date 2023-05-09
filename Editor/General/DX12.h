@@ -33,8 +33,8 @@ struct DX12::Graphics
 	Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueue;
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
 
-	//
 	static constexpr UINT k_numBackBuffers = 2;
+
 	int currentRT = 0;
 
 	UINT64 cpuFence[k_numBackBuffers];
