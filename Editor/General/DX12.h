@@ -49,21 +49,3 @@ struct DX12::Graphics
 	ID3D12Resource* GetCurrentRenderTarget() { return renderTargets[currentRT].Get(); }
 	~Graphics() { Flush(); }
 };
-
-struct DX12::Copy
-{
-	Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueue;
-	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
-	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator;
-
-	struct Buffer
-	{
-		static constexpr size_t k_numBuffers = 2; // 2 == double buffered
-
-		UINT64 cpuFence[k_numBuffers];
-		Microsoft::WRL::ComPtr<ID3D12Fence> gpuFence[k_numBuffers];
-
-	};
-};
-
-
