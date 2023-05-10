@@ -31,7 +31,7 @@ DX12::DX12(Window* pWindow)
 	HRESULT hardwareResult = D3D12CreateDevice(
 		nullptr,             // default adapter
 		D3D_FEATURE_LEVEL_11_0,
-		IID_PPV_ARGS(&m_Device));
+		IID_PPV_ARGS(&m_pDevice));
 
 	// Fallback to WARP device.
 	if (FAILED(hardwareResult))
@@ -42,80 +42,70 @@ DX12::DX12(Window* pWindow)
 		ThrowIfFailed(D3D12CreateDevice(
 			pWarpAdapter.Get(),
 			D3D_FEATURE_LEVEL_11_0,
-			IID_PPV_ARGS(&m_Device)));
+			IID_PPV_ARGS(&m_pDevice)));
 	}
 
 	//GRAPHICS
 	//********
-	m_pGraphics = new Graphics{ m_Device.Get(),factory.Get(), m_pWindow };
-
+	m_pGraphics = new Graphics{ m_pDevice.Get(),factory.Get(), m_pWindow };
+	m_pCompute = new Compute{ m_pDevice.Get() };
 }
 
 DX12::~DX12()
 {
 	delete m_pGraphics;
+	delete m_pCompute;
 }
 
-void DX12::Present()
+void DX12::Graphics::Present()
 {
-	// Transition to PRESENT state.
-	CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(m_pGraphics->GetCurrentRenderTarget(),
-		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-	m_pGraphics->commandList->ResourceBarrier(1, &transition);
-	// Done recording commands.
-	ThrowIfFailed(m_pGraphics->commandList->Close());
-
-	// Add the command list to the queue for execution.
-	ID3D12CommandList* cmdsLists[] = { m_pGraphics->commandList.Get() };
-	m_pGraphics->commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
-
-	m_pGraphics->cpuFence[m_pGraphics->currentRT]++;
-	m_pGraphics->commandQueue->Signal(m_pGraphics->gpuFence[m_pGraphics->currentRT].Get(), m_pGraphics->cpuFence[m_pGraphics->currentRT]);
-
 	//// Swap the back and front buffers
-	m_pGraphics->swapChain->Present(0, 0);
+	m_SwapChain->Present(0, 0);
 
-	ThrowIfFailed(GetDevice()->GetDeviceRemovedReason());
-
-	m_pGraphics->currentRT = static_cast<IDXGISwapChain3*>(m_pGraphics->swapChain.Get())->GetCurrentBackBufferIndex();
-	// make sure this backbuffer is not in flight anymore.
-	m_pGraphics->WaitForFence(m_pGraphics->currentRT);
+	ThrowIfFailed(m_pDevice->GetDeviceRemovedReason());
 }
 
-void DX12::NewFrame()
+void DX12::Graphics::NextFrame()
 {
-	ThrowIfFailed(m_pGraphics->commandAllocator[m_pGraphics->currentRT]->Reset());
-	ThrowIfFailed(m_pGraphics->commandList->Reset(m_pGraphics->commandAllocator[m_pGraphics->currentRT].Get(), nullptr));
+	m_CurrentRT = static_cast<IDXGISwapChain3*>(m_SwapChain.Get())->GetCurrentBackBufferIndex();
+	// make sure this backbuffer is not in flight anymore.
+	WaitForFence(m_CurrentRT);
+
+	// new Frame
+	ThrowIfFailed(m_CommandAllocator[m_CurrentRT]->Reset());
+	ThrowIfFailed(m_CommandList->Reset(m_CommandAllocator[m_CurrentRT].Get(), nullptr));
 
 	// Indicate a state transition on the resource usage.
-	CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(m_pGraphics->GetCurrentRenderTarget(),
+	CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(GetCurrentRenderTarget(),
 		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	m_pGraphics->commandList->ResourceBarrier(1, &transition);
+	m_CommandList->ResourceBarrier(1, &transition);
 
 	// Clear the back buffer
 	auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(
-		m_pGraphics->rtvHeap->GetCPUDescriptorHandleForHeapStart(),
-		m_pGraphics->currentRT,
-		m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
+		m_RtvHeap->GetCPUDescriptorHandleForHeapStart(),
+		m_CurrentRT,
+		m_pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
 
 
 	FLOAT col[4]{ 0.4f,0.4f,0.4f,1 };
-	m_pGraphics->commandList->ClearRenderTargetView(handle, col, 0, nullptr);
-	m_pGraphics->commandList->OMSetRenderTargets(1, &handle, FALSE, NULL);
+	m_CommandList->ClearRenderTargetView(handle, col, 0, nullptr);
+	m_CommandList->OMSetRenderTargets(1, &handle, FALSE, NULL);
 }
 
-DX12::Graphics::Graphics(ID3D12Device2* pDevice, IDXGIFactory4* pFactory, Window* pWindow)
+DX12::Graphics::Graphics(Microsoft::WRL::ComPtr<ID3D12Device2> pDevice, IDXGIFactory4* pFactory, Window* pWindow)
 {
+	m_pDevice = pDevice;
+
 	//FENCES
 	for (size_t i = 0; i < k_numBackBuffers; i++)
 	{
-		cpuFence[i] = 0;
+		m_CpuFence[i] = 0;
 		ThrowIfFailed(pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE,
-			IID_PPV_ARGS(&gpuFence[i])));
+			IID_PPV_ARGS(&m_GpuFence[i])));
 
 		ThrowIfFailed(pDevice->CreateCommandAllocator(
 			D3D12_COMMAND_LIST_TYPE_DIRECT,
-			IID_PPV_ARGS(commandAllocator[i].GetAddressOf())));
+			IID_PPV_ARGS(m_CommandAllocator[i].GetAddressOf())));
 	}
 
 
@@ -123,22 +113,22 @@ DX12::Graphics::Graphics(ID3D12Device2* pDevice, IDXGIFactory4* pFactory, Window
 	D3D12_COMMAND_QUEUE_DESC queueDesc = {};
 	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-	ThrowIfFailed(pDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&commandQueue)));
+	ThrowIfFailed(pDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_CommandQueue)));
 
 	
 
 	ThrowIfFailed(pDevice->CreateCommandList(
 		0,
 		D3D12_COMMAND_LIST_TYPE_DIRECT,
-		commandAllocator[currentRT].Get(), // Associated command allocator
+		m_CommandAllocator[m_CurrentRT].Get(), // Associated command allocator
 		nullptr,                   // Initial PipelineStateObject
-		IID_PPV_ARGS(commandList.GetAddressOf())));
+		IID_PPV_ARGS(m_CommandList.GetAddressOf())));
 
 
 	// Start off in a closed state.  This is because the first time we refer 
 	// to the command list we will Reset it, and it needs to be closed before
 	// calling Reset.
-	commandList->Close();
+	m_CommandList->Close();
 
 
 
@@ -163,9 +153,9 @@ DX12::Graphics::Graphics(ID3D12Device2* pDevice, IDXGIFactory4* pFactory, Window
 	// Note: Swap chain uses queue to perform flush.
 	
 	ThrowIfFailed(pFactory->CreateSwapChain(
-		commandQueue.Get(),
+		m_CommandQueue.Get(),
 		&sd,
-		swapChain.GetAddressOf()));
+		m_SwapChain.GetAddressOf()));
 
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
 	ZeroMemory(&rtvHeapDesc, sizeof(D3D12_DESCRIPTOR_HEAP_DESC));
@@ -174,38 +164,115 @@ DX12::Graphics::Graphics(ID3D12Device2* pDevice, IDXGIFactory4* pFactory, Window
 	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	rtvHeapDesc.NodeMask = 0;
 	ThrowIfFailed(pDevice->CreateDescriptorHeap(
-		&rtvHeapDesc, IID_PPV_ARGS(rtvHeap.GetAddressOf())));
+		&rtvHeapDesc, IID_PPV_ARGS(m_RtvHeap.GetAddressOf())));
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle(rtvHeap->GetCPUDescriptorHandleForHeapStart());
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle(m_RtvHeap->GetCPUDescriptorHandleForHeapStart());
 
 	std::wstring name = L"RenderTarget";
 	for (int i = 0; i < k_numBackBuffers; i++)
 	{
-		ThrowIfFailed(swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTargets[i])));
-		pDevice->CreateRenderTargetView(renderTargets[i].Get(), nullptr, rtvHeapHandle);
+		ThrowIfFailed(m_SwapChain->GetBuffer(i, IID_PPV_ARGS(&m_RenderTargets[i])));
+		pDevice->CreateRenderTargetView(m_RenderTargets[i].Get(), nullptr, rtvHeapHandle);
 		rtvHeapHandle.Offset(pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
-		renderTargets[i]->SetName((name + std::to_wstring(i)).c_str());
+		m_RenderTargets[i]->SetName((name + std::to_wstring(i)).c_str());
 	}
+}
+
+void DX12::Graphics::Execute()
+{
+	// Transition to PRESENT state.
+	CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(GetCurrentRenderTarget(),
+		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	m_CommandList->ResourceBarrier(1, &transition);
+	// Done recording commands.
+	ThrowIfFailed(m_CommandList->Close());
+
+	// Add the command list to the queue for execution.
+	ID3D12CommandList* cmdsLists[] = { m_CommandList.Get() };
+	m_CommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+
+	m_CpuFence[m_CurrentRT]++;
+	m_CommandQueue->Signal(m_GpuFence[m_CurrentRT].Get(), m_CpuFence[m_CurrentRT]);
 }
 
 void DX12::Graphics::Flush()
 {
-	cpuFence[currentRT]++;
+	m_CpuFence[m_CurrentRT]++;
 
-	commandQueue->Signal(gpuFence[currentRT].Get(), cpuFence[currentRT]);
-	WaitForFence(currentRT);
+	m_CommandQueue->Signal(m_GpuFence[m_CurrentRT].Get(), m_CpuFence[m_CurrentRT]);
+	WaitForFence(m_CurrentRT);
 }
 
 void DX12::Graphics::WaitForFence(int index)
 {
 	PIXScopedEvent(0, "WaitForFence: %d", index);
-	if (gpuFence[index]->GetCompletedValue() < cpuFence[index])
+	if (m_GpuFence[index]->GetCompletedValue() < m_CpuFence[index])
 	{
 		HANDLE e = CreateEventEx(nullptr, FALSE, false, EVENT_ALL_ACCESS);
-		gpuFence[index]->SetEventOnCompletion(cpuFence[index], e);
+		m_GpuFence[index]->SetEventOnCompletion(m_CpuFence[index], e);
 		WaitForSingleObject(e, INFINITE);
 		CloseHandle(e);
 	}
 }
 
+DX12::Compute::Compute(Microsoft::WRL::ComPtr<ID3D12Device2> pDevice)
+{
+	D3D12_COMMAND_QUEUE_DESC queueDesc = {};
+	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
+	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+	ThrowIfFailed(pDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_CommandQueue)));
 
+	ThrowIfFailed(pDevice->CreateCommandAllocator(
+		D3D12_COMMAND_LIST_TYPE_COMPUTE,
+		IID_PPV_ARGS(m_CommandAllocator.GetAddressOf())));
+
+	ThrowIfFailed(pDevice->CreateCommandList(
+		0,
+		D3D12_COMMAND_LIST_TYPE_COMPUTE,
+		m_CommandAllocator.Get(),
+		nullptr,
+		IID_PPV_ARGS(m_CommandList.GetAddressOf())));
+
+	m_CommandList->Close();
+
+	m_CpuFence = 0;
+	ThrowIfFailed(pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_GpuFence)));
+}
+
+void DX12::Compute::Execute()
+{
+	ThrowIfFailed(m_CommandList->Close());
+	// Add the command list to the queue for execution.
+	ID3D12CommandList* cmdsLists[] = { m_CommandList.Get() };
+	m_CommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+
+	m_CpuFence++;
+	m_CommandQueue->Signal(m_GpuFence.Get(), m_CpuFence);
+}
+
+void DX12::Compute::NextFrame()
+{
+	WaitForFence();
+	ThrowIfFailed(m_CommandAllocator->Reset());
+
+	ThrowIfFailed(m_CommandList->Reset(m_CommandAllocator.Get(), nullptr));
+}
+
+void DX12::Compute::WaitForFence()
+{
+	PIXScopedEvent(0, "Compute::WaitForFence");
+	if (m_GpuFence->GetCompletedValue() < m_CpuFence)
+	{
+		HANDLE e = CreateEventEx(nullptr, FALSE, false, EVENT_ALL_ACCESS);
+		m_GpuFence->SetEventOnCompletion(m_CpuFence, e);
+		WaitForSingleObject(e, INFINITE);
+		CloseHandle(e);
+	}
+}
+
+void DX12::Compute::Flush()
+{
+	m_CpuFence++;
+	m_CommandQueue->Signal(m_GpuFence.Get(), m_CpuFence);
+	WaitForFence();
+}

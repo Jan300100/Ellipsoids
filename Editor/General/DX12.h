@@ -9,43 +9,69 @@ class Window;
 class DX12
 {
 public:
-	struct Graphics;
-	struct Copy;
+	class Graphics;
+	class Compute;
 private:
-	Microsoft::WRL::ComPtr<ID3D12Device2> m_Device;
+	Microsoft::WRL::ComPtr<ID3D12Device2> m_pDevice;
 	Window* m_pWindow;
 	Graphics* m_pGraphics;
-	Copy* m_pCopy;
+	Compute* m_pCompute;
 public:
 	DX12(Window* pWindow);
 	~DX12();
 	inline Graphics* GetGraphicsInterface() const { return m_pGraphics; }
-	inline Copy* GetCopyInterface() const { return m_pCopy; }
-	inline ID3D12Device2* GetDevice() const { return m_Device.Get(); }
+	inline Compute* GetComputeInterface() const { return m_pCompute; }
+	inline ID3D12Device2* GetDevice() const { return m_pDevice.Get(); }
 	inline Window* GetWindow() const { return m_pWindow; }
-	void Present();
-	void NewFrame();
 };
 
-struct DX12::Graphics
+class DX12::Graphics
 {
-	Microsoft::WRL::ComPtr<IDXGISwapChain> swapChain;
-	Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueue;
-	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
-
-	static constexpr UINT k_numBackBuffers = 2;
-
-	int currentRT = 0;
-
-	UINT64 cpuFence[k_numBackBuffers];
-	Microsoft::WRL::ComPtr<ID3D12Fence> gpuFence[k_numBackBuffers];
-	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator[k_numBackBuffers];
-
-	Microsoft::WRL::ComPtr<ID3D12Resource> renderTargets[k_numBackBuffers];
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtvHeap;
-	Graphics(ID3D12Device2* pDevice, IDXGIFactory4* pFactory, Window* pWindow);
+public:
+	static constexpr UINT k_numBackBuffers = 3;
+public:
+	Graphics(Microsoft::WRL::ComPtr<ID3D12Device2> pDevice, IDXGIFactory4* pFactory, Window* pWindow);
+	void Execute();
+	void Present();
+	void NextFrame();
 	void WaitForFence(int index);
 	void Flush();
-	ID3D12Resource* GetCurrentRenderTarget() { return renderTargets[currentRT].Get(); }
+	ID3D12GraphicsCommandList* GetCommandList() { return m_CommandList.Get(); }
+	ID3D12Resource* GetCurrentRenderTarget() { return m_RenderTargets[m_CurrentRT].Get(); }
 	~Graphics() { Flush(); }
+private:
+	Microsoft::WRL::ComPtr<ID3D12Device2> m_pDevice;
+
+	Microsoft::WRL::ComPtr<IDXGISwapChain> m_SwapChain;
+	Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_CommandQueue;
+	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_CommandList;
+
+	int m_CurrentRT = 0;
+
+	UINT64 m_CpuFence[k_numBackBuffers];
+	Microsoft::WRL::ComPtr<ID3D12Fence> m_GpuFence[k_numBackBuffers];
+	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_CommandAllocator[k_numBackBuffers];
+
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_RenderTargets[k_numBackBuffers];
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_RtvHeap;
+
+};
+
+// Add this new struct
+class DX12::Compute
+{
+public:
+	Compute(Microsoft::WRL::ComPtr<ID3D12Device2> pDevice);
+	void Execute();
+	void NextFrame();
+	void WaitForFence();
+	void Flush();
+private:
+	Microsoft::WRL::ComPtr<ID3D12Device2> m_pDevice;
+
+	Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_CommandQueue;
+	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_CommandAllocator;
+	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_CommandList;
+	UINT64 m_CpuFence;
+	Microsoft::WRL::ComPtr<ID3D12Fence> m_GpuFence;
 };

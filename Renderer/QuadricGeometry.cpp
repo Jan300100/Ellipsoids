@@ -130,5 +130,8 @@ QuadricGeometry::QuadricGeometry(const std::string& name)
 
 QuadricGeometry::~QuadricGeometry()
 {
-    m_MeshDataBuffer->Release();
+    if (m_MeshDataBuffer)
+    {
+        m_MeshDataBuffer->Release();
+    }
 }
