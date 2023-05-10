@@ -74,7 +74,7 @@ uint2 NDCToScreen(float2 ndc, float2 windowDimensions)
 
 float ScreenToNDC(uint screen, float dimension)
 {
-    return (2.0 * screen) * (1 / dimension) + (-1.0f);
+    return (screen / dimension - 0.5f) * 2.0f;
 }
 
 float2 ScreenToNDC(uint2 screen, float2 windowDimensions)
