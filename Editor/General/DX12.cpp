@@ -92,6 +92,11 @@ void DX12::Graphics::NextFrame()
 	m_CommandList->OMSetRenderTargets(1, &handle, FALSE, NULL);
 }
 
+void DX12::Graphics::WaitForFence()
+{
+	WaitForFence(m_CurrentRT);
+}
+
 DX12::Graphics::Graphics(Microsoft::WRL::ComPtr<ID3D12Device2> pDevice, IDXGIFactory4* pFactory, Window* pWindow)
 {
 	m_pDevice = pDevice;
@@ -136,8 +141,8 @@ DX12::Graphics::Graphics(Microsoft::WRL::ComPtr<ID3D12Device2> pDevice, IDXGIFac
 	DXGI_SWAP_CHAIN_DESC sd;
 	sd.BufferDesc.Width = pWindow->GetDimensions().width;
 	sd.BufferDesc.Height = pWindow->GetDimensions().height;
-	sd.BufferDesc.RefreshRate.Numerator = 60;
-	sd.BufferDesc.RefreshRate.Denominator = 1;
+	sd.BufferDesc.RefreshRate.Numerator = 0; //defaults
+	sd.BufferDesc.RefreshRate.Denominator = 0; //defaults
 	sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	sd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	sd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;

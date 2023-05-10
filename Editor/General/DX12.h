@@ -28,18 +28,20 @@ public:
 class DX12::Graphics
 {
 public:
-	static constexpr UINT k_numBackBuffers = 3;
+	static constexpr UINT k_numBackBuffers = 2;
 public:
 	Graphics(Microsoft::WRL::ComPtr<ID3D12Device2> pDevice, IDXGIFactory4* pFactory, Window* pWindow);
 	void Execute();
 	void Present();
 	void NextFrame();
-	void WaitForFence(int index);
+	void WaitForFence();
 	void Flush();
 	ID3D12GraphicsCommandList* GetCommandList() { return m_CommandList.Get(); }
 	ID3D12Resource* GetCurrentRenderTarget() { return m_RenderTargets[m_CurrentRT].Get(); }
 	~Graphics() { Flush(); }
 private:
+	void WaitForFence(int index);
+
 	Microsoft::WRL::ComPtr<ID3D12Device2> m_pDevice;
 
 	Microsoft::WRL::ComPtr<IDXGISwapChain> m_SwapChain;
