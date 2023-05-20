@@ -23,13 +23,9 @@ void Stage::Merge::Execute(QuadricRenderer* pRenderer, ID3D12GraphicsCommandList
 	if (!m_Initialized) throw L"MergeState not initialized";
 
 	//these are used as input here
-	std::array< CD3DX12_RESOURCE_BARRIER, 6> barriers{};
-	barriers[0] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerIBuffer.Get());
-	barriers[1] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerDepthBuffer.Get());
-	barriers[2] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_OutputBuffer.Get());
-	barriers[3] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_DepthBuffer.Get());
-	barriers[4] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerBuffer.Get());
-	barriers[5] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_ScreenTileBuffer.Get());
+	std::array< CD3DX12_RESOURCE_BARRIER, 2> barriers{};
+	barriers[0] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_OutputBuffer.Get());
+	barriers[1] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_DepthBuffer.Get());
 
 	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
 

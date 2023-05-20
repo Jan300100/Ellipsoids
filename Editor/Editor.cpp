@@ -12,7 +12,7 @@
 #include <pix3.h>
 #include <iostream>
 
-#define USE_IMGUI 1
+#define USE_IMGUI 0
 
 Editor::~Editor()
 {

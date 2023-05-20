@@ -35,11 +35,11 @@ struct AppData
 	DirectX::XMMATRIX projInv;
 	DirectX::XMUINT4 windowSize;
 	DirectX::XMFLOAT4 lightDirection;
+
 	Dimensions<unsigned int> tileDimensions;
-	unsigned int quadricsPerRasterizer;
-	unsigned int numRasterizers;
-	unsigned int showTiles;
-	unsigned int reverseDepth;
+	unsigned int batchSize;
+	unsigned int showTiles = false;
+	unsigned int reverseDepth = true;
 };
 
 struct ScreenTile

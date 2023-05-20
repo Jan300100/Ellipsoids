@@ -29,39 +29,36 @@ class QuadricRenderer
 	friend class Stage::Merge;
 private:
 	ID3D12Device2* m_pDevice;
-	//DATA
 
 	AppData m_AppData;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_AppDataBuffer; //general data (for both stages?)
 
-	//ROOT SIGNATURE
+	// Shared Root Signature
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_RootSignature;
-	//TEXTURES
+
 	enum DescriptorHeapLayout : unsigned int
 	{
 		Color = 0, RIndex, Depth, RDepth, NumDescriptors
 	};
+
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DescriptorHeap;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DescriptorHeapSV;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_OutputBuffer;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_DepthBuffer;
-	//RASTERIZERS:
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerBuffer; //uav buffer, flexible(resize when not big enough?)
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerResetBuffer; //upload buffer to reset screenTiles
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerQBuffer; //uav buffer with outputQuadrics
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerDepthBuffer;
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerIBuffer;
-	//SCREENTILES
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_ScreenTileBuffer; //uav buffer, flexible(resize when not big enough?)
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_ScreenTileResetBuffer; //upload buffer to reset screenTiles
 
-	//RENDER STAGES
+	struct BatchData
+	{
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_InputIndices; // points to which inputQuadric to render in this batch. (instanceIdx, instanceBufferIdx, quadricIdx, meshIdx, ...)
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_OutputQuadrics;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_OutputBins; // bin of indices per tile
+	};
+
+	// STAGES
 	Stage::GeometryProcessing m_GPStage;
 	Stage::Rasterization m_RStage;
 	Stage::Merge m_MStage;
 
 	void InitResources(ID3D12GraphicsCommandList* pComList);
-	void InitDrawCall(ID3D12GraphicsCommandList* pComList);
 	void InitRendering(ID3D12GraphicsCommandList* pComList);
 	void CopyToBackBuffer(ID3D12GraphicsCommandList* pComList, ID3D12Resource* pRenderTarget, ID3D12Resource* pDepthBuffer);
 
@@ -89,9 +86,12 @@ public:
 	void SetClearColor(float r, float g, float b, float a);
 	void ShowTiles(bool show);
 	void ReverseDepth(bool reverse);
-	void SetRendererSettings(ID3D12GraphicsCommandList* pComList, UINT numRasterizers, Dimensions<unsigned int> rasterizerDimensions = {128,128}, UINT quadricsPerRasterizer = { 64 }, bool overrule = false);
 	void SetProjectionVariables(float fov, float aspectRatio, float nearPlane, float farPlane);
+
 	void Initialize(ID3D12GraphicsCommandList* pComList);
+
+	void RenderFrame2(ID3D12GraphicsCommandList* pComList, ID3D12Resource* pRenderTarget, ID3D12Resource* pDepthBuffer = nullptr);
+
 	void RenderFrame(ID3D12GraphicsCommandList* pComList, ID3D12Resource* pRenderTarget, ID3D12Resource* pDepthBuffer = nullptr);
 	void Render(QuadricGeometry* pGeo);
 	void Render(QuadricGeometry* pGeo, const DirectX::XMMATRIX& transform);

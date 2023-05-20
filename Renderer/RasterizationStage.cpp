@@ -75,19 +75,10 @@ void Stage::Rasterization::Execute(QuadricRenderer* pRenderer, ID3D12GraphicsCom
 
 	if (!m_Initialized) throw L"RasterizatonStage not initialized";
 
-	//these are used as input here
-	std::array<CD3DX12_RESOURCE_BARRIER, 4> barriers;
-	barriers[0] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerIBuffer.Get());
-	barriers[1] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerDepthBuffer.Get());
-	barriers[2] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerBuffer.Get());
-	barriers[3] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerQBuffer.Get());
-
-	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
-
 	pComList->SetPipelineState(m_Pso.Get());
 
 	UINT tileHeight = pRenderer->m_AppData.tileDimensions.height;
-	pComList->Dispatch((tileHeight / 32) + ((tileHeight % 32) > 0), pRenderer->m_AppData.numRasterizers, 1);
+	pComList->Dispatch((tileHeight / 32) + ((tileHeight % 32) > 0), 1, 1);
 
 	
 }
