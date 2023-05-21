@@ -14,10 +14,15 @@ class DeferredDeleteQueue
 
 	std::vector<PendingDeleteResource> m_DeferredDeleteQueue;
 	uint32_t m_Hysteresis;
-public:
-	DeferredDeleteQueue(uint32_t hysteresis);
-	~DeferredDeleteQueue();
 
+	DeferredDeleteQueue() = default;
+	~DeferredDeleteQueue();
+	static DeferredDeleteQueue m_Instance;
+
+public:
+	static DeferredDeleteQueue* Instance();
+
+	void SetHysteresis(uint32_t hysteresis);
 	void QueueForDelete(ID3D12Resource* resource);
 	void BeginFrame();
 };

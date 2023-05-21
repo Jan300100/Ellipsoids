@@ -12,7 +12,7 @@ public:
 	};
 
 	GPUResource();
-	GPUResource(ID3D12Device* pDevice, DeferredDeleteQueue* pDeleteQueue, Params params);
+	GPUResource(ID3D12Device* pDevice, Params params);
 	GPUResource(GPUResource&&);
 	GPUResource(const GPUResource&) = delete;
 	GPUResource& operator=(GPUResource&&);
@@ -22,7 +22,6 @@ public:
 
 	ID3D12Resource* Get() const { return m_Resource; }
 private:
-	DeferredDeleteQueue* m_DeleteQueue;
 	ID3D12Resource* m_Resource;
 	Params m_Params;
 };

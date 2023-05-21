@@ -20,7 +20,7 @@ void QuadricGeometry::UpdateTransforms(ID3D12GraphicsCommandList* pComList, Quad
         GPUResource::Params params;
         params.size = sizeof(DirectX::XMMATRIX) * (UINT)m_Transforms.size();
         params.heapType = D3D12_HEAP_TYPE_UPLOAD;
-        GPUResource tempResource{ pRenderer->GetDevice(), pRenderer->GetDeferredDeleteQueue(),params };
+        GPUResource tempResource{ pRenderer->GetDevice(),params };
 
         BYTE* mapped = nullptr;
         tempResource.Get()->Map(0, nullptr,
@@ -50,10 +50,10 @@ void QuadricGeometry::Init(QuadricRenderer* pRenderer, ID3D12GraphicsCommandList
     params.size = sizeof(Quadric) * m_Quadrics.size();
     params.heapType = D3D12_HEAP_TYPE_DEFAULT;
 
-    m_InputBuffer = GPUResource{ pRenderer->GetDevice() , pRenderer->GetDeferredDeleteQueue(), params};
+    m_InputBuffer = GPUResource{ pRenderer->GetDevice(), params};
 
     params.heapType = D3D12_HEAP_TYPE_UPLOAD;
-    GPUResource temp{ pRenderer->GetDevice() , pRenderer->GetDeferredDeleteQueue(), params };
+    GPUResource temp{ pRenderer->GetDevice(), params };
 
     D3D12_SUBRESOURCE_DATA subResourceData = {};
     subResourceData.pData = m_Quadrics.data();
@@ -83,7 +83,7 @@ void QuadricGeometry::RecreateMeshBuffer(QuadricRenderer* pRenderer)
         params.size = sizeof(DirectX::XMMATRIX) * m_NumInstances;
         params.heapType = D3D12_HEAP_TYPE_DEFAULT;
 
-        m_MeshDataBuffer = GPUResource(pRenderer->GetDevice(), pRenderer->GetDeferredDeleteQueue(), params);
+        m_MeshDataBuffer = GPUResource(pRenderer->GetDevice(), params);
     }
 }
 

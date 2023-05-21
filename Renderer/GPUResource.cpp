@@ -3,14 +3,12 @@
 #include "Helpers.h"
 
 GPUResource::GPUResource()
-	:m_DeleteQueue{ nullptr }
-	, m_Resource{ nullptr }
+	: m_Resource{ nullptr }
 {
 }
 
-GPUResource::GPUResource(ID3D12Device* pDevice, DeferredDeleteQueue* pDeleteQueue, Params params)
-	:m_DeleteQueue{ pDeleteQueue }
-	, m_Resource{ nullptr }
+GPUResource::GPUResource(ID3D12Device* pDevice, Params params)
+	: m_Resource{ nullptr }
 	, m_Params{params}
 {
 	// singleFrame resource
@@ -27,26 +25,26 @@ GPUResource::GPUResource(ID3D12Device* pDevice, DeferredDeleteQueue* pDeleteQueu
 
 GPUResource::GPUResource(GPUResource&& other)
 	:m_Resource{ other.m_Resource }
-	, m_DeleteQueue{ other.m_DeleteQueue }
+	, m_Params{other.m_Params}
 {
-	other.m_DeleteQueue = nullptr;
 	other.m_Resource = nullptr;
+	other.m_Params = {};
 }
 
 GPUResource& GPUResource::operator=(GPUResource&& other)
 {
-	m_DeleteQueue->QueueForDelete(m_Resource);
+	DeferredDeleteQueue::Instance()->QueueForDelete(m_Resource);
 
-	m_DeleteQueue = other.m_DeleteQueue;
 	m_Resource = other.m_Resource;
+	m_Params = other.m_Params;
 
-	other.m_DeleteQueue = nullptr;
 	other.m_Resource = nullptr;
+	other.m_Params = {};
 
 	return *this;
 }
 
 GPUResource::~GPUResource()
 {
-	m_DeleteQueue->QueueForDelete(m_Resource);
+	DeferredDeleteQueue::Instance()->QueueForDelete(m_Resource);
 }

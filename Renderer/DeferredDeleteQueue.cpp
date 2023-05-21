@@ -1,15 +1,22 @@
 #include "DeferredDeleteQueue.h"
 #include <d3d12.h>
 
-DeferredDeleteQueue::DeferredDeleteQueue(uint32_t hysteresis)
-	:m_Hysteresis{hysteresis}
-{
-}
+DeferredDeleteQueue DeferredDeleteQueue::m_Instance;
 
 DeferredDeleteQueue::~DeferredDeleteQueue()
 {
 	for (size_t i = 0; i < m_DeferredDeleteQueue.size(); i++)
 		m_DeferredDeleteQueue[i].resource->Release();
+}
+
+DeferredDeleteQueue* DeferredDeleteQueue::Instance()
+{
+	return &m_Instance;
+}
+
+void DeferredDeleteQueue::SetHysteresis(uint32_t hysteresis)
+{
+	m_Hysteresis = hysteresis;
 }
 
 void DeferredDeleteQueue::QueueForDelete(ID3D12Resource* resource)

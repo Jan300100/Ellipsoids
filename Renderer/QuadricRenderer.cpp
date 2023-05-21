@@ -16,16 +16,11 @@ using namespace DirectX;
 
 void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 {
-	CD3DX12_HEAP_PROPERTIES properties = { CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT) };
-	CD3DX12_RESOURCE_DESC desc = { CD3DX12_RESOURCE_DESC::Buffer((sizeof(AppData) + 255) & ~255) };
-	ThrowIfFailed(m_pDevice->CreateCommittedResource(
-		&properties,
-		D3D12_HEAP_FLAG_NONE,
-		&desc,
-		D3D12_RESOURCE_STATE_COMMON,
-		nullptr,
-		IID_PPV_ARGS(&m_AppDataBuffer)));
-	m_AppDataBuffer->SetName(L"AppDataBuffer");	
+	GPUResource::Params params;
+	params.size = sizeof(AppData);
+	params.heapType = D3D12_HEAP_TYPE_DEFAULT;
+	m_AppDataBuffer = GPUResource{ m_pDevice, params };
+	m_AppDataBuffer.Get()->SetName(L"AppDataBuffer");	
 	
 	//Output Texture
 	D3D12_RESOURCE_DESC texDesc;
@@ -42,7 +37,7 @@ void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 	texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	texDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
-	properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+	D3D12_HEAP_PROPERTIES properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	ThrowIfFailed(m_pDevice->CreateCommittedResource(
 		&properties,
 		D3D12_HEAP_FLAG_NONE,
@@ -178,11 +173,10 @@ void QuadricRenderer::InitRendering(ID3D12GraphicsCommandList* pComList)
 	m_AppData.projInv = XMMatrixInverse(nullptr, m_CameraValues.p);
 	m_AppData.batchSize = 32;
 
-	// singleFrame resource
 	GPUResource::Params params{};
 	params.size = sizeof(AppData);
 	params.heapType = D3D12_HEAP_TYPE_UPLOAD;
-	GPUResource tempResource{ m_pDevice, m_DeferredDeleteQueue.get(), params };
+	GPUResource tempResource{ m_pDevice, params };
 
 	BYTE* mapped = nullptr;
 	ThrowIfFailed(tempResource.Get()->Map(0, nullptr,
@@ -228,7 +222,7 @@ void QuadricRenderer::InitRendering(ID3D12GraphicsCommandList* pComList)
 	//set root sign and parameters
 	pComList->SetComputeRootSignature(m_RootSignature.Get());
 
-	pComList->SetComputeRootConstantBufferView(1,m_AppDataBuffer->GetGPUVirtualAddress());
+	pComList->SetComputeRootConstantBufferView(1,m_AppDataBuffer.Get()->GetGPUVirtualAddress());
 	// set bindless inputquadric buffers and instance buffers
 	pComList->SetComputeRootDescriptorTable(7, m_DescriptorHeapSV->GetGPUDescriptorHandleForHeapStart());
 }
@@ -246,8 +240,9 @@ QuadricRenderer::QuadricRenderer(ID3D12Device2* pDevice, UINT windowWidth, UINT 
 	,m_RStage{}
 	,m_MStage{}
 	, m_CameraValues{}
-	, m_DeferredDeleteQueue{ std::make_unique<DeferredDeleteQueue>(numBackBuffers  * 2)} // to get some leeway
 {
+	DeferredDeleteQueue::Instance()->SetHysteresis(numBackBuffers * 2);
+
 	m_AppData.windowSize = { windowWidth ,windowHeight, 0, 0 };
 	m_AppData.showTiles = false;
 	m_AppData.reverseDepth = true;
@@ -324,7 +319,7 @@ void QuadricRenderer::RenderFrame(ID3D12GraphicsCommandList* pComList, ID3D12Res
 
 	if (!m_Initialized) throw std::wstring{ L"Quadric Renderer not initialized!" };
 	
-	m_DeferredDeleteQueue->BeginFrame();
+	DeferredDeleteQueue::Instance()->BeginFrame();
 
 	InitRendering(pComList);
 
@@ -368,9 +363,4 @@ void QuadricRenderer::Render(QuadricGeometry* pGeo, const DirectX::XMMATRIX& tra
 	m_ToRender.insert(pGeo);
 	auto tr = XMMatrixInverse(nullptr, XMMatrixTranspose(transform));
 	pGeo->m_Transforms.push_back(tr);
-}
-
-DeferredDeleteQueue* QuadricRenderer::GetDeferredDeleteQueue() const
-{
-	return m_DeferredDeleteQueue.get();
 }
