@@ -13,6 +13,7 @@
 #include <queue>
 #include <memory>
 #include "DeferredDeleteQueue.h"
+#include "GPUResource.h"
 
 class QuadricGeometry;
 
@@ -89,8 +90,6 @@ public:
 	void SetProjectionVariables(float fov, float aspectRatio, float nearPlane, float farPlane);
 
 	void Initialize(ID3D12GraphicsCommandList* pComList);
-
-	void RenderFrame2(ID3D12GraphicsCommandList* pComList, ID3D12Resource* pRenderTarget, ID3D12Resource* pDepthBuffer = nullptr);
 
 	void RenderFrame(ID3D12GraphicsCommandList* pComList, ID3D12Resource* pRenderTarget, ID3D12Resource* pDepthBuffer = nullptr);
 	void Render(QuadricGeometry* pGeo);

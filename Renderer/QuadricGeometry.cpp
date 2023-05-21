@@ -17,36 +17,25 @@ void QuadricGeometry::UpdateTransforms(ID3D12GraphicsCommandList* pComList, Quad
         }
 
         // create temp resource and queue for delete
-        ID3D12Resource* tempResource;
-
-        // singleframe upload resource
-        CD3DX12_HEAP_PROPERTIES properties = { CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD) };
-        CD3DX12_RESOURCE_DESC desc = { CD3DX12_RESOURCE_DESC::Buffer(sizeof(DirectX::XMMATRIX) * (UINT)m_Transforms.size()) };
-        pRenderer->GetDevice()->CreateCommittedResource(
-            &properties,
-            D3D12_HEAP_FLAG_NONE,
-            &desc,
-            D3D12_RESOURCE_STATE_GENERIC_READ,
-            nullptr,
-            IID_PPV_ARGS(&tempResource));
-        pRenderer->GetDeferredDeleteQueue()->QueueForDelete(tempResource);
+        GPUResource::Params params;
+        params.size = sizeof(DirectX::XMMATRIX) * (UINT)m_Transforms.size();
+        params.heapType = D3D12_HEAP_TYPE_UPLOAD;
+        GPUResource tempResource{ pRenderer->GetDevice(), pRenderer->GetDeferredDeleteQueue(),params };
 
         BYTE* mapped = nullptr;
-        tempResource->Map(0, nullptr,
+        tempResource.Get()->Map(0, nullptr,
             reinterpret_cast<void**>(&mapped));
 
         memcpy(mapped, m_Transforms.data(), sizeof(XMMATRIX) * m_Transforms.size());
-        if (tempResource != nullptr)
-            tempResource->Unmap(0, nullptr);
-
+        tempResource.Get()->Unmap(0, nullptr);
 
         // queue copy
-        CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_MeshDataBuffer, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
+        CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_MeshDataBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
         pComList->ResourceBarrier(1, &barrier);
 
-        pComList->CopyResource(m_MeshDataBuffer, tempResource);
+        pComList->CopyResource(m_MeshDataBuffer.Get(), tempResource.Get());
 
-        barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_MeshDataBuffer,
+        barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_MeshDataBuffer.Get(),
             D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COMMON);
         pComList->ResourceBarrier(1, &barrier);
         m_Transforms.clear();
@@ -57,41 +46,25 @@ void QuadricGeometry::Init(QuadricRenderer* pRenderer, ID3D12GraphicsCommandList
 {
     m_Quadrics = quadrics;
 
-    size_t byteSize = sizeof(Quadric) * m_Quadrics.size();
-    CD3DX12_HEAP_PROPERTIES properties{ CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT) };
-    CD3DX12_RESOURCE_DESC desc{ CD3DX12_RESOURCE_DESC::Buffer(byteSize) };
+    GPUResource::Params params{};
+    params.size = sizeof(Quadric) * m_Quadrics.size();
+    params.heapType = D3D12_HEAP_TYPE_DEFAULT;
 
-    // Create the actual default buffer resource.
-    ThrowIfFailed(pRenderer->GetDevice()->CreateCommittedResource(
-        &properties,
-        D3D12_HEAP_FLAG_NONE,
-        &desc,
-        D3D12_RESOURCE_STATE_COMMON,
-        nullptr,
-        IID_PPV_ARGS(m_InputBuffer.GetAddressOf())));
+    m_InputBuffer = GPUResource{ pRenderer->GetDevice() , pRenderer->GetDeferredDeleteQueue(), params};
 
-    properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-
-    ThrowIfFailed(pRenderer->GetDevice()->CreateCommittedResource(
-        &properties,
-        D3D12_HEAP_FLAG_NONE,
-        &desc,
-        D3D12_RESOURCE_STATE_GENERIC_READ,
-        nullptr,
-        IID_PPV_ARGS(m_InputUploadBuffer.GetAddressOf())));
-
-    byteSize = sizeof(Quadric) * m_Quadrics.size();
+    params.heapType = D3D12_HEAP_TYPE_UPLOAD;
+    GPUResource temp{ pRenderer->GetDevice() , pRenderer->GetDeferredDeleteQueue(), params };
 
     D3D12_SUBRESOURCE_DATA subResourceData = {};
     subResourceData.pData = m_Quadrics.data();
-    subResourceData.RowPitch = byteSize;
+    subResourceData.RowPitch = params.size;
     subResourceData.SlicePitch = subResourceData.RowPitch;
 
     CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_InputBuffer.Get(),
         D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
     pComList->ResourceBarrier(1, &barrier);
 
-    UpdateSubresources<1>(pComList, m_InputBuffer.Get(), m_InputUploadBuffer.Get(), 0, 0, 1, &subResourceData);
+    UpdateSubresources<1>(pComList, m_InputBuffer.Get(), temp.Get(), 0, 0, 1, &subResourceData);
 
     barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_InputBuffer.Get(),
         D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ);
@@ -106,32 +79,15 @@ void QuadricGeometry::RecreateMeshBuffer(QuadricRenderer* pRenderer)
 {
     if (m_NumInstances > 0)
     {
-        if (m_MeshDataBuffer != nullptr)
-        {
-            pRenderer->GetDeferredDeleteQueue()->QueueForDelete(m_MeshDataBuffer);
-        }
+        GPUResource::Params params{};
+        params.size = sizeof(DirectX::XMMATRIX) * m_NumInstances;
+        params.heapType = D3D12_HEAP_TYPE_DEFAULT;
 
-        CD3DX12_HEAP_PROPERTIES properties = { CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT) };
-        CD3DX12_RESOURCE_DESC desc = { CD3DX12_RESOURCE_DESC::Buffer(sizeof(DirectX::XMMATRIX) * m_NumInstances) };
-        pRenderer->GetDevice()->CreateCommittedResource(
-            &properties,
-            D3D12_HEAP_FLAG_NONE,
-            &desc,
-            D3D12_RESOURCE_STATE_COMMON,
-            nullptr,
-            IID_PPV_ARGS(&m_MeshDataBuffer));
+        m_MeshDataBuffer = GPUResource(pRenderer->GetDevice(), pRenderer->GetDeferredDeleteQueue(), params);
     }
 }
 
 QuadricGeometry::QuadricGeometry(const std::string& name)
-    :m_Quadrics{ }, m_Transforms{}, m_Name{name}
+    :m_Quadrics{ }, m_Transforms{}, m_Name{ name }, m_NumInstances{}
 {
-}
-
-QuadricGeometry::~QuadricGeometry()
-{
-    if (m_MeshDataBuffer)
-    {
-        m_MeshDataBuffer->Release();
-    }
 }
