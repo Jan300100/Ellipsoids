@@ -1,4 +1,5 @@
 #pragma once
+#include "GPUResource.h"
 #include "Structs.h"
 #include <vector>
 #include <wrl.h>
@@ -13,23 +14,19 @@ class QuadricGeometry
 	//data cpu
 	std::vector<Quadric> m_Quadrics; 
 	std::vector<DirectX::XMMATRIX> m_Transforms; 
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_InputBuffer = nullptr; //has the cpu data
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_InputUploadBuffer = nullptr; //uploads the inputquadrics data to the gpu
-	///PER MESH DATA : //contains the transformation matrix for the entire mesh
-
+	GPUResource m_InputBuffer; //has the cpu data
 	void RecreateMeshBuffer(QuadricRenderer* pRenderer);
 
-	ID3D12Resource* m_MeshDataBuffer = nullptr;
+	GPUResource m_MeshDataBuffer;
 	size_t m_NumInstances;
 	bool m_Initialized = false;
 	std::string m_Name;
 public:
 	QuadricGeometry(const std::string& name = "QuadricGeometry");
-	~QuadricGeometry();
 	const std::string& GetName() const { return m_Name; }
 	void SetName(const std::string& name) { m_Name = name; }
 	ID3D12Resource* GetInputBuffer() const { return m_InputBuffer.Get(); }
-	ID3D12Resource* GetTransformBuffer() { return m_MeshDataBuffer; }
+	ID3D12Resource* GetTransformBuffer() const { return m_MeshDataBuffer.Get(); }
 	void UpdateTransforms(ID3D12GraphicsCommandList* pComList, class QuadricRenderer* pRenderer);
 	size_t GetNumInstances() const { return m_NumInstances; }
 	void Init(QuadricRenderer* pRenderer, ID3D12GraphicsCommandList* pComList, const std::vector<Quadric>& quadrics);

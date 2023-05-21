@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="DeferredDeleteQueue.cpp" />
     <ClCompile Include="GeometryProcessingStage.cpp" />
+    <ClCompile Include="GPUResource.cpp" />
     <ClCompile Include="MergeStage.cpp" />
     <ClCompile Include="QuadricGeometry.cpp" />
     <ClCompile Include="QuadricRenderer.cpp" />
@@ -30,6 +31,7 @@
     <ClInclude Include="d3dx12.h" />
     <ClInclude Include="DeferredDeleteQueue.h" />
     <ClInclude Include="GeometryProcessingStage.h" />
+    <ClInclude Include="GPUResource.h" />
     <ClInclude Include="Helpers.h" />
     <ClInclude Include="MergeStage.h" />
     <ClInclude Include="QuadricGeometry.h" />

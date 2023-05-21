@@ -42,6 +42,9 @@
     <ClCompile Include="DeferredDeleteQueue.cpp">
       <Filter>General</Filter>
     </ClCompile>
+    <ClCompile Include="GPUResource.cpp">
+      <Filter>General</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="QuadricRenderer.h">
@@ -72,6 +75,9 @@
       <Filter>General</Filter>
     </ClInclude>
     <ClInclude Include="DeferredDeleteQueue.h">
+      <Filter>General</Filter>
+    </ClInclude>
+    <ClInclude Include="GPUResource.h">
       <Filter>General</Filter>
     </ClInclude>
   </ItemGroup>

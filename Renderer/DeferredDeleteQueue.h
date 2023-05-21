@@ -2,6 +2,7 @@
 #include <vector>
 
 struct ID3D12Resource;
+struct ID3D12Device;
 
 class DeferredDeleteQueue
 {
@@ -9,8 +10,8 @@ class DeferredDeleteQueue
 	{
 		ID3D12Resource* resource;
 		uint32_t pendingFrames;
-
 	};
+
 	std::vector<PendingDeleteResource> m_DeferredDeleteQueue;
 	uint32_t m_Hysteresis;
 public:
@@ -18,5 +19,5 @@ public:
 	~DeferredDeleteQueue();
 
 	void QueueForDelete(ID3D12Resource* resource);
-	void Step();
+	void BeginFrame();
 };

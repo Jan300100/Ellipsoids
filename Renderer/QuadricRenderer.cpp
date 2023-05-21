@@ -220,30 +220,21 @@ void QuadricRenderer::InitRendering(ID3D12GraphicsCommandList* pComList)
 	m_AppData.projInv = XMMatrixInverse(nullptr, m_CameraValues.p);
 
 	// singleFrame resource
-	ID3D12Resource* tempResource;
-	CD3DX12_HEAP_PROPERTIES properties = { CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD) };
-	CD3DX12_RESOURCE_DESC desc = { CD3DX12_RESOURCE_DESC::Buffer((sizeof(AppData) + 255) & ~255) };
-	ThrowIfFailed(m_pDevice->CreateCommittedResource(
-		&properties,
-		D3D12_HEAP_FLAG_NONE,
-		&desc,
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(&tempResource)));
-	m_DeferredDeleteQueue->QueueForDelete(tempResource);
+	GPUResource::Params params{};
+	params.size = sizeof(AppData);
+	params.heapType = D3D12_HEAP_TYPE_UPLOAD;
+	GPUResource tempResource{ m_pDevice, m_DeferredDeleteQueue.get(), params };
 
 	BYTE* mapped = nullptr;
-	ThrowIfFailed(tempResource->Map(0, nullptr,
+	ThrowIfFailed(tempResource.Get()->Map(0, nullptr,
 		reinterpret_cast<void**>(&mapped)));
-
 	memcpy(mapped, &m_AppData, sizeof(AppData));
-	if (tempResource != nullptr)
-		tempResource->Unmap(0, nullptr);
+	tempResource.Get()->Unmap(0, nullptr);
 
 	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_AppDataBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
 	pComList->ResourceBarrier(1, &barrier);
 
-	pComList->CopyResource(m_AppDataBuffer.Get(), tempResource);
+	pComList->CopyResource(m_AppDataBuffer.Get(), tempResource.Get());
 
 	barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_AppDataBuffer.Get(),
 		D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COMMON);
@@ -427,7 +418,7 @@ void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, U
 			&properties,
 			D3D12_HEAP_FLAG_NONE,
 			&desc,
-			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
 			IID_PPV_ARGS(&m_ScreenTileBuffer)));
 		m_ScreenTileBuffer->SetName(L"ScreenTileBuffer");
@@ -437,7 +428,7 @@ void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, U
 			&properties,
 			D3D12_HEAP_FLAG_NONE,
 			&desc,
-			D3D12_RESOURCE_STATE_COPY_DEST,
+			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
 			IID_PPV_ARGS(&m_ScreenTileResetBuffer)));
 		m_ScreenTileResetBuffer->SetName(L"ScreenTileBuffer");
@@ -449,7 +440,7 @@ void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, U
 			&properties,
 			D3D12_HEAP_FLAG_NONE,
 			&desc,
-			D3D12_RESOURCE_STATE_GENERIC_READ,
+			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
 			IID_PPV_ARGS(&screenTileInitialData)));
 
@@ -474,7 +465,7 @@ void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, U
 			&properties,
 			D3D12_HEAP_FLAG_NONE,
 			&desc,
-			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
 			IID_PPV_ARGS(&m_RasterizerBuffer)));
 
@@ -483,7 +474,7 @@ void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, U
 			&properties,
 			D3D12_HEAP_FLAG_NONE,
 			&desc,
-			D3D12_RESOURCE_STATE_COPY_DEST,
+			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
 			IID_PPV_ARGS(&m_RasterizerResetBuffer)));
 
@@ -494,7 +485,7 @@ void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, U
 			&properties,
 			D3D12_HEAP_FLAG_NONE,
 			&desc,
-			D3D12_RESOURCE_STATE_GENERIC_READ,
+			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
 			IID_PPV_ARGS(&rasterizerInitialData)));
 
@@ -518,7 +509,7 @@ void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, U
 			&properties,
 			D3D12_HEAP_FLAG_NONE,
 			&desc,
-			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
 			IID_PPV_ARGS(&m_RasterizerQBuffer)));
 
@@ -557,16 +548,12 @@ void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, U
 			&properties,
 			D3D12_HEAP_FLAG_NONE,
 			&desc,
-			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
 			IID_PPV_ARGS(&m_RasterizerQBuffer)));
 
 		m_RasterizerQBuffer->SetName(L"RasterizerQBuffer");
-
 	}
-
-
-
 }
 
 void QuadricRenderer::SetProjectionVariables(float fov, float aspectRatio, float nearPlane, float farPlane)
@@ -607,7 +594,7 @@ void QuadricRenderer::RenderFrame(ID3D12GraphicsCommandList* pComList, ID3D12Res
 
 	if (!m_Initialized) throw std::wstring{ L"Quadric Renderer not initialized!" };
 	
-	m_DeferredDeleteQueue->Step();
+	m_DeferredDeleteQueue->BeginFrame();
 
 	InitRendering(pComList);
 
