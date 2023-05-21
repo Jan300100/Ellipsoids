@@ -14,13 +14,16 @@ DeferredDeleteQueue::~DeferredDeleteQueue()
 
 void DeferredDeleteQueue::QueueForDelete(ID3D12Resource* resource)
 {
-	PendingDeleteResource r;
-	r.pendingFrames = 0;
-	r.resource = resource;
-	m_DeferredDeleteQueue.push_back(r);
+	if (resource != nullptr)
+	{
+		PendingDeleteResource r;
+		r.pendingFrames = 0;
+		r.resource = resource;
+		m_DeferredDeleteQueue.push_back(r);
+	}
 }
 
-void DeferredDeleteQueue::Step()
+void DeferredDeleteQueue::BeginFrame()
 {
 	for (size_t i = 0; i < m_DeferredDeleteQueue.size(); i++)
 	{

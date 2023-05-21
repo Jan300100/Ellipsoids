@@ -13,6 +13,7 @@
 #include <queue>
 #include <memory>
 #include "DeferredDeleteQueue.h"
+#include "GPUResource.h"
 
 class QuadricGeometry;
 
