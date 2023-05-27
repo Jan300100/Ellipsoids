@@ -17,7 +17,7 @@ class DeferredDeleteQueue
 
 	DeferredDeleteQueue() = default;
 	~DeferredDeleteQueue();
-	static DeferredDeleteQueue m_Instance;
+	static DeferredDeleteQueue s_Instance;
 
 public:
 	static DeferredDeleteQueue* Instance();

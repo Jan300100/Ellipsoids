@@ -1,101 +1,25 @@
 #include "Base.hlsl"
 
+bool Project(InQuadric input, uint instanceIdx, out OutQuadric output);
 
-
-OutQuadric Project(InQuadric q, uint instanceIdx);
-void AddQuadric(uint screenTileIdx, OutQuadric quadric);
-
-[numthreads(32, 1, 1)]
+[numthreads(BATCH_SIZE, 1, 1)]
 void main( uint3 DTid : SV_DispatchThreadID )
 {
     if (DTid.x >= gNumQuadrics)
         return;
-    //PROJECT
-    OutQuadric projected = Project(gQuadricsIn[DTid.x], DTid.z);
-
     
-    //FILL RASTERIZERS
-    uint2 numTiles = GetNrTiles(gAppData.windowDimensions, gAppData.tileDimensions);
-    uint2 start = NDCToScreen(float2(projected.xRange.x, projected.yRange.y), gAppData.windowDimensions) / gAppData.tileDimensions;
-    uint2 end = NDCToScreen(float2(projected.xRange.y, projected.yRange.x), gAppData.windowDimensions) / gAppData.tileDimensions;
-    if (start.x >= numTiles.x || end.x < 0 || start.y >= numTiles.y || end.y < 0)
-        return;
-    
-    //-1 because these are indices
-    start.x = clamp(start.x, 0, numTiles.x-1);
-    start.y = clamp(start.y, 0, numTiles.y-1);
-    end.x = clamp(end.x, 0, numTiles.x-1);
-    end.y = clamp(end.y, 0, numTiles.y-1);
-    
-    for (uint x = start.x; x <= end.x; x++)
+    OutQuadric projected;
+    bool success = Project(gQuadricsIn[DTid.x], DTid.z, projected);
+    if (success)
     {
-        for (uint y = start.y; y <= end.y; y++)
-        {
-            uint screenIdx = y * numTiles.x + x;
-            if (screenIdx < numTiles.x * numTiles.y)
-            {
-                AddQuadric(screenIdx, projected);
-            }
-        }
+        // store // maybe we can store it inline, saving registers and potentially more bandwidth
+        // 1 big store would be terrible for memory, outquadrics are quite big
     }
 }
 
-void AddQuadric(uint screenTileIdx, OutQuadric quadric)
+bool Project(InQuadric input, uint instanceIdx, out OutQuadric output)
 {
-    uint numRasterizers = gAppData.numRasterizers;
-    uint screenHint = gScreenTiles[screenTileIdx].rasterizerHint;
-    uint rIdx = (screenHint < numRasterizers) * screenHint;
-    while (rIdx < numRasterizers)
-    {
-        if (gRasterizers[rIdx].screenTileIdx == UINT_MAX)
-        {
-            //try claim for this screenTile
-            uint original;
-            InterlockedCompareExchange(gRasterizers[rIdx].screenTileIdx, UINT_MAX, screenTileIdx, original);
-            if (original == UINT_MAX)
-            {
-                //we claimed the rasterizer, append to linkedlist
-                uint llIdx;
-                InterlockedCompareExchange(gScreenTiles[screenTileIdx].rasterizerHint, UINT_MAX, rIdx, llIdx);
-                while (llIdx < numRasterizers)
-                {
-                    InterlockedCompareExchange(gRasterizers[llIdx].nextRasterizerIdx, UINT_MAX, rIdx, llIdx);
-                }
-            }
-        }
-        else if (gRasterizers[rIdx].screenTileIdx == screenTileIdx)
-        {
-            uint value = gRasterizers[rIdx].numQuadrics;
-            if (value < gAppData.quadricsPerRasterizer)
-            {
-                //try add to this rasterizer
-                uint qIdx;
-                InterlockedCompareExchange(gRasterizers[rIdx].numQuadrics, value, value + 1, qIdx);
-                if (qIdx == value)
-                {
-                    //spot secured : add the quadric
-                    uint rasterizerOffset = rIdx * gAppData.quadricsPerRasterizer;
-                    gRasterizerQBuffer[rasterizerOffset + qIdx] = quadric;
-                    rIdx = UINT_MAX;
-                }
-            }
-            else
-            {
-                uint hint = gRasterizers[rIdx].nextRasterizerIdx;
-                rIdx = (hint > rIdx && hint < gAppData.numRasterizers) ? hint : rIdx + 1;
-            }
-        }
-        else
-        {
-            rIdx++;
-        }
-    }
-}
-
-
-OutQuadric Project(InQuadric input, uint instanceIdx)
-{
-    OutQuadric output = (OutQuadric)0;
+    output = (OutQuadric)0;
     float4x4 transform = gMeshData[instanceIdx];
     
     //put the quadric at its's world position
@@ -134,13 +58,12 @@ OutQuadric Project(InQuadric input, uint instanceIdx)
     
     if (SolveQuadratic(a, b, c, yMin, yMax))
     {
-       
         //needs to not be 0, because we need to divide by this value when calculating x
         if (output.transform[0][0] == 0)
         {
-            output.yRange = float2(1, -1);    
-            return output;
+            return false;
         }
+        
         //calculate x at yMin, so we have a point on the yMin branch 
         //(there is only 1 possible x value, because we are on the edge of the quadric)
         float xm = -(output.transform[0][1] * yMin + output.transform[0][2]) / output.transform[0][0];
@@ -156,16 +79,14 @@ OutQuadric Project(InQuadric input, uint instanceIdx)
         }
         else if (w < 0)
         {
-            output.yRange = float2(1, -1);
-            return output;
+            return false;
         }
         
         output.yRange = float2(yMin, yMax);
     }
     else
     {
-        output.yRange = float2(1, -1);
-        return output;
+        return false;
     }
     
     //calc a, b, c, a is the same as for the y range
@@ -181,8 +102,7 @@ OutQuadric Project(InQuadric input, uint instanceIdx)
             //needs to not be 0, because we need to divide by this value when calculating x
             if (output.transform[1][1] == 0)
             {
-                output.xRange = float2(1, -1);
-                return output;
+                return false;
             }
             //(there is only 1 possible y value, because we are on the edge of the quadric)
             float ym = -(output.transform[1][2] + output.transform[0][1] * xMin) / output.transform[1][1];
@@ -198,13 +118,29 @@ OutQuadric Project(InQuadric input, uint instanceIdx)
     }
     else
     {
-        output.xRange = float2(1, -1);
-        return output;
+        return false;
     }
+    
+    //calc bounding box (store w projected)
+    uint2 numTiles = GetNrTiles(gAppData.windowDimensions, gAppData.tileDimensions);
+    output.bbStart = NDCToScreen(float2(output.xRange.x, output.yRange.y), gAppData.windowDimensions) / gAppData.tileDimensions;
+    output.bbEnd = NDCToScreen(float2(output.xRange.y, output.yRange.x), gAppData.windowDimensions) / gAppData.tileDimensions;
+
+    // cull if offscreen
+    if (output.bbStart.x >= numTiles.x || output.bbEnd.x < 0 || output.bbStart.y >= numTiles.y || output.bbEnd.y < 0)
+    {
+        return false;
+    }
+    
+    // clamp to screen (-1 because these are indices)
+    output.bbStart.x = clamp(output.bbStart.x, 0, numTiles.x - 1);
+    output.bbStart.y = clamp(output.bbStart.y, 0, numTiles.y - 1);
+    output.bbEnd.x = clamp(output.bbEnd.x, 0, numTiles.x - 1);
+    output.bbEnd.y = clamp(output.bbEnd.y, 0, numTiles.y - 1);
     
     //normal generator
     output.normalGenerator = mul(mul(tsd, world), transpose(gAppData.viewInv));
     output.color = input.color.rgb;
 
-    return output;
+    return true;
 }

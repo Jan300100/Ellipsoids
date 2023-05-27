@@ -14,51 +14,51 @@
 using namespace Microsoft::WRL;
 using namespace DirectX;
 
+void QuadricRenderer::CreateBatch()
+{
+	GPUResource::BufferParams params;
+
+	params.size = sizeof(uint32_t) * 4 * m_AppData.batchSize;
+	params.heapType = D3D12_HEAP_TYPE_DEFAULT;
+	params.allowUAV = false;
+	m_batchBuffers.inputIndices = GPUResource{ m_pDevice, params };
+	m_batchBuffers.inputIndices.Get()->SetName(L"batchInputIndices");
+
+	params.size = sizeof(OutQuadric) * m_AppData.batchSize;
+	params.allowUAV = true;
+	m_batchBuffers.outputQuadrics = GPUResource{ m_pDevice, params };
+	m_batchBuffers.outputQuadrics.Get()->SetName(L"batchOutputQuadrics");
+
+	auto nrTiles = GetNrTiles();
+	params.size = m_AppData.batchSize * sizeof(uint32_t) * nrTiles.width * nrTiles.height; // can do with way less bits per index instead of sizeof(int) (log2(batchSize))
+	m_batchBuffers.outputBins = GPUResource{ m_pDevice, params };
+	m_batchBuffers.outputBins.Get()->SetName(L"batchOutputBins");
+}
+
 void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 {
-	GPUResource::Params params;
+	GPUResource::BufferParams params;
 	params.size = sizeof(AppData);
 	params.heapType = D3D12_HEAP_TYPE_DEFAULT;
+	params.allowUAV = false;
 	m_AppDataBuffer = GPUResource{ m_pDevice, params };
 	m_AppDataBuffer.Get()->SetName(L"AppDataBuffer");	
 	
-	//Output Texture
-	D3D12_RESOURCE_DESC texDesc;
-	ZeroMemory(&texDesc, sizeof(D3D12_RESOURCE_DESC));
-	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	texDesc.Alignment = 0;
-	texDesc.Width = m_WindowDimensions.width;
-	texDesc.Height = m_WindowDimensions.height;
-	texDesc.DepthOrArraySize = 1;
-	texDesc.MipLevels = 1;
-	texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	texDesc.SampleDesc.Count = 1;
-	texDesc.SampleDesc.Quality = 0;
-	texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	texDesc.Flags = D3D12_RESOURCE_FLAGS::D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+	GPUResource::Texture2DParams tParams;
+	tParams.allowUAV = true;
+	tParams.format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	tParams.width = m_WindowDimensions.width;
+	tParams.height = m_WindowDimensions.height;
+	tParams.numMips = 1;
 
-	D3D12_HEAP_PROPERTIES properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-	ThrowIfFailed(m_pDevice->CreateCommittedResource(
-		&properties,
-		D3D12_HEAP_FLAG_NONE,
-		&texDesc,
-		D3D12_RESOURCE_STATE_COMMON,
-		nullptr,
-		IID_PPV_ARGS(&m_OutputBuffer)));
-	m_OutputBuffer->SetName(L"OutputTexture");
+	m_OutputBuffer = GPUResource{ m_pDevice, tParams };
+	m_OutputBuffer.Get()->SetName(L"OutputTexture");
 
-	//depth Texture
-	texDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
+	tParams.format = DXGI_FORMAT_R32_FLOAT;
+	m_DepthBuffer = GPUResource{ m_pDevice, tParams };
+	m_DepthBuffer.Get()->SetName(L"DepthBuffer");
 
-	ThrowIfFailed(m_pDevice->CreateCommittedResource(
-		&properties,
-		D3D12_HEAP_FLAG_NONE,
-		&texDesc,
-		D3D12_RESOURCE_STATE_COMMON,
-		nullptr,
-		IID_PPV_ARGS(&m_DepthBuffer)));
-	m_DepthBuffer->SetName(L"DepthBuffer");
-	
+	CreateBatch();
 
 	//descriptors
 	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
@@ -67,27 +67,27 @@ void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 	uavDesc.Texture2D.MipSlice = 0;
 
 	//DESCRIPTOR HEAP
-	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-	srvHeapDesc.NumDescriptors = 4;
-	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	ThrowIfFailed(m_pDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&m_DescriptorHeapSV)));
-	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	ThrowIfFailed(m_pDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&m_DescriptorHeap)));
+	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+	heapDesc.NumDescriptors = 4;
+	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	ThrowIfFailed(m_pDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_DescriptorHeapSV)));
+	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	ThrowIfFailed(m_pDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_DescriptorHeap)));
 
 	UINT incrementSize = m_pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE srvHeapHandle(m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-	CD3DX12_CPU_DESCRIPTOR_HANDLE srvHeapHandleSV(m_DescriptorHeapSV->GetCPUDescriptorHandleForHeapStart());
+	CD3DX12_CPU_DESCRIPTOR_HANDLE heapHandle(m_DescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+	CD3DX12_CPU_DESCRIPTOR_HANDLE shaderVisibleHeapHandle(m_DescriptorHeapSV->GetCPUDescriptorHandleForHeapStart());
 	m_DescriptorHeap->SetName(L"m_DescriptorHeap");
 	m_DescriptorHeapSV->SetName(L"m_DescriptorHeapSV");
-	m_pDevice->CreateUnorderedAccessView(m_OutputBuffer.Get(), nullptr, &uavDesc, srvHeapHandle);
-	m_pDevice->CreateUnorderedAccessView(m_OutputBuffer.Get(), nullptr, &uavDesc, srvHeapHandleSV);
-	srvHeapHandle.Offset(incrementSize * DescriptorHeapLayout::Depth);
-	srvHeapHandleSV.Offset(incrementSize * DescriptorHeapLayout::Depth);
+	m_pDevice->CreateUnorderedAccessView(m_OutputBuffer.Get(), nullptr, &uavDesc, heapHandle);
+	m_pDevice->CreateUnorderedAccessView(m_OutputBuffer.Get(), nullptr, &uavDesc, shaderVisibleHeapHandle);
+	heapHandle.Offset(incrementSize * DescriptorHeapLayout::Depth);
+	shaderVisibleHeapHandle.Offset(incrementSize * DescriptorHeapLayout::Depth);
 	uavDesc.Format = DXGI_FORMAT_R32_FLOAT;
-	m_pDevice->CreateUnorderedAccessView(m_DepthBuffer.Get(), nullptr, &uavDesc, srvHeapHandle);
-	m_pDevice->CreateUnorderedAccessView(m_DepthBuffer.Get(), nullptr, &uavDesc, srvHeapHandleSV);
+	m_pDevice->CreateUnorderedAccessView(m_DepthBuffer.Get(), nullptr, &uavDesc, heapHandle);
+	m_pDevice->CreateUnorderedAccessView(m_DepthBuffer.Get(), nullptr, &uavDesc, shaderVisibleHeapHandle);
 
 	//ROOT SIGNATURE
 	CD3DX12_ROOT_PARAMETER rootParameter[8];
@@ -126,14 +126,9 @@ void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 		serializedRootSig->GetBufferSize(),
 		IID_PPV_ARGS(m_RootSignature.GetAddressOf())));
 
-	
-
-	std::vector< CD3DX12_RESOURCE_BARRIER>transitions{};
-	transitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_OutputBuffer.Get(),
-		D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-	transitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_DepthBuffer.Get(),
-		D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-
+	std::vector<CD3DX12_RESOURCE_BARRIER> transitions{};
+	transitions.push_back(m_OutputBuffer.TransitionResource(D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+	transitions.push_back(m_DepthBuffer.TransitionResource(D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 
 	pComList->ResourceBarrier((UINT)transitions.size(), transitions.data());
 }
@@ -142,13 +137,14 @@ void QuadricRenderer::CopyToBackBuffer(ID3D12GraphicsCommandList* pComList, ID3D
 {
 	PIXScopedEvent(pComList, 0, "QuadricRenderer::CopyToBackBuffer");
 
+	D3D12_RESOURCE_STATES ogState = m_OutputBuffer.GetCurrentState();
+
 	//COPY COMPUTE BUFFER to Current Backbuffer to present it
 	CD3DX12_RESOURCE_BARRIER transitions[2]
 	{
 		CD3DX12_RESOURCE_BARRIER::Transition(pRenderTarget,
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST),
-		CD3DX12_RESOURCE_BARRIER::Transition(m_OutputBuffer.Get(),
-		D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE)
+		m_OutputBuffer.TransitionResource(D3D12_RESOURCE_STATE_COPY_SOURCE)
 	};
 	pComList->ResourceBarrier(2, transitions);
 
@@ -157,8 +153,7 @@ void QuadricRenderer::CopyToBackBuffer(ID3D12GraphicsCommandList* pComList, ID3D
 	// Transition to Render target for any other draws that might happen.
 	transitions[0] = CD3DX12_RESOURCE_BARRIER::Transition(pRenderTarget,
 		D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	transitions[1] = CD3DX12_RESOURCE_BARRIER::Transition(m_OutputBuffer.Get(),
-		D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	transitions[1] = m_OutputBuffer.TransitionResource(ogState);
 	pComList->ResourceBarrier(2, transitions);
 }
 
@@ -173,26 +168,9 @@ void QuadricRenderer::InitRendering(ID3D12GraphicsCommandList* pComList)
 	m_AppData.projInv = XMMatrixInverse(nullptr, m_CameraValues.p);
 	m_AppData.batchSize = 32;
 
-	GPUResource::Params params{};
-	params.size = sizeof(AppData);
-	params.heapType = D3D12_HEAP_TYPE_UPLOAD;
-	GPUResource tempResource{ m_pDevice, params };
-
-	BYTE* mapped = nullptr;
-	ThrowIfFailed(tempResource.Get()->Map(0, nullptr,
-		reinterpret_cast<void**>(&mapped)));
+	void* mapped = m_AppDataBuffer.Map();
 	memcpy(mapped, &m_AppData, sizeof(AppData));
-	tempResource.Get()->Unmap(0, nullptr);
-
-	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_AppDataBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
-	pComList->ResourceBarrier(1, &barrier);
-
-	pComList->CopyResource(m_AppDataBuffer.Get(), tempResource.Get());
-
-	barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_AppDataBuffer.Get(),
-		D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COMMON);
-	pComList->ResourceBarrier(1, &barrier);
-
+	m_AppDataBuffer.Unmap(pComList);
 
 	// Set Descriptor Heaps
 	ID3D12DescriptorHeap* descHeaps[]{ m_DescriptorHeapSV.Get() };
@@ -235,11 +213,12 @@ Dimensions<UINT> QuadricRenderer::GetNrTiles() const
 }
 
 QuadricRenderer::QuadricRenderer(ID3D12Device2* pDevice, UINT windowWidth, UINT windowHeight, UINT numBackBuffers)
-	:m_pDevice{ pDevice }, m_AppData{}, m_WindowDimensions{ windowWidth ,windowHeight }
+	: m_pDevice{ pDevice }, m_AppData{}, m_WindowDimensions{ windowWidth ,windowHeight }
 	, m_GPStage{}
-	,m_RStage{}
-	,m_MStage{}
+	, m_RStage{}
+	, m_MStage{}
 	, m_CameraValues{}
+	, m_batchBuffers{}
 {
 	DeferredDeleteQueue::Instance()->SetHysteresis(numBackBuffers * 2);
 

@@ -45,15 +45,18 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DescriptorHeap;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DescriptorHeapSV;
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_OutputBuffer;
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_DepthBuffer;
+	GPUResource m_OutputBuffer;
+	GPUResource m_DepthBuffer;
 
-	struct BatchData
+	struct BatchBuffers
 	{
-		GPUResource m_InputIndices; // points to which inputQuadric to render in this batch. (instanceIdx, instanceBufferIdx, quadricIdx, meshIdx, ...)
-		GPUResource m_OutputQuadrics;
-		GPUResource m_OutputBins; // bin of indices per tile
+		GPUResource inputIndices; // points to which inputQuadric to render in this batch. (instanceIdx, instanceBufferIdx, quadricIdx, meshIdx, ...)
+		GPUResource outputQuadrics;
+		GPUResource outputBins; // bin of indices per tile
 	};
+
+	void CreateBatch();
+	BatchBuffers m_batchBuffers; // need multiple batches ultimately
 
 	// STAGES
 	Stage::GeometryProcessing m_GPStage;

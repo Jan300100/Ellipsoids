@@ -30,6 +30,7 @@
   <ItemGroup>
     <ClInclude Include="d3dx12.h" />
     <ClInclude Include="DeferredDeleteQueue.h" />
+    <ClInclude Include="DescriptorManager.h" />
     <ClInclude Include="GeometryProcessingStage.h" />
     <ClInclude Include="GPUResource.h" />
     <ClInclude Include="Helpers.h" />

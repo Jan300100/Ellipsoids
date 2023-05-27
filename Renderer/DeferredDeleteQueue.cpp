@@ -1,7 +1,7 @@
 #include "DeferredDeleteQueue.h"
 #include <d3d12.h>
 
-DeferredDeleteQueue DeferredDeleteQueue::m_Instance;
+DeferredDeleteQueue DeferredDeleteQueue::s_Instance;
 
 DeferredDeleteQueue::~DeferredDeleteQueue()
 {
@@ -11,7 +11,7 @@ DeferredDeleteQueue::~DeferredDeleteQueue()
 
 DeferredDeleteQueue* DeferredDeleteQueue::Instance()
 {
-	return &m_Instance;
+	return &s_Instance;
 }
 
 void DeferredDeleteQueue::SetHysteresis(uint32_t hysteresis)

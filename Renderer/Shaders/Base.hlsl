@@ -1,4 +1,5 @@
 #define UINT_MAX 0xffffffff
+#define BATCH_SIZE 32
 
 struct AppData
 {
@@ -7,11 +8,14 @@ struct AppData
     row_major float4x4 projInv;
     uint2 windowDimensions;
     float3 lightDirection;
+    
     uint2 tileDimensions;
-    uint quadricsPerRasterizer;
-    uint numRasterizers;
+    uint batchSize;
     uint showTiles;
     uint reverseDepth;
+    
+    uint depthUAVIdx;
+    uint colorUAVIdx;
 };
 
 struct InQuadric
@@ -28,38 +32,13 @@ struct OutQuadric
     float3 color;
     float2 yRange;
     float2 xRange;
+    
+    uint2 bbStart;
+    uint2 bbEnd;
 };
-
-struct ScreenTile
-{
-    uint rasterizerHint;
-};
-
-struct Rasterizer
-{
-    uint screenTileIdx;
-    uint nextRasterizerIdx; //linked list
-    uint numQuadrics;
-};
-
 
 uint gNumQuadrics : register(b0);
 ConstantBuffer<AppData> gAppData : register(b1);
-
-StructuredBuffer<float4x4> gMeshData : register(t0);
-StructuredBuffer<InQuadric> gQuadricsIn : register(t1);
-
-RWStructuredBuffer<Rasterizer> gRasterizers : register(u0);
-RWStructuredBuffer<ScreenTile> gScreenTiles : register(u1);
-RWStructuredBuffer<OutQuadric> gRasterizerQBuffer : register(u2);
-
-//desc heap
-RWTexture2D<float4> gBackBuffer : register(u3);
-RWTexture2D<uint> gRIBuffer : register(u4);
-RWTexture2D<float> gDepthBuffer : register(u5);
-RWTexture2D<float> gRDepthBuffer : register(u6);
-
-
 
 uint NDCToScreen(float ndc, float dimension)
 {
@@ -86,6 +65,7 @@ float2 ScreenToNDC(uint2 screen, float2 windowDimensions)
 bool SolveQuadratic(float a, float b, float c, out float minValue, out float maxValue)
 {
     bool returnValue = false;
+    
     minValue = -1;
     maxValue = 1;
     

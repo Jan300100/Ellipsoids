@@ -3,8 +3,6 @@
 #include <d3d12.h>
 #include "Helpers.h"
 
-
-
 struct Quadric
 {
 	DirectX::XMMATRIX transformed;
@@ -26,6 +24,9 @@ struct OutQuadric
 	DirectX::XMFLOAT3 color;
 	DirectX::XMFLOAT2 yRange;
 	DirectX::XMFLOAT2 xRange;
+
+	DirectX::XMUINT2 bbStart;
+	DirectX::XMUINT2 bbEnd;
 };
 
 struct AppData
@@ -40,16 +41,8 @@ struct AppData
 	unsigned int batchSize;
 	unsigned int showTiles = false;
 	unsigned int reverseDepth = true;
+
+	unsigned int depthUAVIdx;
+	unsigned int colorUAVIdx;
 };
 
-struct ScreenTile
-{
-	unsigned int rasterizerHint;
-};
-
-struct Rasterizer
-{
-	unsigned int screenTileIdx; //indicates position on the screen
-	unsigned int nextRasterizerIdx; //if this Tile is saturated with quadrics, they should be added to the next tile instead.
-	unsigned int numQuadrics;
-};
