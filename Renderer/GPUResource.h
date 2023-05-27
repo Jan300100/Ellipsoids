@@ -25,11 +25,14 @@ public:
 
 	struct BufferParams {
 		D3D12_HEAP_TYPE heapType;
-		size_t size;
+		uint32_t size;
 		bool allowUAV;
 	};
 
 	CD3DX12_RESOURCE_BARRIER TransitionResource(D3D12_RESOURCE_STATES newState);
+
+	D3D12_GPU_DESCRIPTOR_HANDLE GetUAVHandle();
+	size_t GetUAVIndex();
 
 	// mapping
 	void* Map();

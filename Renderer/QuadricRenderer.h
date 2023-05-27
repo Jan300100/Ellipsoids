@@ -31,20 +31,13 @@ class QuadricRenderer
 private:
 	ID3D12Device2* m_pDevice;
 
+	// Shared Root Signature for all stages
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_RootSignature;
+
 	//general data (for both stages?)
 	AppData m_AppData;
 	GPUResource m_AppDataBuffer;
 
-	// Shared Root Signature
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_RootSignature;
-
-	enum DescriptorHeapLayout : unsigned int
-	{
-		Color = 0, RIndex, Depth, RDepth, NumDescriptors
-	};
-
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DescriptorHeap;
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DescriptorHeapSV;
 	GPUResource m_OutputBuffer;
 	GPUResource m_DepthBuffer;
 
@@ -55,13 +48,14 @@ private:
 		GPUResource outputBins; // bin of indices per tile
 	};
 
-	void CreateBatch();
 	BatchBuffers m_batchBuffers; // need multiple batches ultimately
 
 	// STAGES
 	Stage::GeometryProcessing m_GPStage;
 	Stage::Rasterization m_RStage;
 	Stage::Merge m_MStage;
+
+	void CreateBatch();
 
 	void InitResources(ID3D12GraphicsCommandList* pComList);
 	void InitRendering(ID3D12GraphicsCommandList* pComList);
