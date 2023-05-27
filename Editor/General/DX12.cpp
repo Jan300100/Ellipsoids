@@ -159,8 +159,6 @@ DX12::Graphics::Graphics(ID3D12Device2* pDevice, IDXGIFactory4* pFactory, Window
 	sd.Windowed = true;
 	sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-
-	// Note: Swap chain uses queue to perform flush.
 	
 	ThrowIfFailed(pFactory->CreateSwapChain(
 		commandQueue.Get(),

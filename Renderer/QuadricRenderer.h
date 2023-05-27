@@ -33,7 +33,7 @@ private:
 	//DATA
 
 	AppData m_AppData;
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_AppDataBuffer; //general data (for both stages?)
+	GPUResource m_AppDataBuffer; //general data (for both stages?)
 
 	//ROOT SIGNATURE
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_RootSignature;
@@ -44,17 +44,17 @@ private:
 	};
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DescriptorHeap;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DescriptorHeapSV;
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_OutputBuffer;
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_DepthBuffer;
+	GPUResource m_OutputBuffer;
+	GPUResource m_DepthBuffer;
 	//RASTERIZERS:
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerBuffer; //uav buffer, flexible(resize when not big enough?)
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerResetBuffer; //upload buffer to reset screenTiles
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerQBuffer; //uav buffer with outputQuadrics
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerDepthBuffer;
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_RasterizerIBuffer;
+	GPUResource m_RasterizerBuffer; //uav buffer, flexible(resize when not big enough?)
+	GPUResource m_RasterizerResetBuffer; //upload buffer to reset screenTiles
+	GPUResource m_RasterizerQBuffer; //uav buffer with outputQuadrics
+	GPUResource m_RasterizerDepthBuffer;
+	GPUResource m_RasterizerIBuffer;
 	//SCREENTILES
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_ScreenTileBuffer; //uav buffer, flexible(resize when not big enough?)
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_ScreenTileResetBuffer; //upload buffer to reset screenTiles
+	GPUResource m_ScreenTileBuffer; //uav buffer, flexible(resize when not big enough?)
+	GPUResource m_ScreenTileResetBuffer; //upload buffer to reset screenTiles
 
 	//RENDER STAGES
 	Stage::GeometryProcessing m_GPStage;
@@ -75,7 +75,6 @@ private:
 	bool m_Initialized = false;
 	Dimensions<UINT> m_WindowDimensions;
 
-	std::unique_ptr<DeferredDeleteQueue> m_DeferredDeleteQueue;
 public:
 	QuadricRenderer(ID3D12Device2* pDevice, UINT windowWidth, UINT windowHeight, UINT numBackBuffers);
 	~QuadricRenderer() = default;
@@ -96,6 +95,4 @@ public:
 	void RenderFrame(ID3D12GraphicsCommandList* pComList, ID3D12Resource* pRenderTarget, ID3D12Resource* pDepthBuffer = nullptr);
 	void Render(QuadricGeometry* pGeo);
 	void Render(QuadricGeometry* pGeo, const DirectX::XMMATRIX& transform);
-
-	DeferredDeleteQueue* GetDeferredDeleteQueue() const;
 };
