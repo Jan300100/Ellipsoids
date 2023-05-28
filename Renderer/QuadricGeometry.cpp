@@ -29,7 +29,7 @@ void QuadricGeometry::Init(QuadricRenderer* pRenderer, ID3D12GraphicsCommandList
     m_Quadrics = quadrics;
 
     GPUResource::BufferParams params{};
-    params.size = sizeof(Quadric) * m_Quadrics.size();
+    params.size = static_cast<uint32_t>(sizeof(Quadric) * m_Quadrics.size());
     params.heapType = D3D12_HEAP_TYPE_DEFAULT;
 
     m_InputBuffer = GPUResource{ pRenderer->GetDevice(), params};
@@ -62,7 +62,7 @@ void QuadricGeometry::RecreateMeshBuffer(QuadricRenderer* pRenderer)
     if (m_NumInstances > 0)
     {
         GPUResource::BufferParams params{};
-        params.size = sizeof(DirectX::XMMATRIX) * m_NumInstances;
+        params.size = static_cast<uint32_t>(sizeof(DirectX::XMMATRIX) * m_NumInstances);
         params.heapType = D3D12_HEAP_TYPE_DEFAULT;
 
         m_MeshDataBuffer = GPUResource(pRenderer->GetDevice(), params);

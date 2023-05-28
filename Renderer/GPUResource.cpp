@@ -1,5 +1,6 @@
 #include "GPUResource.h"
 #include "DeferredDeleteQueue.h"
+#include "DescriptorManager.h"
 #include "Helpers.h"
 
 #include <array>
@@ -12,6 +13,26 @@ CD3DX12_RESOURCE_BARRIER GPUResource::TransitionResource(D3D12_RESOURCE_STATES n
 	m_CurrentState = newState;
 
 	return barrier;
+}
+
+GPUResource::Descriptor GPUResource::GetUAV()
+{
+	if (m_UavDescriptor.isActive == false)
+	{
+		m_UavDescriptor = DescriptorManager::Instance()->CreateUAV(*this);
+	}
+
+	return m_UavDescriptor;
+}
+
+GPUResource::Descriptor GPUResource::GetSRV()
+{
+	if (m_SrvDescriptor.isActive == false)
+	{
+		m_SrvDescriptor = DescriptorManager::Instance()->CreateSRV(*this);
+	}
+
+	return m_SrvDescriptor;
 }
 
 void* GPUResource::Map()
@@ -52,6 +73,20 @@ void GPUResource::Unmap(ID3D12GraphicsCommandList* pComList)
 	}
 }
 
+DXGI_FORMAT GPUResource::GetFormat() const
+{
+	if (m_Type == Type::Texture2D)
+	{
+		return m_Texture2DParams.format;
+	}
+	return DXGI_FORMAT_UNKNOWN;
+}
+
+GPUResource::Type GPUResource::GetType() const
+{
+	return m_Type;
+}
+
 GPUResource::GPUResource()
 	: m_Resource{ nullptr }
 	, m_UploadResource{ nullptr }
@@ -59,6 +94,8 @@ GPUResource::GPUResource()
 	, m_Texture2DParams{}
 	, m_CurrentState{}
 	, m_Type{}
+	, m_UavDescriptor{}
+	, m_SrvDescriptor{}
 {
 }
 
@@ -69,6 +106,8 @@ GPUResource::GPUResource(ID3D12Device* pDevice, const BufferParams& params)
 	, m_Texture2DParams{}
 	, m_CurrentState{}
 	, m_Type{Type::Buffer}
+	, m_UavDescriptor{}
+	, m_SrvDescriptor{}
 {
 	CD3DX12_HEAP_PROPERTIES properties{params.heapType};
 	CD3DX12_RESOURCE_DESC desc = { CD3DX12_RESOURCE_DESC::Buffer(params.size) };
@@ -118,6 +157,8 @@ GPUResource::GPUResource(ID3D12Device* pDevice, const Texture2DParams& params)
 	, m_Texture2DParams{ params }
 	, m_CurrentState{ D3D12_RESOURCE_STATE_COMMON }
 	, m_Type{ Type::Texture2D }
+	, m_UavDescriptor{}
+	, m_SrvDescriptor{}
 {
 	CD3DX12_HEAP_PROPERTIES properties{ D3D12_HEAP_TYPE_DEFAULT };
 	CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(params.format, params.width, params.height);
@@ -144,6 +185,8 @@ GPUResource::GPUResource(GPUResource&& other) noexcept
 	, m_Texture2DParams{other.m_Texture2DParams}
 	, m_CurrentState{other.m_CurrentState}
 	, m_Type{other.m_Type}
+	, m_UavDescriptor{ other.m_UavDescriptor}
+	, m_SrvDescriptor{ other.m_SrvDescriptor}
 {
 	other.m_Resource = nullptr;
 	other.m_UploadResource = nullptr;
@@ -151,15 +194,22 @@ GPUResource::GPUResource(GPUResource&& other) noexcept
 	other.m_Texture2DParams = {};
 	other.m_CurrentState = {};
 	other.m_Type = {};
+	other.m_UavDescriptor = {};
+	other.m_SrvDescriptor = {};
 }
 
 GPUResource& GPUResource::operator=(GPUResource&& other) noexcept
 {
+	DescriptorManager::Instance()->Free(m_UavDescriptor);
+	DescriptorManager::Instance()->Free(m_SrvDescriptor);
+
 	if (m_Resource != m_UploadResource)
 	{
 		DeferredDeleteQueue::Instance()->QueueForDelete(m_UploadResource);
 	}
 	DeferredDeleteQueue::Instance()->QueueForDelete(m_Resource);
+
+	//
 
 	m_Resource = other.m_Resource;
 	m_BufferParams = other.m_BufferParams;
@@ -167,6 +217,8 @@ GPUResource& GPUResource::operator=(GPUResource&& other) noexcept
 	m_UploadResource = other.m_UploadResource;
 	m_CurrentState = other.m_CurrentState;
 	m_Type = other.m_Type;
+	m_UavDescriptor = other.m_UavDescriptor;
+	m_SrvDescriptor = other.m_SrvDescriptor;
 
 	other.m_Resource = nullptr;
 	other.m_UploadResource = nullptr;
@@ -174,12 +226,17 @@ GPUResource& GPUResource::operator=(GPUResource&& other) noexcept
 	other.m_Texture2DParams = {};
 	other.m_CurrentState = {};
 	other.m_Type = {};
+	other.m_UavDescriptor = {};
+	other.m_SrvDescriptor = {};
 
 	return *this;
 }
 
 GPUResource::~GPUResource()
 {
+	DescriptorManager::Instance()->Free(m_UavDescriptor);
+	DescriptorManager::Instance()->Free(m_SrvDescriptor);
+
 	if (m_Resource != m_UploadResource)
 	{
 		DeferredDeleteQueue::Instance()->QueueForDelete(m_UploadResource);

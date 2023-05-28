@@ -88,6 +88,4 @@ void Stage::Rasterization::Execute(QuadricRenderer* pRenderer, ID3D12GraphicsCom
 
 	UINT tileHeight = pRenderer->m_AppData.tileDimensions.height;
 	pComList->Dispatch((tileHeight / 32) + ((tileHeight % 32) > 0), pRenderer->m_AppData.numRasterizers, 1);
-
-	
 }

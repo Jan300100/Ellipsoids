@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DeferredDeleteQueue.cpp" />
+    <ClCompile Include="DescriptorManager.cpp" />
     <ClCompile Include="GeometryProcessingStage.cpp" />
     <ClCompile Include="GPUResource.cpp" />
     <ClCompile Include="MergeStage.cpp" />
@@ -30,6 +31,7 @@
   <ItemGroup>
     <ClInclude Include="d3dx12.h" />
     <ClInclude Include="DeferredDeleteQueue.h" />
+    <ClInclude Include="DescriptorManager.h" />
     <ClInclude Include="GeometryProcessingStage.h" />
     <ClInclude Include="GPUResource.h" />
     <ClInclude Include="Helpers.h" />

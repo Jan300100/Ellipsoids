@@ -3,8 +3,6 @@
 #include <d3d12.h>
 #include "Helpers.h"
 
-
-
 struct Quadric
 {
 	DirectX::XMMATRIX transformed;

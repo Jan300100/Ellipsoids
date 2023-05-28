@@ -37,13 +37,7 @@ private:
 
 	//ROOT SIGNATURE
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_RootSignature;
-	//TEXTURES
-	enum DescriptorHeapLayout : unsigned int
-	{
-		Color = 0, RIndex, Depth, RDepth, NumDescriptors
-	};
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DescriptorHeap;
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DescriptorHeapSV;
+
 	GPUResource m_OutputBuffer;
 	GPUResource m_DepthBuffer;
 	//RASTERIZERS:

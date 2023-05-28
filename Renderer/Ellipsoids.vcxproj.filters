@@ -45,6 +45,9 @@
     <ClCompile Include="GPUResource.cpp">
       <Filter>General</Filter>
     </ClCompile>
+    <ClCompile Include="DescriptorManager.cpp">
+      <Filter>General</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="QuadricRenderer.h">
@@ -78,6 +81,9 @@
       <Filter>General</Filter>
     </ClInclude>
     <ClInclude Include="GPUResource.h">
+      <Filter>General</Filter>
+    </ClInclude>
+    <ClInclude Include="DescriptorManager.h">
       <Filter>General</Filter>
     </ClInclude>
   </ItemGroup>
