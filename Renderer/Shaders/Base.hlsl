@@ -16,14 +16,14 @@ struct AppData
 
 struct InQuadric
 {
-    float4x4 transformed;
+    row_major float4x4 transformed;
     float4 color;
 };
 
 struct OutQuadric
 {
-    float4x4 shearToProj;
-    float4x4 normalGenerator;
+    row_major float4x4 shearToProj;
+    row_major float4x4 normalGenerator;
     float3x3 transform;
     float3 color;
     float2 yRange;

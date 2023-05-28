@@ -1,19 +1,17 @@
 #include "GeometryProcessingStage.h"
 #include "QuadricGeometry.h"
 #include "QuadricRenderer.h"
-#include <d3dcompiler.h>
+
 #include <array>
+#include <d3d12shader.h>
 
 #ifndef USE_PIX
 #define USE_PIX
 #endif
 #include <pix3.h>
+#include <iostream>
 
 using namespace Microsoft::WRL;
-
-#define PROJECT_DIR_STR XSTR(PROJECT_DIR)
-#define XSTR(s) STR(s)
-#define STR(s) #s
 
 Stage::GeometryProcessing::GeometryProcessing()
 	:Stage{}
@@ -43,43 +41,73 @@ bool Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, ID3D12Graphi
 
 void Stage::GeometryProcessing::Init(QuadricRenderer* pRenderer)
 {
-	//SHADER
-	UINT compileFlags = 0;
+	// Shader
+	ComPtr<IDxcUtils> pUtils;
+	ComPtr<IDxcCompiler3> pCompiler;
+	ComPtr<IDxcIncludeHandler> pIncludeHandler;
+	ThrowIfFailed(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&pUtils)));
+	ThrowIfFailed(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&pCompiler)));
+	ThrowIfFailed(pUtils->CreateDefaultIncludeHandler(&pIncludeHandler));
+
+	// Load the shader source file to a blob.
+	ComPtr<IDxcBlobEncoding> sourceBlob;
+	ThrowIfFailed(pUtils->LoadFile(L"Shaders/GeometryProcessingShader.hlsl", nullptr, &sourceBlob));
+
+	DxcBuffer sourceBuffer{};
+	sourceBuffer.Ptr = sourceBlob->GetBufferPointer();
+	sourceBuffer.Size = sourceBlob->GetBufferSize();
+	sourceBuffer.Encoding = 0u;
+
+	std::vector<LPCWSTR> compilationArguments
+	{
+		L"-E",
+		L"main",
+		L"-T",
+		L"cs_6_6",
+		L"-I",
+		L"Shaders/",
+	};
+
 #if defined(DEBUG) || defined(_DEBUG)  
-	compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+	compilationArguments.push_back(DXC_ARG_DEBUG);
+	compilationArguments.push_back(DXC_ARG_SKIP_OPTIMIZATIONS);
 #else
-	compileFlags = D3DCOMPILE_OPTIMIZATION_LEVEL3;
+	compilationArguments.push_back(DXC_ARG_OPTIMIZATION_LEVEL3);
 #endif
-	ComPtr<ID3DBlob> errorBlob = nullptr;
 
-	HRESULT hr = D3DCompileFromFile(L"Shaders/GeometryProcessingShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-		"main", "cs_5_1", compileFlags, 0, &m_Shader, &errorBlob);
+	// Compile the shader.
+	Microsoft::WRL::ComPtr<IDxcResult> compiledShaderBuffer{};
+	HRESULT hr = pCompiler->Compile(&sourceBuffer,
+		compilationArguments.data(),
+		static_cast<uint32_t>(compilationArguments.size()),
+		pIncludeHandler.Get(),
+		IID_PPV_ARGS(&compiledShaderBuffer));
 
-	if (errorBlob != nullptr)
-		OutputDebugStringA((char*)errorBlob->GetBufferPointer());
 	ThrowIfFailed(hr);
+
+	// Get compilation errors (if any).
+	ComPtr<IDxcBlobEncoding> errors{};
+	hr = compiledShaderBuffer->GetErrorBuffer(errors.GetAddressOf());
+	ThrowIfFailed(hr);
+	if (errors)
+	{
+		OutputDebugStringA((char*)errors->GetBufferPointer());
+	}
 
 #if defined(DEBUG) || defined(_DEBUG)  
-	// pdb gen
-	ID3DBlob* pdbBlob = nullptr;
-
-	hr = D3DGetBlobPart(
-		m_Shader->GetBufferPointer(),
-		m_Shader->GetBufferSize(),
-		D3D_BLOB_PDB,
-		NULL,
-		&pdbBlob
-	);
-	ThrowIfFailed(hr);
-
+	// save pdbs
+	ComPtr<IDxcBlob> pdbBlob{};
+	compiledShaderBuffer->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pdbBlob), nullptr);
 	FILE* pdbFile = nullptr;
-	_wfopen_s(&pdbFile, L"GeometryProcessingShader.pdb", L"wb");
-	if (pdbFile)
+	_wfopen_s(&pdbFile, L"GeometryProcessingShaderDXC.pdb", L"wb");
+	if (pdbBlob && pdbFile)
 	{
 		fwrite(pdbBlob->GetBufferPointer(), 1, pdbBlob->GetBufferSize(), pdbFile);
 		fclose(pdbFile);
 	}
 #endif
+
+	compiledShaderBuffer->GetResult(m_Shader.GetAddressOf());
 
 	//PSO
 	D3D12_COMPUTE_PIPELINE_STATE_DESC computePsoDesc{};
