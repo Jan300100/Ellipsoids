@@ -14,7 +14,7 @@ void main( uint3 DTid : SV_DispatchThreadID )
     OutQuadric projected = Project(gQuadricsIn[DTid.x], DTid.z);
 
     
-    //FILL RASTERIZERS
+    //FILL RASTERIZERS - REDISTRIBUTION to rasterizers: SORT MIDDLE
     uint2 numTiles = GetNrTiles(gAppData.windowDimensions, gAppData.tileDimensions);
     uint2 start = NDCToScreen(float2(projected.xRange.x, projected.yRange.y), gAppData.windowDimensions) / gAppData.tileDimensions;
     uint2 end = NDCToScreen(float2(projected.xRange.y, projected.yRange.x), gAppData.windowDimensions) / gAppData.tileDimensions;
@@ -45,6 +45,8 @@ void AddQuadric(uint screenTileIdx, OutQuadric quadric)
     uint numRasterizers = gAppData.numRasterizers;
     uint screenHint = gScreenTiles[screenTileIdx].rasterizerHint;
     uint rIdx = (screenHint < numRasterizers) * screenHint;
+    
+    [allow_uav_condition]
     while (rIdx < numRasterizers)
     {
         if (gRasterizers[rIdx].screenTileIdx == UINT_MAX)
@@ -57,6 +59,7 @@ void AddQuadric(uint screenTileIdx, OutQuadric quadric)
                 //we claimed the rasterizer, append to linkedlist
                 uint llIdx;
                 InterlockedCompareExchange(gScreenTiles[screenTileIdx].rasterizerHint, UINT_MAX, rIdx, llIdx);
+                [allow_uav_condition]
                 while (llIdx < numRasterizers)
                 {
                     InterlockedCompareExchange(gRasterizers[llIdx].nextRasterizerIdx, UINT_MAX, rIdx, llIdx);

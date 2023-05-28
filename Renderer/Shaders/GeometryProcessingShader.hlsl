@@ -73,8 +73,7 @@ void AddQuadric(uint screenTileIdx, OutQuadric quadric)
             {
                 //try add to this rasterizer
                 uint qIdx;
-                InterlockedAdd(gRasterizers[rIdx].numQuadrics, 1, qIdx);
-                //InterlockedCompareExchange(gRasterizers[rIdx].numQuadrics, value, value + 1, qIdx);
+                InterlockedCompareExchange(gRasterizers[rIdx].numQuadrics, value, value + 1, qIdx);
                 if (qIdx == value)
                 {
                     //spot secured : add the quadric

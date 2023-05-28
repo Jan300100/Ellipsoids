@@ -59,8 +59,6 @@ RWTexture2D<uint> gRIBuffer : register(u4);
 RWTexture2D<float> gDepthBuffer : register(u5);
 RWTexture2D<float> gRDepthBuffer : register(u6);
 
-
-
 uint NDCToScreen(float ndc, float dimension)
 {
     return (ndc / 2.0f + 0.5f) * dimension;
@@ -74,7 +72,7 @@ uint2 NDCToScreen(float2 ndc, float2 windowDimensions)
 
 float ScreenToNDC(uint screen, float dimension)
 {
-    return (screen / dimension - 0.5f) * 2.0f;
+    return (2.0 * screen) * (1 / dimension) + (-1.0f);
 }
 
 float2 ScreenToNDC(uint2 screen, float2 windowDimensions)
