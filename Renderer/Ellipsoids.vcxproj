@@ -22,7 +22,9 @@
     <ClCompile Include="DeferredDeleteQueue.cpp" />
     <ClCompile Include="DescriptorManager.cpp" />
     <ClCompile Include="GeometryProcessingStage.cpp" />
+    <ClCompile Include="GPUBuffer.cpp" />
     <ClCompile Include="GPUResource.cpp" />
+    <ClCompile Include="GPUTexture2D.cpp" />
     <ClCompile Include="MergeStage.cpp" />
     <ClCompile Include="QuadricGeometry.cpp" />
     <ClCompile Include="QuadricRenderer.cpp" />
@@ -33,7 +35,9 @@
     <ClInclude Include="DeferredDeleteQueue.h" />
     <ClInclude Include="DescriptorManager.h" />
     <ClInclude Include="GeometryProcessingStage.h" />
+    <ClInclude Include="GPUBuffer.h" />
     <ClInclude Include="GPUResource.h" />
+    <ClInclude Include="GPUTexture2D.h" />
     <ClInclude Include="Helpers.h" />
     <ClInclude Include="MergeStage.h" />
     <ClInclude Include="QuadricGeometry.h" />

@@ -49,99 +49,70 @@ void DescriptorManager::Initialize(ID3D12Device* pDevice)
 	}
 }
 
-GPUResource::Descriptor DescriptorManager::CreateUAV(const GPUResource& resource)
+GPUResource::Descriptor DescriptorManager::CreateUAV(const GPUTexture2D& resource)
 {
-	GPUResource::Descriptor data;
-
-	if (!m_FreeList.empty())
-	{
-		data = m_FreeList.back();
-		m_FreeList.pop_back();
-	}
-	else
-	{
-		data = m_Next;
-
-		m_Next.cpuHandle.Offset(m_IncrementSize);
-		m_Next.cpuHandleSV.Offset(m_IncrementSize);
-		m_Next.gpuHandleSV.Offset(m_IncrementSize);
-		m_Next.indexSV += 1;
-	}
-
-	D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
-	D3D12_UNORDERED_ACCESS_VIEW_DESC* pDesc = nullptr;
-	switch (resource.GetType())
-	{
-	case GPUResource::Type::None:
-		break;
-	case GPUResource::Type::Buffer:
-	{
-		GPUResource::BufferParams params = resource.GetBufferParams();
-		desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
-		desc.Buffer.StructureByteStride = params.elementSize;
-		desc.Buffer.NumElements = params.numElements;
-		pDesc = &desc;
-	}
-		break;
-	case GPUResource::Type::Texture2D:
-		break;
-	default:
-		break;
-	}
-
-	m_pDevice->CreateUnorderedAccessView(resource.Get(), nullptr, pDesc, data.cpuHandle);
-	m_pDevice->CreateUnorderedAccessView(resource.Get(), nullptr, pDesc, data.cpuHandleSV);
+	GPUResource::Descriptor data = Allocate();
+	m_pDevice->CreateUnorderedAccessView(resource.Get(), nullptr, nullptr, data.cpuHandle);
+	m_pDevice->CreateUnorderedAccessView(resource.Get(), nullptr, nullptr, data.cpuHandleSV);
 	data.isActive = true;
 
 	return data;
 }
 
-GPUResource::Descriptor DescriptorManager::CreateSRV(const GPUResource& resource)
+GPUResource::Descriptor DescriptorManager::CreateUAV(const GPUBuffer& resource)
 {
-	GPUResource::Descriptor data;
+	GPUResource::Descriptor data = Allocate();
 
-	if (!m_FreeList.empty())
-	{
-		data = m_FreeList.back();
-		m_FreeList.pop_back();
-	}
-	else
-	{
-		data = m_Next;
+	GPUBuffer::Params params = resource.GetParams();
 
-		m_Next.cpuHandle.Offset(m_IncrementSize);
-		m_Next.cpuHandleSV.Offset(m_IncrementSize);
-		m_Next.gpuHandleSV.Offset(m_IncrementSize);
-		m_Next.indexSV += 1;
-	}
+	D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
+	desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+	desc.Buffer.StructureByteStride = params.elementSize;
+	desc.Buffer.NumElements = params.numElements;
+	desc.Format = resource.GetFormat();
+
+	m_pDevice->CreateUnorderedAccessView(resource.Get(), nullptr, &desc, data.cpuHandle);
+	m_pDevice->CreateUnorderedAccessView(resource.Get(), nullptr, &desc, data.cpuHandleSV);
+
+	return data;
+}
+
+GPUResource::Descriptor DescriptorManager::CreateSRV(const GPUTexture2D& resource)
+{
+	GPUResource::Descriptor data = Allocate();
+	m_pDevice->CreateShaderResourceView(resource.Get(), nullptr, data.cpuHandle);
+	m_pDevice->CreateShaderResourceView(resource.Get(), nullptr, data.cpuHandleSV);
+	return data;
+}
+
+GPUResource::Descriptor DescriptorManager::CreateSRV(const GPUBuffer& resource)
+{
+	GPUResource::Descriptor data = Allocate();
+
+	GPUBuffer::Params params = resource.GetParams();
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC desc{};
-	D3D12_SHADER_RESOURCE_VIEW_DESC* pDesc = nullptr;
-	switch (resource.GetType())
-	{
-	case GPUResource::Type::None:
-		break;
-	case GPUResource::Type::Buffer:
-	{
-		GPUResource::BufferParams params = resource.GetBufferParams();
-		desc.Format = resource.GetFormat();
-		desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING; //required for structured buffer
-		desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-		desc.Buffer.StructureByteStride = params.elementSize;
-		desc.Buffer.NumElements = params.numElements;
-		pDesc = &desc;
-	}
-	break;
-	case GPUResource::Type::Texture2D:
-		break;
-	default:
-		break;
-	}
-	
-	m_pDevice->CreateShaderResourceView(resource.Get(), pDesc, data.cpuHandle);
-	m_pDevice->CreateShaderResourceView(resource.Get(), pDesc, data.cpuHandleSV);
+	desc.Format = resource.GetFormat();
+	desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING; //required for structured buffer
+	desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+	desc.Buffer.StructureByteStride = params.elementSize;
+	desc.Buffer.NumElements = params.numElements;
 
-	data.isActive = true;
+	m_pDevice->CreateShaderResourceView(resource.Get(), &desc, data.cpuHandle);
+	m_pDevice->CreateShaderResourceView(resource.Get(), &desc, data.cpuHandleSV);
+	return data;
+}
+
+GPUResource::Descriptor DescriptorManager::CreateCBV(const GPUBuffer& resource)
+{
+	GPUResource::Descriptor data = Allocate();
+
+	D3D12_CONSTANT_BUFFER_VIEW_DESC desc{};
+	desc.BufferLocation = resource.Get()->GetGPUVirtualAddress();
+	desc.SizeInBytes = resource.GetSize();
+
+	m_pDevice->CreateConstantBufferView(&desc,data.cpuHandle);
+	m_pDevice->CreateConstantBufferView(&desc,data.cpuHandleSV);
 
 	return data;
 }
@@ -155,40 +126,25 @@ void DescriptorManager::Free(const GPUResource::Descriptor& data)
 	}
 }
 
-D3D12_UAV_DIMENSION DescriptorManager::GetUAVViewDimension(GPUResource::Type type)
+GPUResource::Descriptor DescriptorManager::Allocate()
 {
-	D3D12_UAV_DIMENSION viewDim = D3D12_UAV_DIMENSION_UNKNOWN;
-	switch (type)
+	GPUResource::Descriptor data;
+
+	if (!m_FreeList.empty())
 	{
-	case GPUResource::Type::None:
-		break;
-	case GPUResource::Type::Buffer:
-		viewDim = D3D12_UAV_DIMENSION_BUFFER;
-		break;
-	case GPUResource::Type::Texture2D:
-		viewDim = D3D12_UAV_DIMENSION_TEXTURE2D;
-		break;
-	default:
-		break;
+		data = m_FreeList.back();
+		m_FreeList.pop_back();
 	}
-	return viewDim;
+	else
+	{
+		data = m_Next;
+
+		m_Next.cpuHandle.Offset(m_IncrementSize);
+		m_Next.cpuHandleSV.Offset(m_IncrementSize);
+		m_Next.gpuHandleSV.Offset(m_IncrementSize);
+		m_Next.indexSV += 1;
+	}
+
+	return data;
 }
 
-D3D12_SRV_DIMENSION DescriptorManager::GetSRVViewDimension(GPUResource::Type type)
-{
-	D3D12_SRV_DIMENSION viewDim = D3D12_SRV_DIMENSION_UNKNOWN;
-	switch (type)
-	{
-	case GPUResource::Type::None:
-		break;
-	case GPUResource::Type::Buffer:
-		viewDim = D3D12_SRV_DIMENSION_BUFFER;
-		break;
-	case GPUResource::Type::Texture2D:
-		viewDim = D3D12_SRV_DIMENSION_TEXTURE2D;
-		break;
-	default:
-		break;
-	}
-	return viewDim;
-}

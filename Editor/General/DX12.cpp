@@ -48,7 +48,6 @@ DX12::DX12(Window* pWindow)
 	//GRAPHICS
 	//********
 	m_pGraphics = new Graphics{ m_Device.Get(),factory.Get(), m_pWindow };
-
 }
 
 DX12::~DX12()

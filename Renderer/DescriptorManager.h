@@ -1,6 +1,8 @@
 #pragma once
 #include <d3d12.h>
 #include "GPUResource.h"
+#include "GPUBuffer.h"
+#include "GPUTexture2D.h"
 #include <vector>
 
 class DescriptorManager
@@ -14,15 +16,17 @@ public:
 
 	void Initialize(ID3D12Device* pDevice);
 	
-	GPUResource::Descriptor CreateUAV(const GPUResource& resource);
-	GPUResource::Descriptor CreateSRV(const GPUResource& resource);
+	GPUResource::Descriptor CreateUAV(const GPUTexture2D& resource);
+	GPUResource::Descriptor CreateUAV(const GPUBuffer& resource);
+	GPUResource::Descriptor CreateSRV(const GPUTexture2D& resource);
+	GPUResource::Descriptor CreateSRV(const GPUBuffer& resource);
+	GPUResource::Descriptor CreateCBV(const GPUBuffer& resource);
 
 	void Free(const GPUResource::Descriptor& data);
 
 	ID3D12DescriptorHeap* GetShaderVisibleHeap() const { return m_pDescriptorHeapSV; }
 private:
-	D3D12_UAV_DIMENSION GetUAVViewDimension(GPUResource::Type type);;
-	D3D12_SRV_DIMENSION GetSRVViewDimension(GPUResource::Type type);;
+	GPUResource::Descriptor Allocate();
 
 	bool m_Initialized = false;
 

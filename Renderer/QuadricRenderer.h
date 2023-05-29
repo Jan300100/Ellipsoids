@@ -13,7 +13,10 @@
 #include <queue>
 #include <memory>
 #include "DeferredDeleteQueue.h"
+
 #include "GPUResource.h"
+#include "GPUBuffer.h"
+#include "GPUTexture2D.h"
 
 #define REVERSE_DEPTH 1
 #define SHOW_TILES 0
@@ -36,22 +39,22 @@ private:
 	//DATA
 
 	AppData m_AppData;
-	GPUResource m_AppDataBuffer; //general data (for both stages?)
+	GPUBuffer m_AppDataBuffer; //general data (for both stages?)
 
 	//ROOT SIGNATURE
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_RootSignature;
 
-	GPUResource m_OutputBuffer;
-	GPUResource m_DepthBuffer;
+	GPUTexture2D m_OutputBuffer;
+	GPUTexture2D m_DepthBuffer;
 	//RASTERIZERS:
-	GPUResource m_RasterizerBuffer; //uav buffer, flexible(resize when not big enough?)
-	GPUResource m_RasterizerResetBuffer; //upload buffer to reset screenTiles
-	GPUResource m_RasterizerQBuffer; //uav buffer with outputQuadrics
-	GPUResource m_RasterizerDepthBuffer;
-	GPUResource m_RasterizerIBuffer;
+	GPUBuffer m_RasterizerBuffer; //uav buffer, flexible(resize when not big enough?)
+	GPUBuffer m_RasterizerResetBuffer; //upload buffer to reset screenTiles
+	GPUBuffer m_RasterizerQBuffer; //uav buffer with outputQuadrics
+	GPUTexture2D m_RasterizerDepthBuffer;
+	GPUTexture2D m_RasterizerIBuffer;
 	//SCREENTILES
-	GPUResource m_ScreenTileBuffer; //uav buffer, flexible(resize when not big enough?)
-	GPUResource m_ScreenTileResetBuffer; //upload buffer to reset screenTiles
+	GPUBuffer m_ScreenTileBuffer; //uav buffer, flexible(resize when not big enough?)
+	GPUBuffer m_ScreenTileResetBuffer; //upload buffer to reset screenTiles
 
 	//RENDER STAGES
 	Stage::GeometryProcessing m_GPStage;

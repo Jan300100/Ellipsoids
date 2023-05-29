@@ -22,6 +22,9 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{0cd7d50d-4265-4c8e-9c6f-62c20ea420e1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{cc7db070-85ac-4eee-b29a-c6f0f181f64f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="QuadricRenderer.cpp">
@@ -42,11 +45,17 @@
     <ClCompile Include="DeferredDeleteQueue.cpp">
       <Filter>General</Filter>
     </ClCompile>
-    <ClCompile Include="GPUResource.cpp">
-      <Filter>General</Filter>
-    </ClCompile>
     <ClCompile Include="DescriptorManager.cpp">
       <Filter>General</Filter>
+    </ClCompile>
+    <ClCompile Include="GPUResource.cpp">
+      <Filter>Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="GPUBuffer.cpp">
+      <Filter>Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="GPUTexture2D.cpp">
+      <Filter>Resources</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -80,11 +89,17 @@
     <ClInclude Include="DeferredDeleteQueue.h">
       <Filter>General</Filter>
     </ClInclude>
-    <ClInclude Include="GPUResource.h">
-      <Filter>General</Filter>
-    </ClInclude>
     <ClInclude Include="DescriptorManager.h">
       <Filter>General</Filter>
+    </ClInclude>
+    <ClInclude Include="GPUResource.h">
+      <Filter>Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="GPUBuffer.h">
+      <Filter>Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="GPUTexture2D.h">
+      <Filter>Resources</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -3,6 +3,7 @@
 #include <cassert>
 #include <wtypes.h>
 #include <comdef.h>
+#include <cstdint>
 
 template<typename T>
 struct Dimensions

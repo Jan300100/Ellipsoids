@@ -33,12 +33,12 @@ void QuadricGeometry::Init(QuadricRenderer* pRenderer, ID3D12GraphicsCommandList
 {
     m_Quadrics = quadrics;
 
-    GPUResource::BufferParams params{};
+    GPUBuffer::Params params{};
     params.numElements = (UINT)m_Quadrics.size();
     params.elementSize = sizeof(Quadric);
     params.heapType = D3D12_HEAP_TYPE_DEFAULT;
 
-    m_InputBuffer = GPUResource{ pRenderer->GetDevice(), params};
+    m_InputBuffer = GPUBuffer{ pRenderer->GetDevice(), params};
 
     void* mapped = m_InputBuffer.Map();
     memcpy(mapped, m_Quadrics.data(), params.elementSize * params.numElements);
@@ -50,7 +50,7 @@ void QuadricGeometry::Init(QuadricRenderer* pRenderer, ID3D12GraphicsCommandList
     params.heapType = D3D12_HEAP_TYPE_DEFAULT;
     params.elementSize = sizeof(DrawData);
     params.numElements = 1;
-    m_DrawDataBuffer = GPUResource{ pRenderer->GetDevice(), params };
+    m_DrawDataBuffer = GPUBuffer{ pRenderer->GetDevice(), params };
 
     m_Initialized = true;
 }
@@ -59,12 +59,12 @@ void QuadricGeometry::RecreateInstanceBuffer(QuadricRenderer* pRenderer)
 {
     if (m_NumInstances > 0)
     {
-        GPUResource::BufferParams params{};
+        GPUBuffer::Params params{};
         params.numElements = static_cast<uint32_t>(m_NumInstances);
         params.elementSize = static_cast<uint32_t>(sizeof(DirectX::XMMATRIX));
         params.heapType = D3D12_HEAP_TYPE_DEFAULT;
 
-        m_InstanceBuffer = GPUResource(pRenderer->GetDevice(), params);
+        m_InstanceBuffer = GPUBuffer(pRenderer->GetDevice(), params);
     }
 }
 

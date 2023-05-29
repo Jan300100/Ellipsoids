@@ -18,27 +18,27 @@ using namespace DirectX;
 
 void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 {
-	GPUResource::BufferParams params;
+	GPUBuffer::Params params;
 	params.heapType = D3D12_HEAP_TYPE_DEFAULT;
 	params.elementSize = sizeof(AppData);
 	params.numElements = 1;
 	params.allowUAV = false;
-	m_AppDataBuffer = GPUResource{ m_pDevice, params };
+	m_AppDataBuffer = GPUBuffer{ m_pDevice, params };
 	m_AppDataBuffer.Get()->SetName(L"AppDataBuffer");	
 
 	//Output Texture
-	GPUResource::Texture2DParams tParams;
+	GPUTexture2D::Params tParams;
 	tParams.allowUAV = true;
 	tParams.format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	tParams.width = m_WindowDimensions.width;
 	tParams.height = m_WindowDimensions.height;
 	tParams.numMips = 1;
-	m_OutputBuffer = GPUResource{ m_pDevice, tParams };
+	m_OutputBuffer = GPUTexture2D{ m_pDevice, tParams };
 	m_OutputBuffer.Get()->SetName(L"OutputTexture");
 
 	//depth Texture
 	tParams.format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
-	m_DepthBuffer = GPUResource{ m_pDevice, tParams };
+	m_DepthBuffer = GPUTexture2D{ m_pDevice, tParams };
 	m_DepthBuffer.Get()->SetName(L"DepthBuffer");
 
 	//ROOT SIGNATURE
@@ -238,32 +238,32 @@ void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, U
 		//rasterizer buffers
 		UINT sqrtNumR = UINT(ceilf(sqrtf((float)m_AppData.numRasterizers)));
 
-		GPUResource::Texture2DParams tParams;
+		GPUTexture2D::Params tParams;
 		tParams.allowUAV = true;
 		tParams.width = sqrtNumR * (UINT)m_AppData.tileDimensions.width;
 		tParams.height = sqrtNumR * (UINT)m_AppData.tileDimensions.height;
 		tParams.format = DXGI_FORMAT_R32_UINT;
 		tParams.numMips = 1;
-		m_RasterizerIBuffer = GPUResource{ m_pDevice, tParams };
+		m_RasterizerIBuffer = GPUTexture2D{ m_pDevice, tParams };
 		m_RasterizerIBuffer.Get()->SetName(L"RasterizerIndexBuffer");
 
 		tParams.format = DXGI_FORMAT::DXGI_FORMAT_R32_FLOAT;
-		m_RasterizerDepthBuffer = GPUResource{ m_pDevice, tParams };
+		m_RasterizerDepthBuffer = GPUTexture2D{ m_pDevice, tParams };
 		m_RasterizerDepthBuffer.Get()->SetName(L"RasterizerDepthBuffer");
 
 		//BUFFERS
 		//SCREENTILES
-		GPUResource::BufferParams params;
+		GPUBuffer::Params params;
 		params.heapType = D3D12_HEAP_TYPE_DEFAULT;
 		params.elementSize = sizeof(ScreenTile);
 		params.numElements = GetNrTiles().width * GetNrTiles().height;
 		params.allowUAV = true;
 
-		m_ScreenTileBuffer = GPUResource{ m_pDevice, params };
+		m_ScreenTileBuffer = GPUBuffer{ m_pDevice, params };
 		m_ScreenTileBuffer.Get()->SetName(L"ScreenTileBuffer");
 		
 		params.allowUAV = false;
-		m_ScreenTileResetBuffer = GPUResource{ m_pDevice, params };
+		m_ScreenTileResetBuffer = GPUBuffer{ m_pDevice, params };
 		m_ScreenTileResetBuffer.Get()->SetName(L"ScreenTileBuffer");
 
 		ScreenTile* tiles = static_cast<ScreenTile*>(m_ScreenTileResetBuffer.Map());
@@ -280,11 +280,11 @@ void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, U
 		params.elementSize = (UINT)(sizeof(Rasterizer));
 		params.allowUAV = true;
 
-		m_RasterizerBuffer = GPUResource{ m_pDevice, params };
+		m_RasterizerBuffer = GPUBuffer{ m_pDevice, params };
 		m_RasterizerBuffer.Get()->SetName(L"RasterizerBuffer");
 
 		params.allowUAV = false;
-		m_RasterizerResetBuffer = GPUResource{ m_pDevice, params };
+		m_RasterizerResetBuffer = GPUBuffer{ m_pDevice, params };
 		m_RasterizerResetBuffer.Get()->SetName(L"RasterizerResetBuffer");
 
 		Rasterizer initial{ UINT_MAX, UINT_MAX , 0 };
@@ -300,7 +300,7 @@ void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, U
 		params.elementSize = sizeof(OutQuadric);
 		params.numElements = m_AppData.numRasterizers * m_AppData.quadricsPerRasterizer;
 		params.allowUAV = true;
-		m_RasterizerQBuffer = GPUResource{ m_pDevice, params };
+		m_RasterizerQBuffer = GPUBuffer{ m_pDevice, params };
 		m_RasterizerQBuffer.Get()->SetName(L"RasterizerQBuffer");
 
 		std::array< CD3DX12_RESOURCE_BARRIER, 4> transitions{};
@@ -316,13 +316,13 @@ void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, U
 		m_AppData.quadricsPerRasterizer = quadricsPerRasterizer;
 
 		//QBuffer
-		GPUResource::BufferParams params;
+		GPUBuffer::Params params;
 		params.heapType = D3D12_HEAP_TYPE_DEFAULT;
 		params.numElements = m_AppData.numRasterizers * m_AppData.quadricsPerRasterizer;
 		params.elementSize = sizeof(OutQuadric);
 		params.allowUAV = true;		
 
-		m_RasterizerQBuffer = GPUResource{m_pDevice, params};
+		m_RasterizerQBuffer = GPUBuffer{m_pDevice, params};
 		m_RasterizerQBuffer.Get()->SetName(L"RasterizerQBuffer");
 	}
 }

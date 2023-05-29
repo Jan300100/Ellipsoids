@@ -22,58 +22,36 @@ public:
 		Texture2D
 	};
 
-	struct Texture2DParams
-	{
-		DXGI_FORMAT format;
-		uint32_t width;
-		uint32_t height;
-		uint16_t numMips;
-		bool allowUAV;
-	};
-
-	struct BufferParams {
-		D3D12_HEAP_TYPE heapType;
-		uint32_t numElements;
-		uint32_t elementSize;
-		bool allowUAV;
-	};
-
 	CD3DX12_RESOURCE_BARRIER TransitionResource(D3D12_RESOURCE_STATES newState);
 
-	Descriptor GetUAV() const;
-	Descriptor GetSRV() const;
+	virtual void* Map() = 0;
+	virtual void Unmap(ID3D12GraphicsCommandList* pComList) = 0;
 
-	// mapping
-	void* Map();
-	void Unmap(ID3D12GraphicsCommandList* pComList);
-	
-	BufferParams GetBufferParams() const { return m_BufferParams; }
-	Texture2DParams GetTexture2DParams() const { return m_Texture2DParams; }
+	Descriptor GetUAV() const { return m_UavDescriptor; }
+	Descriptor GetSRV() const { return m_SrvDescriptor; }
 
 	ID3D12Resource* Get() const { return m_Resource; }
 	D3D12_RESOURCE_STATES GetCurrentState() const { return m_CurrentState; }
-	DXGI_FORMAT GetFormat() const;
+	virtual DXGI_FORMAT GetFormat() const = 0;
 	Type GetType() const;
+
 public:
-	GPUResource();
-	GPUResource(ID3D12Device* pDevice, const BufferParams& params);
-	GPUResource(ID3D12Device* pDevice, const Texture2DParams& params);
+	GPUResource() = default;
+
 	GPUResource(GPUResource&&) noexcept;
 	GPUResource(const GPUResource&) = delete;
 	GPUResource& operator=(GPUResource&&) noexcept;
 	GPUResource& operator=(const GPUResource&) = delete;
-	~GPUResource();
+	virtual ~GPUResource();
 
-private:
+protected:
 	Descriptor m_UavDescriptor;
 	Descriptor m_SrvDescriptor;
 
 	ID3D12Resource* m_UploadResource;
 	ID3D12Resource* m_Resource;
 
-	Type m_Type;
-	BufferParams m_BufferParams;
-	Texture2DParams m_Texture2DParams;
-
 	D3D12_RESOURCE_STATES m_CurrentState;
+
+	Type m_Type;
 };

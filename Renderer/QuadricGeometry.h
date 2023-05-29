@@ -1,5 +1,5 @@
 #pragma once
-#include "GPUResource.h"
+#include "GPUBuffer.h"
 #include "Structs.h"
 #include <vector>
 #include <wrl.h>
@@ -14,12 +14,12 @@ class QuadricGeometry
 	//data cpu
 	std::vector<Quadric> m_Quadrics; 
 	std::vector<DirectX::XMMATRIX> m_Transforms; 
-	GPUResource m_InputBuffer;
+	GPUBuffer m_InputBuffer;
 	void RecreateInstanceBuffer(QuadricRenderer* pRenderer);
 
-	GPUResource m_InstanceBuffer;
+	GPUBuffer m_InstanceBuffer;
 
-	GPUResource m_DrawDataBuffer; //contains srv indices
+	GPUBuffer m_DrawDataBuffer; //contains srv indices
 
 	size_t m_NumInstances;
 	bool m_Initialized = false;
