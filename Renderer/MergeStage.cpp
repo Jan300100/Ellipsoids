@@ -74,6 +74,16 @@ void Stage::Merge::Init(QuadricRenderer* pRenderer)
 		L"cs_6_6",
 		L"-I",
 		L"Shaders/",
+#if SHOW_TILES
+		L"-D",
+		L"SHOW_TILES",
+		L"1",
+#endif
+#if !REVERSE_DEPTH
+		L"-D",
+		L"REVERSE_DEPTH",
+		L"0",
+#endif
 	};
 
 	compilationArguments.push_back(DXC_ARG_WARNINGS_ARE_ERRORS);

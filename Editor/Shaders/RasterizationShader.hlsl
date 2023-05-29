@@ -9,13 +9,17 @@ void main(uint3 DTid : SV_DispatchThreadID)
     
     //rasterizer INFO
     uint rasterizerIndex = DTid.y;
-    Rasterizer rasterizer = gRasterizers[rasterizerIndex];
+    RWStructuredBuffer<Rasterizer> rasterizers = ResourceDescriptorHeap[gAppData.rasterBufferIdx];
+    Rasterizer rasterizer = rasterizers[rasterizerIndex];
+    
     float2 delta = float2(2.0f / gAppData.windowDimensions.x, 2.0f / gAppData.windowDimensions.y); //width and height of 1 pixel in NDC
     uint2 screenLeftTop = GetScreenLeftTop(rasterizer.screenTileIdx, gAppData.windowDimensions, gAppData.tileDimensions);
     
     RWTexture2D<uint> rIBuffer = ResourceDescriptorHeap[gAppData.RasterIBufferIdx];
     RWTexture2D<float> rDepthBuffer = ResourceDescriptorHeap[gAppData.RasterDepthBufferIdx];
 
+    RWStructuredBuffer<OutQuadric> rasterizerQBuffer = ResourceDescriptorHeap[gAppData.rasterQBufferIdx];
+    
     uint2 virtualDimensions;
     rIBuffer.GetDimensions(virtualDimensions.x, virtualDimensions.y);
     uint2 virtualTextureLeftTop = GetScreenLeftTop(rasterizerIndex, virtualDimensions, gAppData.tileDimensions);
@@ -26,7 +30,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
     //PER QUADRIC
     for (uint qIdx = rasterizerIndex * gAppData.quadricsPerRasterizer; qIdx < rasterizerIndex * gAppData.quadricsPerRasterizer + rasterizer.numQuadrics; qIdx++)
     {
-        OutQuadric q = gRasterizerQBuffer[qIdx];
+        OutQuadric q = rasterizerQBuffer[qIdx];
 
         if (scrP.y > NDCToScreen(-q.yRange.x, gAppData.windowDimensions.y)
             || scrP.y < NDCToScreen(-q.yRange.y, gAppData.windowDimensions.y))

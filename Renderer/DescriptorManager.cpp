@@ -68,20 +68,82 @@ GPUResource::Descriptor DescriptorManager::CreateUAV(const GPUResource& resource
 		m_Next.indexSV += 1;
 	}
 
-	D3D12_UNORDERED_ACCESS_VIEW_DESC desc = {};
-	desc.Format = resource.GetFormat();
-	desc.ViewDimension = GetUAVViewDimension(resource.GetType());
+	D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
+	D3D12_UNORDERED_ACCESS_VIEW_DESC* pDesc = nullptr;
+	switch (resource.GetType())
+	{
+	case GPUResource::Type::None:
+		break;
+	case GPUResource::Type::Buffer:
+	{
+		GPUResource::BufferParams params = resource.GetBufferParams();
+		desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+		desc.Buffer.StructureByteStride = params.elementSize;
+		desc.Buffer.NumElements = params.numElements;
+		pDesc = &desc;
+	}
+		break;
+	case GPUResource::Type::Texture2D:
+		break;
+	default:
+		break;
+	}
 
-	m_pDevice->CreateUnorderedAccessView(resource.Get(), nullptr, &desc, data.cpuHandle);
-	m_pDevice->CreateUnorderedAccessView(resource.Get(), nullptr, &desc, data.cpuHandleSV);
+	m_pDevice->CreateUnorderedAccessView(resource.Get(), nullptr, pDesc, data.cpuHandle);
+	m_pDevice->CreateUnorderedAccessView(resource.Get(), nullptr, pDesc, data.cpuHandleSV);
 	data.isActive = true;
 
 	return data;
 }
 
-GPUResource::Descriptor DescriptorManager::CreateSRV(const GPUResource&)
+GPUResource::Descriptor DescriptorManager::CreateSRV(const GPUResource& resource)
 {
-	return GPUResource::Descriptor{};
+	GPUResource::Descriptor data;
+
+	if (!m_FreeList.empty())
+	{
+		data = m_FreeList.back();
+		m_FreeList.pop_back();
+	}
+	else
+	{
+		data = m_Next;
+
+		m_Next.cpuHandle.Offset(m_IncrementSize);
+		m_Next.cpuHandleSV.Offset(m_IncrementSize);
+		m_Next.gpuHandleSV.Offset(m_IncrementSize);
+		m_Next.indexSV += 1;
+	}
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC desc{};
+	D3D12_SHADER_RESOURCE_VIEW_DESC* pDesc = nullptr;
+	switch (resource.GetType())
+	{
+	case GPUResource::Type::None:
+		break;
+	case GPUResource::Type::Buffer:
+	{
+		GPUResource::BufferParams params = resource.GetBufferParams();
+		desc.Format = resource.GetFormat();
+		desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING; //required for structured buffer
+		desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+		desc.Buffer.StructureByteStride = params.elementSize;
+		desc.Buffer.NumElements = params.numElements;
+		pDesc = &desc;
+	}
+	break;
+	case GPUResource::Type::Texture2D:
+		break;
+	default:
+		break;
+	}
+	
+	m_pDevice->CreateShaderResourceView(resource.Get(), pDesc, data.cpuHandle);
+	m_pDevice->CreateShaderResourceView(resource.Get(), pDesc, data.cpuHandleSV);
+
+	data.isActive = true;
+
+	return data;
 }
 
 void DescriptorManager::Free(const GPUResource::Descriptor& data)

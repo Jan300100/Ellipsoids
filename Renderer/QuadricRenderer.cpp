@@ -20,10 +20,12 @@ void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 {
 	GPUResource::BufferParams params;
 	params.heapType = D3D12_HEAP_TYPE_DEFAULT;
-	params.size = sizeof(AppData);
+	params.elementSize = sizeof(AppData);
+	params.numElements = 1;
+	params.allowUAV = false;
 	m_AppDataBuffer = GPUResource{ m_pDevice, params };
 	m_AppDataBuffer.Get()->SetName(L"AppDataBuffer");	
-	
+
 	//Output Texture
 	GPUResource::Texture2DParams tParams;
 	tParams.allowUAV = true;
@@ -40,18 +42,14 @@ void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 	m_DepthBuffer.Get()->SetName(L"DepthBuffer");
 
 	//ROOT SIGNATURE
-	CD3DX12_ROOT_PARAMETER rootParameter[7];
+	std::array<CD3DX12_ROOT_PARAMETER,3> rootParameters;
 
-	rootParameter[0].InitAsConstants(1,0);
-	rootParameter[1].InitAsConstantBufferView(1);
-	rootParameter[2].InitAsShaderResourceView(0);
-	rootParameter[3].InitAsShaderResourceView(1);
-	rootParameter[4].InitAsUnorderedAccessView(0);
-	rootParameter[5].InitAsUnorderedAccessView(1);
-	rootParameter[6].InitAsUnorderedAccessView(2);
+	rootParameters[0].InitAsConstants(1,0);
+	rootParameters[1].InitAsConstantBufferView(1);
+	rootParameters[2].InitAsConstantBufferView(2);
 
 	// A root signature is an array of root parameters.
-	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(7, rootParameter,
+	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc((UINT)rootParameters.size(), rootParameters.data(),
 		0, nullptr,
 		D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED);
 
@@ -149,6 +147,10 @@ void QuadricRenderer::InitRendering(ID3D12GraphicsCommandList* pComList)
 	m_AppData.RasterIBufferIdx = m_RasterizerIBuffer.GetUAV().indexSV;
 	m_AppData.RasterDepthBufferIdx = m_RasterizerDepthBuffer.GetUAV().indexSV;
 
+	m_AppData.rasterBufferIdx = m_RasterizerBuffer.GetUAV().indexSV;
+	m_AppData.rasterQBufferIdx = m_RasterizerQBuffer.GetUAV().indexSV;
+	m_AppData.screenTileBufferIdx = m_ScreenTileBuffer.GetUAV().indexSV;
+
 	void* mapped = m_AppDataBuffer.Map();
 	memcpy(mapped, &m_AppData, sizeof(AppData));
 	m_AppDataBuffer.Unmap(pComList);
@@ -171,9 +173,6 @@ void QuadricRenderer::InitRendering(ID3D12GraphicsCommandList* pComList)
 	//set root sign and parameters
 	pComList->SetComputeRootSignature(m_RootSignature.Get());
 	pComList->SetComputeRootConstantBufferView(1,m_AppDataBuffer.Get()->GetGPUVirtualAddress());
-	pComList->SetComputeRootUnorderedAccessView(4, m_RasterizerBuffer.Get()->GetGPUVirtualAddress());
-	pComList->SetComputeRootUnorderedAccessView(5, m_ScreenTileBuffer.Get()->GetGPUVirtualAddress());
-	pComList->SetComputeRootUnorderedAccessView(6, m_RasterizerQBuffer.Get()->GetGPUVirtualAddress());
 }
 
 Dimensions<UINT> QuadricRenderer::GetNrTiles() const
@@ -256,7 +255,8 @@ void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, U
 		//SCREENTILES
 		GPUResource::BufferParams params;
 		params.heapType = D3D12_HEAP_TYPE_DEFAULT;
-		params.size = (sizeof(ScreenTile) * GetNrTiles().width * GetNrTiles().height);
+		params.elementSize = sizeof(ScreenTile);
+		params.numElements = GetNrTiles().width * GetNrTiles().height;
 		params.allowUAV = true;
 
 		m_ScreenTileBuffer = GPUResource{ m_pDevice, params };
@@ -276,7 +276,8 @@ void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, U
 
 		//RASTERIZERS
 		// Create the buffer that will be a UAV with rasterizers
-		params.size = (UINT)(sizeof(Rasterizer) * m_AppData.numRasterizers);
+		params.numElements = m_AppData.numRasterizers;
+		params.elementSize = (UINT)(sizeof(Rasterizer));
 		params.allowUAV = true;
 
 		m_RasterizerBuffer = GPUResource{ m_pDevice, params };
@@ -296,7 +297,8 @@ void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, U
 		m_RasterizerResetBuffer.Unmap(pComList);
 
 		//QBuffer
-		params.size = sizeof(OutQuadric) * m_AppData.numRasterizers * m_AppData.quadricsPerRasterizer;
+		params.elementSize = sizeof(OutQuadric);
+		params.numElements = m_AppData.numRasterizers * m_AppData.quadricsPerRasterizer;
 		params.allowUAV = true;
 		m_RasterizerQBuffer = GPUResource{ m_pDevice, params };
 		m_RasterizerQBuffer.Get()->SetName(L"RasterizerQBuffer");
@@ -316,7 +318,8 @@ void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, U
 		//QBuffer
 		GPUResource::BufferParams params;
 		params.heapType = D3D12_HEAP_TYPE_DEFAULT;
-		params.size = sizeof(OutQuadric) * m_AppData.numRasterizers * m_AppData.quadricsPerRasterizer;
+		params.numElements = m_AppData.numRasterizers * m_AppData.quadricsPerRasterizer;
+		params.elementSize = sizeof(OutQuadric);
 		params.allowUAV = true;		
 
 		m_RasterizerQBuffer = GPUResource{m_pDevice, params};

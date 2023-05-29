@@ -33,7 +33,8 @@ public:
 
 	struct BufferParams {
 		D3D12_HEAP_TYPE heapType;
-		uint32_t size;
+		uint32_t numElements;
+		uint32_t elementSize;
 		bool allowUAV;
 	};
 
@@ -45,6 +46,10 @@ public:
 	// mapping
 	void* Map();
 	void Unmap(ID3D12GraphicsCommandList* pComList);
+
+	
+	BufferParams GetBufferParams() const { return m_BufferParams; }
+	Texture2DParams GetTexture2DParams() const { return m_Texture2DParams; }
 
 	ID3D12Resource* Get() const { return m_Resource; }
 	D3D12_RESOURCE_STATES GetCurrentState() const { return m_CurrentState; }

@@ -4,7 +4,10 @@
 void main( uint3 DTid : SV_DispatchThreadID )
 {
     uint screenTileIdx = DTid.z;
-    uint rasterizerIdx = gScreenTiles[screenTileIdx].rasterizerHint;
+    
+    RWStructuredBuffer<ScreenTile> screenTiles = ResourceDescriptorHeap[gAppData.screenTileBufferIdx];
+    uint rasterizerIdx = screenTiles[screenTileIdx].rasterizerHint;
+    
     uint2 screenLeftTop = GetScreenLeftTop(screenTileIdx, gAppData.windowDimensions, gAppData.tileDimensions);
     uint2 pixel = screenLeftTop.xy + DTid.xy;
     if (pixel.x > gAppData.windowDimensions.x 
@@ -20,6 +23,9 @@ void main( uint3 DTid : SV_DispatchThreadID )
     RWTexture2D<float> rDepthBuffer = ResourceDescriptorHeap[gAppData.RasterDepthBufferIdx];
     RWTexture2D<float> depthBuffer = ResourceDescriptorHeap[gAppData.depthBufferIdx];
     RWTexture2D<float4> backBuffer = ResourceDescriptorHeap[gAppData.outputBufferIdx];
+
+    RWStructuredBuffer<Rasterizer> rasterizers = ResourceDescriptorHeap[gAppData.rasterBufferIdx];
+    RWStructuredBuffer<OutQuadric> rasterizerQBuffer = ResourceDescriptorHeap[gAppData.rasterQBufferIdx];
 
     rIBuffer.GetDimensions(virtualDimensions.x, virtualDimensions.y);
     float currentDepth = depthBuffer[pixel.xy];
@@ -41,42 +47,39 @@ void main( uint3 DTid : SV_DispatchThreadID )
             currentIdx = rIBuffer[rBufferPixel.xy];
         }
         
-        rasterizerIdx = gRasterizers[rasterizerIdx].nextRasterizerIdx;
+        rasterizerIdx = rasterizers[rasterizerIdx].nextRasterizerIdx;
     }
 
 #if SHOW_TILES        
-    if (gAppData.showTiles)
+    if (pixel.x % gAppData.tileDimensions.x == 0)
     {
-        if (pixel.x % gAppData.tileDimensions.x == 0)
-        {
-            depthBuffer[pixel.xy] = 0;
-            backBuffer[pixel.xy] = float4(1, 0, 0, 1);
-            return;
-        }
-        else if (pixel.y % gAppData.tileDimensions.y == 0)
-        {
-            depthBuffer[pixel.xy] = 0;
-            backBuffer[pixel.xy] = float4(0, 1, 1, 1);
-            return;
-        }
-        else if ((pixel.x + 1) % gAppData.tileDimensions.x == 0)
-        {
-            depthBuffer[pixel.xy] = 0;
-            backBuffer[pixel.xy] = float4(0, 1, 0, 1);
-            return;
-        }
-        else if ((pixel.y + 1) % gAppData.tileDimensions.y == 0)
-        {
-            depthBuffer[pixel.xy] = 0;
-            backBuffer[pixel.xy] = float4(1, 1, 0, 1);
-            return;
-        }
+        depthBuffer[pixel.xy] = 0;
+        backBuffer[pixel.xy] = float4(1, 0, 0, 1);
+        return;
+    }
+    else if (pixel.y % gAppData.tileDimensions.y == 0)
+    {
+        depthBuffer[pixel.xy] = 0;
+        backBuffer[pixel.xy] = float4(0, 1, 1, 1);
+        return;
+    }
+    else if ((pixel.x + 1) % gAppData.tileDimensions.x == 0)
+    {
+        depthBuffer[pixel.xy] = 0;
+        backBuffer[pixel.xy] = float4(0, 1, 0, 1);
+        return;
+    }
+    else if ((pixel.y + 1) % gAppData.tileDimensions.y == 0)
+    {
+        depthBuffer[pixel.xy] = 0;
+        backBuffer[pixel.xy] = float4(1, 1, 0, 1);
+        return;
     }
 #endif
-    
+
     if (currentIdx != UINT_MAX)
     {   
-        OutQuadric q = gRasterizerQBuffer[currentIdx];
+        OutQuadric q = rasterizerQBuffer[currentIdx];
         
         float2 pixelNDC = ScreenToNDC(pixel, gAppData.windowDimensions);
         //SHADING

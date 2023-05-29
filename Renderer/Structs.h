@@ -42,6 +42,16 @@ struct AppData
 	unsigned int outputBufferIdx;
 	unsigned int RasterIBufferIdx;
 	unsigned int RasterDepthBufferIdx;
+
+	unsigned int rasterBufferIdx;
+	unsigned int rasterQBufferIdx;
+	unsigned int screenTileBufferIdx;
+};
+
+struct DrawData
+{
+	unsigned int instanceBufferIdx;
+	unsigned int quadricBufferIdx;
 };
 
 struct ScreenTile

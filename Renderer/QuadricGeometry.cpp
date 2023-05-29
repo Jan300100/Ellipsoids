@@ -13,14 +13,19 @@ void QuadricGeometry::UpdateTransforms(ID3D12GraphicsCommandList* pComList, Quad
         if (m_Transforms.size() > m_NumInstances)
         {
             m_NumInstances = m_Transforms.size();
-            RecreateMeshBuffer(pRenderer);
+            RecreateInstanceBuffer(pRenderer);
         }
 
-        void* mapped = m_MeshDataBuffer.Map();
+        void* mapped = m_InstanceBuffer.Map();
         memcpy(mapped, m_Transforms.data(), sizeof(XMMATRIX) * m_Transforms.size());
-        m_MeshDataBuffer.Unmap(pComList);
+        m_InstanceBuffer.Unmap(pComList);
 
         m_Transforms.clear();
+
+        DrawData* data = static_cast<DrawData*>(m_DrawDataBuffer.Map());
+        data->instanceBufferIdx = m_InstanceBuffer.GetSRV().indexSV;
+        data->quadricBufferIdx = m_InputBuffer.GetSRV().indexSV;
+        m_DrawDataBuffer.Unmap(pComList);
     }
 }
 
@@ -29,43 +34,37 @@ void QuadricGeometry::Init(QuadricRenderer* pRenderer, ID3D12GraphicsCommandList
     m_Quadrics = quadrics;
 
     GPUResource::BufferParams params{};
-    params.size = static_cast<uint32_t>(sizeof(Quadric) * m_Quadrics.size());
+    params.numElements = (UINT)m_Quadrics.size();
+    params.elementSize = sizeof(Quadric);
     params.heapType = D3D12_HEAP_TYPE_DEFAULT;
 
     m_InputBuffer = GPUResource{ pRenderer->GetDevice(), params};
 
-    params.heapType = D3D12_HEAP_TYPE_UPLOAD;
-    GPUResource temp{ pRenderer->GetDevice(), params };
+    void* mapped = m_InputBuffer.Map();
+    memcpy(mapped, m_Quadrics.data(), params.elementSize * params.numElements);
+    m_InputBuffer.Unmap(pComList);
 
-    D3D12_SUBRESOURCE_DATA subResourceData = {};
-    subResourceData.pData = m_Quadrics.data();
-    subResourceData.RowPitch = params.size;
-    subResourceData.SlicePitch = subResourceData.RowPitch;
+    RecreateInstanceBuffer(pRenderer);
 
-    CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_InputBuffer.Get(),
-        D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
-    pComList->ResourceBarrier(1, &barrier);
-
-    UpdateSubresources<1>(pComList, m_InputBuffer.Get(), temp.Get(), 0, 0, 1, &subResourceData);
-
-    barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_InputBuffer.Get(),
-        D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ);
-    pComList->ResourceBarrier(1, &barrier);
-
-    RecreateMeshBuffer(pRenderer);
+    params.allowUAV = false;
+    params.heapType = D3D12_HEAP_TYPE_DEFAULT;
+    params.elementSize = sizeof(DrawData);
+    params.numElements = 1;
+    m_DrawDataBuffer = GPUResource{ pRenderer->GetDevice(), params };
 
     m_Initialized = true;
 }
 
-void QuadricGeometry::RecreateMeshBuffer(QuadricRenderer* pRenderer)
+void QuadricGeometry::RecreateInstanceBuffer(QuadricRenderer* pRenderer)
 {
     if (m_NumInstances > 0)
     {
         GPUResource::BufferParams params{};
-        params.size = static_cast<uint32_t>(sizeof(DirectX::XMMATRIX) * m_NumInstances);
+        params.numElements = static_cast<uint32_t>(m_NumInstances);
+        params.elementSize = static_cast<uint32_t>(sizeof(DirectX::XMMATRIX));
         params.heapType = D3D12_HEAP_TYPE_DEFAULT;
 
-        m_MeshDataBuffer = GPUResource(pRenderer->GetDevice(), params);
+        m_InstanceBuffer = GPUResource(pRenderer->GetDevice(), params);
     }
 }
 

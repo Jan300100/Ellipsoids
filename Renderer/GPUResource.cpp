@@ -110,7 +110,7 @@ GPUResource::GPUResource(ID3D12Device* pDevice, const BufferParams& params)
 	, m_SrvDescriptor{}
 {
 	CD3DX12_HEAP_PROPERTIES properties{params.heapType};
-	CD3DX12_RESOURCE_DESC desc = { CD3DX12_RESOURCE_DESC::Buffer(params.size) };
+	CD3DX12_RESOURCE_DESC desc = { CD3DX12_RESOURCE_DESC::Buffer(params.elementSize * params.numElements) };
 	if (params.allowUAV)
 	{
 		desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;

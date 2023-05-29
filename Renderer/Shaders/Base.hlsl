@@ -1,7 +1,12 @@
 #define UINT_MAX 0xffffffff
 
+#ifndef REVERSE_DEPTH
 #define REVERSE_DEPTH 1
+#endif
+
+#ifndef SHOW_TILES
 #define SHOW_TILES 0
+#endif
 
 struct AppData
 {
@@ -19,6 +24,16 @@ struct AppData
     uint outputBufferIdx;
     uint RasterIBufferIdx;
     uint RasterDepthBufferIdx;
+    
+    uint rasterBufferIdx;
+    uint rasterQBufferIdx;
+    uint screenTileBufferIdx;
+};
+
+struct DrawData
+{
+    uint instanceBufferIdx;
+    uint quadricBufferIdx;
 };
 
 struct InQuadric
@@ -52,13 +67,7 @@ struct Rasterizer
 
 uint gNumQuadrics : register(b0);
 ConstantBuffer<AppData> gAppData : register(b1);
-
-StructuredBuffer<float4x4> gMeshData : register(t0);
-StructuredBuffer<InQuadric> gQuadricsIn : register(t1);
-
-RWStructuredBuffer<Rasterizer> gRasterizers : register(u0);
-RWStructuredBuffer<ScreenTile> gScreenTiles : register(u1);
-RWStructuredBuffer<OutQuadric> gRasterizerQBuffer : register(u2);
+ConstantBuffer<DrawData> gDrawData : register(b2);
 
 uint NDCToScreen(float ndc, float dimension)
 {

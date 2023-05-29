@@ -11,7 +11,8 @@ void main( uint3 DTid : SV_DispatchThreadID )
     if (DTid.x >= gNumQuadrics)
         return;
     //PROJECT
-    OutQuadric projected = Project(gQuadricsIn[DTid.x], DTid.z);
+    StructuredBuffer<InQuadric> quadricsIn = ResourceDescriptorHeap[gDrawData.quadricBufferIdx];
+    OutQuadric projected = Project(quadricsIn[DTid.x], DTid.z);
 
     
     //FILL RASTERIZERS - REDISTRIBUTION to rasterizers: SORT MIDDLE
@@ -42,49 +43,52 @@ void main( uint3 DTid : SV_DispatchThreadID )
 
 void AddQuadric(uint screenTileIdx, OutQuadric quadric)
 {
+    RWStructuredBuffer<Rasterizer> rasterizers = ResourceDescriptorHeap[gAppData.rasterBufferIdx];
+    RWStructuredBuffer<ScreenTile> screenTiles = ResourceDescriptorHeap[gAppData.screenTileBufferIdx];
+    RWStructuredBuffer<OutQuadric> rasterizerQBuffer = ResourceDescriptorHeap[gAppData.rasterQBufferIdx];
     uint numRasterizers = gAppData.numRasterizers;
-    uint screenHint = gScreenTiles[screenTileIdx].rasterizerHint;
+    uint screenHint = screenTiles[screenTileIdx].rasterizerHint;
     uint rIdx = (screenHint < numRasterizers) * screenHint;
     
     [allow_uav_condition]
     while (rIdx < numRasterizers)
     {
-        if (gRasterizers[rIdx].screenTileIdx == UINT_MAX)
+        if (rasterizers[rIdx].screenTileIdx == UINT_MAX)
         {
             //try claim for this screenTile
             uint original;
-            InterlockedCompareExchange(gRasterizers[rIdx].screenTileIdx, UINT_MAX, screenTileIdx, original);
+            InterlockedCompareExchange(rasterizers[rIdx].screenTileIdx, UINT_MAX, screenTileIdx, original);
             if (original == UINT_MAX)
             {
                 //we claimed the rasterizer, append to linkedlist
                 uint llIdx;
-                InterlockedCompareExchange(gScreenTiles[screenTileIdx].rasterizerHint, UINT_MAX, rIdx, llIdx);
+                InterlockedCompareExchange(screenTiles[screenTileIdx].rasterizerHint, UINT_MAX, rIdx, llIdx);
                 [allow_uav_condition]
                 while (llIdx < numRasterizers)
                 {
-                    InterlockedCompareExchange(gRasterizers[llIdx].nextRasterizerIdx, UINT_MAX, rIdx, llIdx);
+                    InterlockedCompareExchange(rasterizers[llIdx].nextRasterizerIdx, UINT_MAX, rIdx, llIdx);
                 }
             }
         }
-        else if (gRasterizers[rIdx].screenTileIdx == screenTileIdx)
+        else if (rasterizers[rIdx].screenTileIdx == screenTileIdx)
         {
-            uint value = gRasterizers[rIdx].numQuadrics;
+            uint value = rasterizers[rIdx].numQuadrics;
             if (value < gAppData.quadricsPerRasterizer)
             {
                 //try add to this rasterizer
                 uint qIdx;
-                InterlockedCompareExchange(gRasterizers[rIdx].numQuadrics, value, value + 1, qIdx);
+                InterlockedCompareExchange(rasterizers[rIdx].numQuadrics, value, value + 1, qIdx);
                 if (qIdx == value)
                 {
                     //spot secured : add the quadric
                     uint rasterizerOffset = rIdx * gAppData.quadricsPerRasterizer;
-                    gRasterizerQBuffer[rasterizerOffset + qIdx] = quadric;
+                    rasterizerQBuffer[rasterizerOffset + qIdx] = quadric;
                     rIdx = UINT_MAX;
                 }
             }
             else
             {
-                uint hint = gRasterizers[rIdx].nextRasterizerIdx;
+                uint hint = rasterizers[rIdx].nextRasterizerIdx;
                 rIdx = (hint > rIdx && hint < gAppData.numRasterizers) ? hint : rIdx + 1;
             }
         }
@@ -99,7 +103,9 @@ void AddQuadric(uint screenTileIdx, OutQuadric quadric)
 OutQuadric Project(InQuadric input, uint instanceIdx)
 {
     OutQuadric output = (OutQuadric)0;
-    float4x4 transform = gMeshData[instanceIdx];
+    
+    StructuredBuffer<float4x4> instances = ResourceDescriptorHeap[gDrawData.instanceBufferIdx];
+    float4x4 transform = instances[instanceIdx];
     
     //put the quadric at its's world position
     float4x4 world = mul(mul(transform, input.transformed), transpose(transform));;
