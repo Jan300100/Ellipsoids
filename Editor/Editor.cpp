@@ -45,8 +45,6 @@ void Editor::Initialize()
 	m_DX12.GetGraphicsInterface()->commandList->Reset(m_DX12.GetGraphicsInterface()->commandAllocator[m_DX12.GetGraphicsInterface()->currentRT].Get(), nullptr);
 	m_QRenderer.Initialize(m_DX12.GetGraphicsInterface()->commandList.Get());
 	m_QRenderer.SetProjectionVariables(m_pCamera->GetFOV(), m_pWindow->AspectRatio(), m_pCamera->GetNearPlane(), 200.0f);
-	m_QRenderer.ShowTiles(true);
-	m_QRenderer.ReverseDepth(true);
 
 	//initialization
 	DirectX::XMFLOAT3 skinColor{ 1.0f,0.67f,0.45f }, tShirtColor{ 1,0,0 }, pantsColor{ 0,0,1 }, shoeColor{ 0.6f,0.4f,0.1f };

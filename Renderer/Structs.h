@@ -36,8 +36,6 @@ struct AppData
 	Dimensions<unsigned int> tileDimensions;
 	unsigned int quadricsPerRasterizer;
 	unsigned int numRasterizers;
-	unsigned int showTiles;
-	unsigned int reverseDepth;
 
 	// bindless stuff
 	unsigned int depthBufferIdx;

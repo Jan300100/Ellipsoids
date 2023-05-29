@@ -39,6 +39,8 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		MSG msg = {};
 		auto start = std::chrono::high_resolution_clock::now();
 
+		static float Timepassed = 0;
+		static uint64_t numFrames = 0;
 		while (msg.message != WM_QUIT)
 		{
 			mouse.Update();
@@ -54,11 +56,16 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 			auto end = std::chrono::high_resolution_clock::now();
 			float delta = (float)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1'000'000.0f;
 			start = end;
+
 			std::cout << 1.f / delta << '\r';
 
+			Timepassed += delta;
+			numFrames++;
 
 			editor.Frame(delta);
 		}
+		std::wstring output = L"AVERAGE ms: " + std::to_wstring(Timepassed * 1000 / numFrames) + L"\n";
+		OutputDebugString(output.c_str());
 	}
 	catch (DxException& e)
 	{

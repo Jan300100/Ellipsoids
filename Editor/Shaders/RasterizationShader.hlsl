@@ -45,31 +45,24 @@ void main(uint3 DTid : SV_DispatchThreadID)
             float zVal = mul(mul(float3(pos), q.transform), float3(pos));
             if (zVal > 0) //this pixels covers the ellipsoid
             {
-                if (gAppData.reverseDepth)
+                zVal = sqrt(zVal);
+#if REVERSE_DEPTH
+                zVal *= -1;
+#endif
+                projPos = mul(float4(pos.x, pos.y, zVal, 1), q.shearToProj);
+                if (projPos.z < 0.0 || projPos.z > 1.0f)
+                    continue;
+                
+                float depth = projPos.z;
+                
+#if REVERSE_DEPTH
+                if (rDepthBuffer[rBufPixel.xy] <= depth)
+#else
+                if (rDepthBuffer[rBufPixel.xy] > depth)
+#endif
                 {
-                    zVal = -sqrt(zVal);
-                    projPos = mul(float4(pos.x, pos.y, zVal, 1), q.shearToProj);
-                    if (projPos.z < 0.0 || projPos.z > 1.0f)
-                        continue;
-                    float depth = projPos.z;
-                    if (rDepthBuffer[rBufPixel.xy] <= depth)
-                    {
-                        rIBuffer[rBufPixel.xy] = qIdx;
-                        rDepthBuffer[rBufPixel.xy] = depth;
-                    }
-                }
-                else
-                {
-                    zVal = sqrt(zVal);
-                    projPos = mul(float4(pos.x, pos.y, zVal, 1), q.shearToProj);
-                    if (projPos.z < 0.0 || projPos.z > 1.0f)
-                        continue;
-                    float depth = projPos.z;
-                    if (rDepthBuffer[rBufPixel.xy] > depth)
-                    {
-                        rIBuffer[rBufPixel.xy] = qIdx;
-                        rDepthBuffer[rBufPixel.xy] = depth;
-                    }
+                    rIBuffer[rBufPixel.xy] = qIdx;
+                    rDepthBuffer[rBufPixel.xy] = depth;
                 }
             }
         }

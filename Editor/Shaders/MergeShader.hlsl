@@ -24,44 +24,27 @@ void main( uint3 DTid : SV_DispatchThreadID )
     rIBuffer.GetDimensions(virtualDimensions.x, virtualDimensions.y);
     float currentDepth = depthBuffer[pixel.xy];
     uint currentIdx = UINT_MAX;
-    
-    if (gAppData.reverseDepth)
+
+    while (rasterizerIdx < gAppData.numRasterizers)
     {
-        while (rasterizerIdx < gAppData.numRasterizers)
+        uint2 virtualTextureLeftTop = GetScreenLeftTop(rasterizerIdx, virtualDimensions, gAppData.tileDimensions);
+        uint2 rBufferPixel = virtualTextureLeftTop.xy + DTid.xy;
+        float pixelDepth = rDepthBuffer[rBufferPixel.xy];
+
+#if REVERSE_DEPTH    
+        if (currentDepth <= pixelDepth)
+#else
+        if (currentDepth > pixelDepth)
+#endif
         {
-            uint2 virtualTextureLeftTop = GetScreenLeftTop(rasterizerIdx, virtualDimensions, gAppData.tileDimensions);
-            uint2 rBufferPixel = virtualTextureLeftTop.xy + DTid.xy;
-            float pixelDepth = rDepthBuffer[rBufferPixel.xy];
-        
-
-            if (currentDepth <= pixelDepth)
-            {
-                currentDepth = pixelDepth;
-                currentIdx = rIBuffer[rBufferPixel.xy];
-            }
-
-            rasterizerIdx = gRasterizers[rasterizerIdx].nextRasterizerIdx;
-        }
-    }
-    else
-    {
-        while (rasterizerIdx < gAppData.numRasterizers)
-        {
-            uint2 virtualTextureLeftTop = GetScreenLeftTop(rasterizerIdx, virtualDimensions, gAppData.tileDimensions);
-            uint2 rBufferPixel = virtualTextureLeftTop.xy + DTid.xy;
-            float pixelDepth = rDepthBuffer[rBufferPixel.xy];
-
-            if (currentDepth > pixelDepth)
-            {
-                currentDepth = pixelDepth;
-                currentIdx = rIBuffer[rBufferPixel.xy];
-            }
-
-            rasterizerIdx = gRasterizers[rasterizerIdx].nextRasterizerIdx;
+            currentDepth = pixelDepth;
+            currentIdx = rIBuffer[rBufferPixel.xy];
         }
         
+        rasterizerIdx = gRasterizers[rasterizerIdx].nextRasterizerIdx;
     }
-        
+
+#if SHOW_TILES        
     if (gAppData.showTiles)
     {
         if (pixel.x % gAppData.tileDimensions.x == 0)
@@ -89,7 +72,7 @@ void main( uint3 DTid : SV_DispatchThreadID )
             return;
         }
     }
-   
+#endif
     
     if (currentIdx != UINT_MAX)
     {   
@@ -102,16 +85,11 @@ void main( uint3 DTid : SV_DispatchThreadID )
         if (pos.z < 0)
             return;
         
-        if (gAppData.reverseDepth)
-        {
-            pos.z = -sqrt(pos.z);
-           
-        }
-        else
-        {
-            pos.z = sqrt(pos.z);
-           
-        }
+        pos.z = sqrt(pos.z);
+#if REVERSE_DEPTH
+        pos.z *= -1;
+#endif
+       
         float3 normal = -mul(float4(pos, 1), q.normalGenerator).xyz;
         normal = normalize(normal);
         float3 lDir = gAppData.lightDirection.xyz;

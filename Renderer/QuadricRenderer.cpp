@@ -128,7 +128,7 @@ void QuadricRenderer::InitDrawCall(ID3D12GraphicsCommandList* pComList)
 	pComList->ClearUnorderedAccessViewUint(m_RasterizerIBuffer.GetUAV().gpuHandleSV, m_RasterizerIBuffer.GetUAV().cpuHandle
 		, m_RasterizerIBuffer.Get(), &clearValue1, 0, nullptr);
 	
-	FLOAT clearValue2 = (FLOAT)(!(bool)m_AppData.reverseDepth);
+	FLOAT clearValue2 = (FLOAT)(!REVERSE_DEPTH);
 	pComList->ClearUnorderedAccessViewFloat(m_RasterizerDepthBuffer.GetUAV().gpuHandleSV, m_RasterizerDepthBuffer.GetUAV().cpuHandle
 		, m_RasterizerDepthBuffer.Get(), &clearValue2, 0, nullptr);
 }
@@ -162,7 +162,7 @@ void QuadricRenderer::InitRendering(ID3D12GraphicsCommandList* pComList)
 		m_OutputBuffer.GetUAV().cpuHandle,
 		m_OutputBuffer.Get(), (FLOAT*)&m_ClearColor, 0, nullptr);
 	
-	FLOAT clearVal = (FLOAT)(!(bool)m_AppData.reverseDepth);
+	FLOAT clearVal = (FLOAT)(!REVERSE_DEPTH);
 	pComList->ClearUnorderedAccessViewFloat(
 		m_DepthBuffer.GetUAV().gpuHandleSV,
 		m_DepthBuffer.GetUAV().cpuHandle,
@@ -193,8 +193,6 @@ QuadricRenderer::QuadricRenderer(ID3D12Device2* pDevice, UINT windowWidth, UINT 
 	DeferredDeleteQueue::Instance()->SetHysteresis(numBackBuffers * 2);
 
 	m_AppData.windowSize = { windowWidth ,windowHeight, 0, 0 };
-	m_AppData.showTiles = false;
-	m_AppData.reverseDepth = true;
 	m_AppData.tileDimensions = { 128,128 };
 	m_AppData.quadricsPerRasterizer = 64;
 
@@ -223,17 +221,6 @@ void QuadricRenderer::SetViewMatrix(const DirectX::XMMATRIX& view)
 void QuadricRenderer::SetClearColor(float r, float g, float b, float a)
 {
 	m_ClearColor = { r,g,b,a };
-}
-
-void QuadricRenderer::ShowTiles(bool show)
-{
-	m_AppData.showTiles = show;
-}
-
-void QuadricRenderer::ReverseDepth(bool reverse)
-{
-	m_AppData.reverseDepth = reverse;
-	SetProjectionVariables(m_CameraValues.fov, m_CameraValues.aspectRatio, m_CameraValues.nearPlane, m_CameraValues.farPlane);
 }
 
 void QuadricRenderer::SetRendererSettings(ID3D12GraphicsCommandList* pComList, UINT numRasterizers, Dimensions<unsigned int> rasterizerDimensions, UINT quadricsPerRasterizer, bool overrule)
@@ -344,14 +331,12 @@ void QuadricRenderer::SetProjectionVariables(float fov, float aspectRatio, float
 	m_CameraValues.nearPlane = nearPlane;
 	m_CameraValues.farPlane = farPlane;
 
-	if (m_AppData.reverseDepth)
-	{
+#if REVERSE_DEPTH
 		m_CameraValues.p = XMMatrixPerspectiveFovLH(fov, aspectRatio, farPlane, nearPlane);
-	}
-	else
-	{
+#else
 		m_CameraValues.p = XMMatrixPerspectiveFovLH(fov, aspectRatio, nearPlane, farPlane);
-	}
+#endif
+
 	SetViewMatrix(m_CameraValues.v); //recalc matrices;
 }
 

@@ -1,5 +1,8 @@
 #define UINT_MAX 0xffffffff
 
+#define REVERSE_DEPTH 1
+#define SHOW_TILES 0
+
 struct AppData
 {
     row_major float4x4 viewProjInv;
@@ -10,8 +13,6 @@ struct AppData
     uint2 tileDimensions;
     uint quadricsPerRasterizer;
     uint numRasterizers;
-    uint showTiles;
-    uint reverseDepth;
     
     // bindless stuff
     uint depthBufferIdx;
