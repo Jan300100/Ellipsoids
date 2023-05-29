@@ -15,23 +15,13 @@ CD3DX12_RESOURCE_BARRIER GPUResource::TransitionResource(D3D12_RESOURCE_STATES n
 	return barrier;
 }
 
-GPUResource::Descriptor GPUResource::GetUAV()
+GPUResource::Descriptor GPUResource::GetUAV() const
 {
-	if (m_UavDescriptor.isActive == false)
-	{
-		m_UavDescriptor = DescriptorManager::Instance()->CreateUAV(*this);
-	}
-
 	return m_UavDescriptor;
 }
 
-GPUResource::Descriptor GPUResource::GetSRV()
+GPUResource::Descriptor GPUResource::GetSRV() const
 {
-	if (m_SrvDescriptor.isActive == false)
-	{
-		m_SrvDescriptor = DescriptorManager::Instance()->CreateSRV(*this);
-	}
-
 	return m_SrvDescriptor;
 }
 
@@ -148,6 +138,12 @@ GPUResource::GPUResource(ID3D12Device* pDevice, const BufferParams& params)
 			nullptr,
 			IID_PPV_ARGS(&m_UploadResource)));
 	}
+
+	if (m_BufferParams.allowUAV)
+	{
+		m_UavDescriptor = DescriptorManager::Instance()->CreateUAV(*this);
+	}
+	m_SrvDescriptor = DescriptorManager::Instance()->CreateSRV(*this);
 }
 
 GPUResource::GPUResource(ID3D12Device* pDevice, const Texture2DParams& params)
@@ -176,6 +172,12 @@ GPUResource::GPUResource(ID3D12Device* pDevice, const Texture2DParams& params)
 		m_CurrentState,
 		nullptr,
 		IID_PPV_ARGS(&m_Resource)));
+
+	if (m_Texture2DParams.allowUAV)
+	{
+		m_UavDescriptor = DescriptorManager::Instance()->CreateUAV(*this);
+	}
+	m_SrvDescriptor = DescriptorManager::Instance()->CreateSRV(*this);
 }
 
 GPUResource::GPUResource(GPUResource&& other) noexcept

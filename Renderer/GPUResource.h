@@ -40,13 +40,12 @@ public:
 
 	CD3DX12_RESOURCE_BARRIER TransitionResource(D3D12_RESOURCE_STATES newState);
 
-	Descriptor GetUAV();
-	Descriptor GetSRV();
+	Descriptor GetUAV() const;
+	Descriptor GetSRV() const;
 
 	// mapping
 	void* Map();
 	void Unmap(ID3D12GraphicsCommandList* pComList);
-
 	
 	BufferParams GetBufferParams() const { return m_BufferParams; }
 	Texture2DParams GetTexture2DParams() const { return m_Texture2DParams; }
