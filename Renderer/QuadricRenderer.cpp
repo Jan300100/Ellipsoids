@@ -40,13 +40,7 @@ void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 	m_DepthBuffer.Get()->SetName(L"DepthBuffer");
 
 	//ROOT SIGNATURE
-	CD3DX12_ROOT_PARAMETER rootParameter[8];
-
-	std::array<CD3DX12_DESCRIPTOR_RANGE,4> ranges;
-	ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 3, 0, m_OutputBuffer.GetUAV().indexSV);
-	ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 4, 0, m_RasterizerDepthBuffer.GetUAV().indexSV);
-	ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 5, 0, m_DepthBuffer.GetUAV().indexSV);
-	ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 6, 0, m_RasterizerIBuffer.GetUAV().indexSV);
+	CD3DX12_ROOT_PARAMETER rootParameter[7];
 
 	rootParameter[0].InitAsConstants(1,0);
 	rootParameter[1].InitAsConstantBufferView(1);
@@ -55,12 +49,11 @@ void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 	rootParameter[4].InitAsUnorderedAccessView(0);
 	rootParameter[5].InitAsUnorderedAccessView(1);
 	rootParameter[6].InitAsUnorderedAccessView(2);
-	rootParameter[7].InitAsDescriptorTable((UINT)ranges.size(), ranges.data());
 
 	// A root signature is an array of root parameters.
-	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(8, rootParameter,
+	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(7, rootParameter,
 		0, nullptr,
-		D3D12_ROOT_SIGNATURE_FLAG_NONE);
+		D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED);
 
 	ComPtr<ID3DBlob> serializedRootSig = nullptr;
 	ComPtr<ID3DBlob> errorBlob = nullptr;
@@ -150,6 +143,12 @@ void QuadricRenderer::InitRendering(ID3D12GraphicsCommandList* pComList)
 	m_AppData.viewInv = m_CameraValues.vInv;
 	m_AppData.projInv = XMMatrixInverse(nullptr, m_CameraValues.p);
 
+	// bindless
+	m_AppData.depthBufferIdx = m_DepthBuffer.GetUAV().indexSV;
+	m_AppData.outputBufferIdx = m_OutputBuffer.GetUAV().indexSV;
+	m_AppData.RasterIBufferIdx = m_RasterizerIBuffer.GetUAV().indexSV;
+	m_AppData.RasterDepthBufferIdx = m_RasterizerDepthBuffer.GetUAV().indexSV;
+
 	void* mapped = m_AppDataBuffer.Map();
 	memcpy(mapped, &m_AppData, sizeof(AppData));
 	m_AppDataBuffer.Unmap(pComList);
@@ -171,12 +170,10 @@ void QuadricRenderer::InitRendering(ID3D12GraphicsCommandList* pComList)
 
 	//set root sign and parameters
 	pComList->SetComputeRootSignature(m_RootSignature.Get());
-
 	pComList->SetComputeRootConstantBufferView(1,m_AppDataBuffer.Get()->GetGPUVirtualAddress());
 	pComList->SetComputeRootUnorderedAccessView(4, m_RasterizerBuffer.Get()->GetGPUVirtualAddress());
 	pComList->SetComputeRootUnorderedAccessView(5, m_ScreenTileBuffer.Get()->GetGPUVirtualAddress());
 	pComList->SetComputeRootUnorderedAccessView(6, m_RasterizerQBuffer.Get()->GetGPUVirtualAddress());
-	pComList->SetComputeRootDescriptorTable(7, pShaderVisibleHeap->GetGPUDescriptorHandleForHeapStart());
 }
 
 Dimensions<UINT> QuadricRenderer::GetNrTiles() const

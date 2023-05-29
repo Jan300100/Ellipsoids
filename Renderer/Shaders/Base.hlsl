@@ -12,6 +12,12 @@ struct AppData
     uint numRasterizers;
     uint showTiles;
     uint reverseDepth;
+    
+    // bindless stuff
+    uint depthBufferIdx;
+    uint outputBufferIdx;
+    uint RasterIBufferIdx;
+    uint RasterDepthBufferIdx;
 };
 
 struct InQuadric
@@ -52,12 +58,6 @@ StructuredBuffer<InQuadric> gQuadricsIn : register(t1);
 RWStructuredBuffer<Rasterizer> gRasterizers : register(u0);
 RWStructuredBuffer<ScreenTile> gScreenTiles : register(u1);
 RWStructuredBuffer<OutQuadric> gRasterizerQBuffer : register(u2);
-
-//desc heap
-RWTexture2D<float4> gBackBuffer : register(u3);
-RWTexture2D<uint> gRIBuffer : register(u4);
-RWTexture2D<float> gDepthBuffer : register(u5);
-RWTexture2D<float> gRDepthBuffer : register(u6);
 
 uint NDCToScreen(float ndc, float dimension)
 {

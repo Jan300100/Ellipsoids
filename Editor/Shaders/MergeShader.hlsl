@@ -1,6 +1,5 @@
 #include "Base.hlsl"
 
-
 [numthreads(8, 8, 1)]
 void main( uint3 DTid : SV_DispatchThreadID )
 {
@@ -16,8 +15,14 @@ void main( uint3 DTid : SV_DispatchThreadID )
         return;
 
     uint2 virtualDimensions;
-    gRIBuffer.GetDimensions(virtualDimensions.x, virtualDimensions.y);
-    float currentDepth = gDepthBuffer[pixel.xy];
+    
+    RWTexture2D<uint> rIBuffer = ResourceDescriptorHeap[gAppData.RasterIBufferIdx];
+    RWTexture2D<float> rDepthBuffer = ResourceDescriptorHeap[gAppData.RasterDepthBufferIdx];
+    RWTexture2D<float> depthBuffer = ResourceDescriptorHeap[gAppData.depthBufferIdx];
+    RWTexture2D<float4> backBuffer = ResourceDescriptorHeap[gAppData.outputBufferIdx];
+
+    rIBuffer.GetDimensions(virtualDimensions.x, virtualDimensions.y);
+    float currentDepth = depthBuffer[pixel.xy];
     uint currentIdx = UINT_MAX;
     
     if (gAppData.reverseDepth)
@@ -26,13 +31,13 @@ void main( uint3 DTid : SV_DispatchThreadID )
         {
             uint2 virtualTextureLeftTop = GetScreenLeftTop(rasterizerIdx, virtualDimensions, gAppData.tileDimensions);
             uint2 rBufferPixel = virtualTextureLeftTop.xy + DTid.xy;
-            float pixelDepth = gRDepthBuffer[rBufferPixel.xy];
+            float pixelDepth = rDepthBuffer[rBufferPixel.xy];
         
 
             if (currentDepth <= pixelDepth)
             {
                 currentDepth = pixelDepth;
-                currentIdx = gRIBuffer[rBufferPixel.xy];
+                currentIdx = rIBuffer[rBufferPixel.xy];
             }
 
             rasterizerIdx = gRasterizers[rasterizerIdx].nextRasterizerIdx;
@@ -44,43 +49,43 @@ void main( uint3 DTid : SV_DispatchThreadID )
         {
             uint2 virtualTextureLeftTop = GetScreenLeftTop(rasterizerIdx, virtualDimensions, gAppData.tileDimensions);
             uint2 rBufferPixel = virtualTextureLeftTop.xy + DTid.xy;
-            float pixelDepth = gRDepthBuffer[rBufferPixel.xy];
+            float pixelDepth = rDepthBuffer[rBufferPixel.xy];
 
             if (currentDepth > pixelDepth)
             {
                 currentDepth = pixelDepth;
-                currentIdx = gRIBuffer[rBufferPixel.xy];
+                currentIdx = rIBuffer[rBufferPixel.xy];
             }
 
             rasterizerIdx = gRasterizers[rasterizerIdx].nextRasterizerIdx;
         }
         
     }
-    
+        
     if (gAppData.showTiles)
     {
         if (pixel.x % gAppData.tileDimensions.x == 0)
         {
-            gDepthBuffer[pixel.xy] = 0;
-            gBackBuffer[pixel.xy] = float4(1, 0, 0, 1);
+            depthBuffer[pixel.xy] = 0;
+            backBuffer[pixel.xy] = float4(1, 0, 0, 1);
             return;
         }
         else if (pixel.y % gAppData.tileDimensions.y == 0)
         {
-            gDepthBuffer[pixel.xy] = 0;
-            gBackBuffer[pixel.xy] = float4(0, 1, 1, 1);
+            depthBuffer[pixel.xy] = 0;
+            backBuffer[pixel.xy] = float4(0, 1, 1, 1);
             return;
         }
         else if ((pixel.x + 1) % gAppData.tileDimensions.x == 0)
         {
-            gDepthBuffer[pixel.xy] = 0;
-            gBackBuffer[pixel.xy] = float4(0, 1, 0, 1);
+            depthBuffer[pixel.xy] = 0;
+            backBuffer[pixel.xy] = float4(0, 1, 0, 1);
             return;
         }
         else if ((pixel.y + 1) % gAppData.tileDimensions.y == 0)
         {
-            gDepthBuffer[pixel.xy] = 0;
-            gBackBuffer[pixel.xy] = float4(1, 1, 0, 1);
+            depthBuffer[pixel.xy] = 0;
+            backBuffer[pixel.xy] = float4(1, 1, 0, 1);
             return;
         }
     }
@@ -112,8 +117,8 @@ void main( uint3 DTid : SV_DispatchThreadID )
         float3 lDir = gAppData.lightDirection.xyz;
         float lambertDot = dot(normal, lDir);
         float4 diffuse = float4(q.color, 1) * lambertDot;
-        gDepthBuffer[pixel.xy] = currentDepth;
-        gBackBuffer[pixel.xy] = diffuse;
+        depthBuffer[pixel.xy] = currentDepth;
+        backBuffer[pixel.xy] = diffuse;
     }
     
 }

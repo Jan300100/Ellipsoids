@@ -45,7 +45,6 @@ void Editor::Initialize()
 	m_DX12.GetGraphicsInterface()->commandList->Reset(m_DX12.GetGraphicsInterface()->commandAllocator[m_DX12.GetGraphicsInterface()->currentRT].Get(), nullptr);
 	m_QRenderer.Initialize(m_DX12.GetGraphicsInterface()->commandList.Get());
 	m_QRenderer.SetProjectionVariables(m_pCamera->GetFOV(), m_pWindow->AspectRatio(), m_pCamera->GetNearPlane(), 200.0f);
-	//m_QRenderer.SetRendererSettings(m_DX12.GetPipeline()->commandList.Get(), 1024, Dimensions<unsigned int>{64,64}, 128);
 	m_QRenderer.ShowTiles(true);
 	m_QRenderer.ReverseDepth(true);
 

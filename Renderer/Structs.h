@@ -38,6 +38,12 @@ struct AppData
 	unsigned int numRasterizers;
 	unsigned int showTiles;
 	unsigned int reverseDepth;
+
+	// bindless stuff
+	unsigned int depthBufferIdx;
+	unsigned int outputBufferIdx;
+	unsigned int RasterIBufferIdx;
+	unsigned int RasterDepthBufferIdx;
 };
 
 struct ScreenTile

@@ -13,8 +13,11 @@ void main(uint3 DTid : SV_DispatchThreadID)
     float2 delta = float2(2.0f / gAppData.windowDimensions.x, 2.0f / gAppData.windowDimensions.y); //width and height of 1 pixel in NDC
     uint2 screenLeftTop = GetScreenLeftTop(rasterizer.screenTileIdx, gAppData.windowDimensions, gAppData.tileDimensions);
     
+    RWTexture2D<uint> rIBuffer = ResourceDescriptorHeap[gAppData.RasterIBufferIdx];
+    RWTexture2D<float> rDepthBuffer = ResourceDescriptorHeap[gAppData.RasterDepthBufferIdx];
+
     uint2 virtualDimensions;
-    gRIBuffer.GetDimensions(virtualDimensions.x, virtualDimensions.y);
+    rIBuffer.GetDimensions(virtualDimensions.x, virtualDimensions.y);
     uint2 virtualTextureLeftTop = GetScreenLeftTop(rasterizerIndex, virtualDimensions, gAppData.tileDimensions);
     
     
@@ -34,6 +37,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
         float3 pos = float3(0, posy, 1.0f);
         uint2 rBufPixel;
         float4 projPos;
+        
         for (uint x = 0; x < gAppData.tileDimensions.x; x++)
         {
             rBufPixel = virtualTextureLeftTop + uint2(x, scanline);
@@ -48,10 +52,10 @@ void main(uint3 DTid : SV_DispatchThreadID)
                     if (projPos.z < 0.0 || projPos.z > 1.0f)
                         continue;
                     float depth = projPos.z;
-                    if (gRDepthBuffer[rBufPixel.xy] <= depth)
+                    if (rDepthBuffer[rBufPixel.xy] <= depth)
                     {
-                        gRIBuffer[rBufPixel.xy] = qIdx;
-                        gRDepthBuffer[rBufPixel.xy] = depth;
+                        rIBuffer[rBufPixel.xy] = qIdx;
+                        rDepthBuffer[rBufPixel.xy] = depth;
                     }
                 }
                 else
@@ -61,10 +65,10 @@ void main(uint3 DTid : SV_DispatchThreadID)
                     if (projPos.z < 0.0 || projPos.z > 1.0f)
                         continue;
                     float depth = projPos.z;
-                    if (gRDepthBuffer[rBufPixel.xy] > depth)
+                    if (rDepthBuffer[rBufPixel.xy] > depth)
                     {
-                        gRIBuffer[rBufPixel.xy] = qIdx;
-                        gRDepthBuffer[rBufPixel.xy] = depth;
+                        rIBuffer[rBufPixel.xy] = qIdx;
+                        rDepthBuffer[rBufPixel.xy] = depth;
                     }
                 }
             }
