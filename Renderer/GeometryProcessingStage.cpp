@@ -18,18 +18,13 @@ Stage::GeometryProcessing::GeometryProcessing()
 {
 }
 
-bool Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, ID3D12GraphicsCommandList* pComList, QuadricGeometry* pGeometry) const
+bool Stage::GeometryProcessing::Execute(QuadricRenderer*, ID3D12GraphicsCommandList* pComList, QuadricGeometry* pGeometry) const
 {
 	PIXScopedEvent(pComList, 0, "Stage::GeometryProcessing");
 	if (!m_Initialized) throw L"GeometryProcessingStage not initialized";
 
 	if (pGeometry->QuadricsAmount() == 0) return false;
 
-	std::array< CD3DX12_RESOURCE_BARRIER, 3> barriers{};
-	barriers[0] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerBuffer.Get());
-	barriers[1] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerQBuffer.Get());
-	barriers[2] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_ScreenTileBuffer.Get());
-	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
 	pComList->SetComputeRoot32BitConstant(0, (UINT)pGeometry->QuadricsAmount(), 0);
 	pComList->SetComputeRootShaderResourceView(2, pGeometry->GetTransformBuffer()->GetGPUVirtualAddress());
 	pComList->SetComputeRootShaderResourceView(3, pGeometry->GetInputBuffer()->GetGPUVirtualAddress());

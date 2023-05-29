@@ -24,6 +24,9 @@ struct OutQuadric
 	DirectX::XMFLOAT3 color;
 	DirectX::XMFLOAT2 yRange;
 	DirectX::XMFLOAT2 xRange;
+
+	DirectX::XMUINT2 bbStart;
+	DirectX::XMUINT2 bbEnd;
 };
 
 struct AppData
@@ -33,27 +36,11 @@ struct AppData
 	DirectX::XMMATRIX projInv;
 	DirectX::XMUINT4 windowSize;
 	DirectX::XMFLOAT4 lightDirection;
+
 	Dimensions<unsigned int> tileDimensions;
-	unsigned int quadricsPerRasterizer;
-	unsigned int numRasterizers;
-	unsigned int showTiles;
-	unsigned int reverseDepth;
+	unsigned int batchSize;
 
-	// bindless stuff
-	unsigned int depthBufferIdx;
-	unsigned int outputBufferIdx;
-	unsigned int RasterIBufferIdx;
-	unsigned int RasterDepthBufferIdx;
+	unsigned int depthUAVIdx;
+	unsigned int colorUAVIdx;
 };
 
-struct ScreenTile
-{
-	unsigned int rasterizerHint;
-};
-
-struct Rasterizer
-{
-	unsigned int screenTileIdx; //indicates position on the screen
-	unsigned int nextRasterizerIdx; //if this Tile is saturated with quadrics, they should be added to the next tile instead.
-	unsigned int numQuadrics;
-};

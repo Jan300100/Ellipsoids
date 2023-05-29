@@ -1,0 +1,17 @@
+Memory in gpu memory:
+
+instanceBuffers; // position of every instance for each mesh.
+meshBuffers; // inQ for each mesh.
+
+Memory per batch "drawCall":
+
+1. [x,y,z,w] * batchSize //inputQ 'indices'
+	x = inQ idx; //which quadric in the 'meshBuffer'?
+	y = instance idx; // which instance in instanceBuffer?
+	z = instanceBuffer idx // which instanceBuffer?
+	w = inQBuffer idx // which 'meshBuffer'?
+ 
+2. batchSize * sizeof(outputQ); //outputQ's
+
+3. batchSize * (screenW / tileW) * (screenH / tileH); // tileMemory, each tile has enough memory to store [batchsize] indices.
+

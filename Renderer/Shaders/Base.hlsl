@@ -1,25 +1,5 @@
 #define UINT_MAX 0xffffffff
 
-struct AppData
-{
-    row_major float4x4 viewProjInv;
-    row_major float4x4 viewInv;
-    row_major float4x4 projInv;
-    uint2 windowDimensions;
-    float3 lightDirection;
-    uint2 tileDimensions;
-    uint quadricsPerRasterizer;
-    uint numRasterizers;
-    uint showTiles;
-    uint reverseDepth;
-    
-    // bindless stuff
-    uint depthBufferIdx;
-    uint outputBufferIdx;
-    uint RasterIBufferIdx;
-    uint RasterDepthBufferIdx;
-};
-
 struct InQuadric
 {
     row_major float4x4 transformed;
@@ -34,34 +14,32 @@ struct OutQuadric
     float3 color;
     float2 yRange;
     float2 xRange;
+    
+    uint2 bbStart;
+    uint2 bbEnd;
 };
 
-struct ScreenTile
+struct AppData
 {
-    uint rasterizerHint;
+    row_major float4x4 viewProjInv;
+    row_major float4x4 viewInv;
+    row_major float4x4 projInv;
+    uint2 windowDimensions;
+    float3 lightDirection;
+
+    uint2 tileDimensions;
+    uint batchSize;
+    
+    uint depthUAVIdx;
+    uint colorUAVIdx;
 };
 
-struct Rasterizer
-{
-    uint screenTileIdx;
-    uint nextRasterizerIdx; //linked list
-    uint numQuadrics;
-};
-
-
-uint gNumQuadrics : register(b0);
+uint gNumQuadrics : register(b0); // up to batchsize
 ConstantBuffer<AppData> gAppData : register(b1);
-
-StructuredBuffer<float4x4> gMeshData : register(t0);
-StructuredBuffer<InQuadric> gQuadricsIn : register(t1);
-
-RWStructuredBuffer<Rasterizer> gRasterizers : register(u0);
-RWStructuredBuffer<ScreenTile> gScreenTiles : register(u1);
-RWStructuredBuffer<OutQuadric> gRasterizerQBuffer : register(u2);
 
 uint NDCToScreen(float ndc, float dimension)
 {
-    return (ndc / 2.0f + 0.5f) * dimension;
+    return (ndc * 0.5f + 0.5f) * dimension;
 }
 
 uint2 NDCToScreen(float2 ndc, float2 windowDimensions)

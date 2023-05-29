@@ -15,6 +15,10 @@
 #include "DeferredDeleteQueue.h"
 #include "GPUResource.h"
 
+#define REVERSE_DEPTH 1
+#define SHOW_TILES 0
+
+
 class QuadricGeometry;
 
 struct CameraValues
@@ -30,33 +34,34 @@ class QuadricRenderer
 	friend class Stage::Merge;
 private:
 	ID3D12Device2* m_pDevice;
-	//DATA
 
-	AppData m_AppData;
-	GPUResource m_AppDataBuffer; //general data (for both stages?)
-
-	//ROOT SIGNATURE
+	// Shared Root Signature for all stages
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_RootSignature;
+
+	//general data (for both stages?)
+	AppData m_AppData;
+	GPUResource m_AppDataBuffer;
 
 	GPUResource m_OutputBuffer;
 	GPUResource m_DepthBuffer;
-	//RASTERIZERS:
-	GPUResource m_RasterizerBuffer; //uav buffer, flexible(resize when not big enough?)
-	GPUResource m_RasterizerResetBuffer; //upload buffer to reset screenTiles
-	GPUResource m_RasterizerQBuffer; //uav buffer with outputQuadrics
-	GPUResource m_RasterizerDepthBuffer;
-	GPUResource m_RasterizerIBuffer;
-	//SCREENTILES
-	GPUResource m_ScreenTileBuffer; //uav buffer, flexible(resize when not big enough?)
-	GPUResource m_ScreenTileResetBuffer; //upload buffer to reset screenTiles
 
-	//RENDER STAGES
+	struct BatchBuffers
+	{
+		GPUResource inputIndices; // points to which inputQuadric to render in this batch. (instanceIdx, instanceBufferIdx, quadricIdx, meshIdx, ...)
+		GPUResource outputQuadrics;
+		GPUResource outputBins; // bin of indices per tile
+	};
+
+	BatchBuffers m_batchBuffers; // need multiple batches ultimately
+
+	// STAGES
 	Stage::GeometryProcessing m_GPStage;
 	Stage::Rasterization m_RStage;
 	Stage::Merge m_MStage;
 
+	void CreateBatch();
+
 	void InitResources(ID3D12GraphicsCommandList* pComList);
-	void InitDrawCall(ID3D12GraphicsCommandList* pComList);
 	void InitRendering(ID3D12GraphicsCommandList* pComList);
 	void CopyToBackBuffer(ID3D12GraphicsCommandList* pComList, ID3D12Resource* pRenderTarget, ID3D12Resource* pDepthBuffer);
 
@@ -81,11 +86,10 @@ public:
 	void SetViewMatrix(const DirectX::XMMATRIX& view);
 
 	void SetClearColor(float r, float g, float b, float a);
-	void ShowTiles(bool show);
-	void ReverseDepth(bool reverse);
-	void SetRendererSettings(ID3D12GraphicsCommandList* pComList, UINT numRasterizers, Dimensions<unsigned int> rasterizerDimensions = {128,128}, UINT quadricsPerRasterizer = { 64 }, bool overrule = false);
 	void SetProjectionVariables(float fov, float aspectRatio, float nearPlane, float farPlane);
+
 	void Initialize(ID3D12GraphicsCommandList* pComList);
+
 	void RenderFrame(ID3D12GraphicsCommandList* pComList, ID3D12Resource* pRenderTarget, ID3D12Resource* pDepthBuffer = nullptr);
 	void Render(QuadricGeometry* pGeo);
 	void Render(QuadricGeometry* pGeo, const DirectX::XMMATRIX& transform);
