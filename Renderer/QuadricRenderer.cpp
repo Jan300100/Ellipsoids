@@ -62,17 +62,12 @@ void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 	CreateBatch();
 
 	//ROOT SIGNATURE
-	CD3DX12_ROOT_PARAMETER rootParameter[7];
+	CD3DX12_ROOT_PARAMETER rootParameter[2];
 	rootParameter[0].InitAsConstants(1,0);
 	rootParameter[1].InitAsConstantBufferView(1);
-	rootParameter[2].InitAsShaderResourceView(0);
-	rootParameter[3].InitAsShaderResourceView(1);
-	rootParameter[4].InitAsUnorderedAccessView(0);
-	rootParameter[5].InitAsUnorderedAccessView(1);
-	rootParameter[6].InitAsUnorderedAccessView(2);
 
 	// A root signature is an array of root parameters.
-	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(7, rootParameter,
+	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(2, rootParameter,
 		0, nullptr,
 		D3D12_ROOT_SIGNATURE_FLAG_NONE);
 
@@ -128,12 +123,14 @@ void QuadricRenderer::InitRendering(ID3D12GraphicsCommandList* pComList)
 {
 	PIXScopedEvent(pComList, 0, "QuadricRenderer::InitRendering");
 
-	//update input data : In separate update function ?
 	XMStoreFloat4(&m_AppData.lightDirection, XMVector4Normalize(XMVector4Transform(XMVectorSet(0.577f, -0.577f, 0.577f, 0), m_CameraValues.v)));
 	m_AppData.viewProjInv = m_CameraValues.vpInv;
 	m_AppData.viewInv = m_CameraValues.vInv;
 	m_AppData.projInv = XMMatrixInverse(nullptr, m_CameraValues.p);
 	m_AppData.batchSize = 32;
+
+	m_AppData.colorUAVIdx = m_OutputBuffer.GetUAV().indexSV;
+	m_AppData.depthUAVIdx = m_DepthBuffer.GetUAV().indexSV;
 
 	void* mapped = m_AppDataBuffer.Map();
 	memcpy(mapped, &m_AppData, sizeof(AppData));

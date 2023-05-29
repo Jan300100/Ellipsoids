@@ -18,7 +18,6 @@
 #define REVERSE_DEPTH 1
 #define SHOW_TILES 0
 
-
 class QuadricGeometry;
 
 struct CameraValues
