@@ -57,18 +57,14 @@ void GPUResource::Unmap(ID3D12GraphicsCommandList* pComList)
 		{
 			D3D12_RESOURCE_STATES originalState = m_CurrentState;
 			
-			std::array<CD3DX12_RESOURCE_BARRIER, 2> barriers{};
+			std::array<CD3DX12_RESOURCE_BARRIER, 1> barriers{};
 			barriers[0] = TransitionResource(D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
-			barriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(m_UploadResource,
-				D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_COPY_SOURCE);
-			pComList->ResourceBarrier(2, barriers.data());
+			pComList->ResourceBarrier(1, barriers.data());
 
 			pComList->CopyResource(m_Resource, m_UploadResource);
 
 			barriers[0] = TransitionResource(originalState);
-			barriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(m_UploadResource,
-				D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_GENERIC_READ);
-			pComList->ResourceBarrier(2, barriers.data());
+			pComList->ResourceBarrier(1, barriers.data());
 		}
 	}
 }
