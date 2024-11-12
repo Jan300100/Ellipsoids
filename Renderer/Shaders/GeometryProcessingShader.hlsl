@@ -2,19 +2,42 @@
 
 
 
-OutQuadric Project(InQuadric q, uint instanceIdx);
+OutQuadric Project(DrawData myDrawcall, InQuadric q, uint instanceIdx);
 void AddQuadric(uint screenTileIdx, OutQuadric quadric);
 
 [numthreads(32, 1, 1)]
 void main( uint3 DTid : SV_DispatchThreadID )
 {
-    if (DTid.x >= gNumQuadrics)
-        return;
-    //PROJECT
-    StructuredBuffer<InQuadric> quadricsIn = ResourceDescriptorHeap[gDrawData.quadricBufferIdx];
-    OutQuadric projected = Project(quadricsIn[DTid.x], DTid.z);
+    //FIND DRAW DATA
+    // pass in numDraws
+    StructuredBuffer<DrawData> drawDataIn = ResourceDescriptorHeap[gDrawCall.drawDataBufferIdx];
 
+    uint quadrics = 0;
+    uint instances = 0;
+    DrawData myDrawcall;
+    bool found = false;
+    for (int dcall = 0; dcall < gDrawCall.numDrawCalls; dcall++)
+    {
+        DrawData data = drawDataIn[dcall];
+        quadrics += data.numQuadrics;
+        instances += data.numInstances;
+        if (DTid.x < quadrics)
+        {
+            myDrawcall = data;
+            found = true;
+            break;
+        }
+    }
+    if (!found)
+        return;
     
+    uint quadricId = DTid.x - (quadrics - myDrawcall.numQuadrics);
+    uint instanceId = DTid.z - (instances - myDrawcall.numInstances);
+    
+    //PROJECT
+    StructuredBuffer<InQuadric> quadricsIn = ResourceDescriptorHeap[myDrawcall.quadricBufferIdx];
+    OutQuadric projected = Project(myDrawcall, quadricsIn[quadricId], instanceId);
+
     //FILL RASTERIZERS - REDISTRIBUTION to rasterizers: SORT MIDDLE
     uint2 numTiles = GetNrTiles(gAppData.windowDimensions, gAppData.tileDimensions);
     uint2 start = NDCToScreen(float2(projected.xRange.x, projected.yRange.y), gAppData.windowDimensions) / gAppData.tileDimensions;
@@ -100,11 +123,11 @@ void AddQuadric(uint screenTileIdx, OutQuadric quadric)
 }
 
 
-OutQuadric Project(InQuadric input, uint instanceIdx)
+OutQuadric Project(DrawData myDrawcall, InQuadric input, uint instanceIdx)
 {
     OutQuadric output = (OutQuadric)0;
     
-    StructuredBuffer<float4x4> instances = ResourceDescriptorHeap[gDrawData.instanceBufferIdx];
+    StructuredBuffer<float4x4> instances = ResourceDescriptorHeap[myDrawcall.instanceBufferIdx];
     float4x4 transform = instances[instanceIdx];
     
     //put the quadric at its's world position

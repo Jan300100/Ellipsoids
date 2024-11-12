@@ -44,7 +44,7 @@ void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 	//ROOT SIGNATURE
 	std::array<CD3DX12_ROOT_PARAMETER,3> rootParameters;
 
-	rootParameters[0].InitAsConstants(1,0);
+	rootParameters[0].InitAsConstants(2,0);
 	rootParameters[1].InitAsConstantBufferView(1);
 	rootParameters[2].InitAsConstantBufferView(2);
 
@@ -75,6 +75,11 @@ void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 	transitions[1] = m_DepthBuffer.TransitionResource(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	pComList->ResourceBarrier((UINT)transitions.size(), transitions.data());
 
+	params.allowUAV = false;
+	params.heapType = D3D12_HEAP_TYPE_DEFAULT;
+	params.elementSize = sizeof(DrawData);
+	params.numElements = 128;
+	m_DrawDataBuffer = GPUBuffer{ m_pDevice, params };
 
 	SetRendererSettings(pComList, 512, {64,64}, 128);
 }
@@ -172,7 +177,6 @@ void QuadricRenderer::InitRendering(ID3D12GraphicsCommandList* pComList)
 
 	//set root sign and parameters
 	pComList->SetComputeRootSignature(m_RootSignature.Get());
-	pComList->SetComputeRootConstantBufferView(1,m_AppDataBuffer.Get()->GetGPUVirtualAddress());
 }
 
 Dimensions<UINT> QuadricRenderer::GetNrTiles() const
@@ -373,6 +377,20 @@ void QuadricRenderer::RenderFrame(ID3D12GraphicsCommandList* pComList, ID3D12Res
 	{
 		PIXScopedEvent(pComList, 0, "QuadricRenderer::DrawCall: %s", pGeo->GetName().c_str());
 		InitDrawCall(pComList);
+
+		DrawData* data = (DrawData*)m_DrawDataBuffer.Map();
+		data[0] = pGeo->GetDrawData();
+		m_DrawDataBuffer.Unmap(pComList);
+
+		UINT index = m_DrawDataBuffer.GetSRV().indexSV;
+		pComList->SetComputeRoot32BitConstant(0, index, 0);
+
+		UINT numDrawCalls = 1;
+		pComList->SetComputeRoot32BitConstant(0, numDrawCalls, 1);
+
+		pComList->SetComputeRootConstantBufferView(1, m_AppDataBuffer.Get()->GetGPUVirtualAddress());
+		pComList->SetComputeRootConstantBufferView(2, m_DrawDataBuffer.Get()->GetGPUVirtualAddress());
+
 		if (m_GPStage.Execute(this, pComList, pGeo))
 		{
 			m_RStage.Execute(this, pComList);

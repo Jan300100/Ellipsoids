@@ -31,9 +31,6 @@ bool Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, ID3D12Graphi
 	barriers[2] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_ScreenTileBuffer.Get());
 	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
 	
-	pComList->SetComputeRoot32BitConstant(0, (UINT)pGeometry->QuadricsAmount(), 0);
-	pComList->SetComputeRootConstantBufferView(2, pGeometry->GetDrawData()->GetGPUVirtualAddress());
-
 	pComList->SetPipelineState(m_Pso.Get());
 	pComList->Dispatch((UINT)(pGeometry->QuadricsAmount() / 32) + ((pGeometry->QuadricsAmount() % 32) > 0), 1, (UINT)pGeometry->GetNumInstances());
 	return true;

@@ -19,7 +19,7 @@ class QuadricGeometry
 
 	GPUBuffer m_InstanceBuffer;
 
-	GPUBuffer m_DrawDataBuffer; //contains srv indices
+	DrawData m_DrawData;
 
 	size_t m_NumInstances;
 	bool m_Initialized = false;
@@ -28,7 +28,7 @@ public:
 	QuadricGeometry(const std::string& name = "QuadricGeometry");
 	const std::string& GetName() const { return m_Name; }
 	void SetName(const std::string& name) { m_Name = name; }
-	ID3D12Resource* GetDrawData() const { return m_DrawDataBuffer.Get(); }
+	DrawData GetDrawData() const { return m_DrawData; }
 	void UpdateTransforms(ID3D12GraphicsCommandList* pComList, class QuadricRenderer* pRenderer);
 	size_t GetNumInstances() const { return m_NumInstances; }
 	void Init(QuadricRenderer* pRenderer, ID3D12GraphicsCommandList* pComList, const std::vector<Quadric>& quadrics);

@@ -8,7 +8,7 @@ using namespace DirectX;
 
 void QuadricGeometry::UpdateTransforms(ID3D12GraphicsCommandList* pComList, QuadricRenderer* pRenderer)
 {    
-    if (m_Initialized && m_Transforms.size() > 0)
+    if (m_Initialized)
     {
         if (m_Transforms.size() > m_NumInstances)
         {
@@ -20,12 +20,12 @@ void QuadricGeometry::UpdateTransforms(ID3D12GraphicsCommandList* pComList, Quad
         memcpy(mapped, m_Transforms.data(), sizeof(XMMATRIX) * m_Transforms.size());
         m_InstanceBuffer.Unmap(pComList);
 
-        m_Transforms.clear();
+        m_DrawData.numQuadrics = (UINT)m_Quadrics.size();
+        m_DrawData.numInstances = (UINT)m_Transforms.size();
+        m_DrawData.instanceBufferIdx = m_InstanceBuffer.GetSRV().indexSV;
+        m_DrawData.quadricBufferIdx = m_InputBuffer.GetSRV().indexSV;
 
-        DrawData* data = static_cast<DrawData*>(m_DrawDataBuffer.Map());
-        data->instanceBufferIdx = m_InstanceBuffer.GetSRV().indexSV;
-        data->quadricBufferIdx = m_InputBuffer.GetSRV().indexSV;
-        m_DrawDataBuffer.Unmap(pComList);
+        m_Transforms.clear();
     }
 }
 
@@ -45,12 +45,6 @@ void QuadricGeometry::Init(QuadricRenderer* pRenderer, ID3D12GraphicsCommandList
     m_InputBuffer.Unmap(pComList);
 
     RecreateInstanceBuffer(pRenderer);
-
-    params.allowUAV = false;
-    params.heapType = D3D12_HEAP_TYPE_DEFAULT;
-    params.elementSize = sizeof(DrawData);
-    params.numElements = 1;
-    m_DrawDataBuffer = GPUBuffer{ pRenderer->GetDevice(), params };
 
     m_Initialized = true;
 }

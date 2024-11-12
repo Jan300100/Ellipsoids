@@ -50,6 +50,8 @@ struct AppData
 
 struct DrawData
 {
+	unsigned int numQuadrics;
+	unsigned int numInstances;
 	unsigned int instanceBufferIdx;
 	unsigned int quadricBufferIdx;
 };
