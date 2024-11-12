@@ -19,8 +19,7 @@ void main( uint3 DTid : SV_DispatchThreadID )
     for (int dcall = 0; dcall < gDrawCall.numDrawCalls; dcall++)
     {
         DrawData data = drawDataIn[dcall];
-        quadrics += data.numQuadrics;
-        instances += data.numInstances;
+        quadrics += data.numQuadrics * data.numInstances;
         if (DTid.x < quadrics)
         {
             myDrawcall = data;
@@ -31,8 +30,10 @@ void main( uint3 DTid : SV_DispatchThreadID )
     if (!found)
         return;
     
-    uint quadricId = DTid.x - (quadrics - myDrawcall.numQuadrics);
-    uint instanceId = DTid.z - (instances - myDrawcall.numInstances);
+    uint newDTid = DTid.x - (quadrics - (myDrawcall.numQuadrics * myDrawcall.numInstances));
+    
+    uint quadricId = newDTid % myDrawcall.numQuadrics;
+    uint instanceId = newDTid / myDrawcall.numQuadrics;
     
     //PROJECT
     StructuredBuffer<InQuadric> quadricsIn = ResourceDescriptorHeap[myDrawcall.quadricBufferIdx];

@@ -18,12 +18,10 @@ Stage::GeometryProcessing::GeometryProcessing()
 {
 }
 
-bool Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, ID3D12GraphicsCommandList* pComList, QuadricGeometry* pGeometry) const
+bool Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, ID3D12GraphicsCommandList* pComList, UINT numQuadrics) const
 {
 	PIXScopedEvent(pComList, 0, "Stage::GeometryProcessing");
 	if (!m_Initialized) throw L"GeometryProcessingStage not initialized";
-
-	if (pGeometry->QuadricsAmount() == 0) return false;
 
 	std::array< CD3DX12_RESOURCE_BARRIER, 3> barriers{};
 	barriers[0] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerBuffer.Get());
@@ -32,7 +30,9 @@ bool Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, ID3D12Graphi
 	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
 	
 	pComList->SetPipelineState(m_Pso.Get());
-	pComList->Dispatch((UINT)(pGeometry->QuadricsAmount() / 32) + ((pGeometry->QuadricsAmount() % 32) > 0), 1, (UINT)pGeometry->GetNumInstances());
+
+	UINT threadgroupsize = 32;
+	pComList->Dispatch((UINT)(numQuadrics / threadgroupsize) + ((numQuadrics % threadgroupsize) > 0), 1, 1);
 	return true;
 }
 

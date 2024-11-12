@@ -246,8 +246,8 @@ void Editor::Initialize()
 	ground.quadrics.push_back(world);
 
 	m_Geometry.emplace(ground.pGeometry->GetName(), ground);
-	//QuadricInstance* pInstance = new QuadricInstance{ ground.pGeometry };
-	//pScene->AddElement(pInstance);
+	QuadricInstance* pInstance = new QuadricInstance{ ground.pGeometry };
+	pScene->AddElement(pInstance);
 
 	ground.UpdateGeometry(&m_QRenderer, m_DX12.GetGraphicsInterface()->commandList.Get());
 	person.UpdateGeometry(&m_QRenderer, m_DX12.GetGraphicsInterface()->commandList.Get());

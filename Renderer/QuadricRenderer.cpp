@@ -80,6 +80,7 @@ void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 	params.elementSize = sizeof(DrawData);
 	params.numElements = 128;
 	m_DrawDataBuffer = GPUBuffer{ m_pDevice, params };
+	m_MappedData = (DrawData*)m_DrawDataBuffer.Map();
 
 	SetRendererSettings(pComList, 512, {64,64}, 128);
 }
@@ -371,33 +372,36 @@ void QuadricRenderer::RenderFrame(ID3D12GraphicsCommandList* pComList, ID3D12Res
 	
 	DeferredDeleteQueue::Instance()->BeginFrame();
 
+	m_DrawDataBuffer.Unmap(pComList);
+
 	InitRendering(pComList);
 
+	size_t totalQuadrics = 0;
 	for (QuadricGeometry* pGeo : m_ToRender)
 	{
-		PIXScopedEvent(pComList, 0, "QuadricRenderer::DrawCall: %s", pGeo->GetName().c_str());
-		InitDrawCall(pComList);
-
-		DrawData* data = (DrawData*)m_DrawDataBuffer.Map();
-		data[0] = pGeo->GetDrawData();
-		m_DrawDataBuffer.Unmap(pComList);
-
-		UINT index = m_DrawDataBuffer.GetSRV().indexSV;
-		pComList->SetComputeRoot32BitConstant(0, index, 0);
-
-		UINT numDrawCalls = 1;
-		pComList->SetComputeRoot32BitConstant(0, numDrawCalls, 1);
-
-		pComList->SetComputeRootConstantBufferView(1, m_AppDataBuffer.Get()->GetGPUVirtualAddress());
-		pComList->SetComputeRootConstantBufferView(2, m_DrawDataBuffer.Get()->GetGPUVirtualAddress());
-
-		if (m_GPStage.Execute(this, pComList, pGeo))
-		{
-			m_RStage.Execute(this, pComList);
-			m_MStage.Execute(this, pComList);
-		}
+		totalQuadrics += pGeo->GetNumInstances() * pGeo->QuadricsAmount();
 	}
+
+	PIXScopedEvent(pComList, 0, "QuadricRenderer::Running %d DrawCalls, totalling: %d quadrics", m_ToRender.size(), totalQuadrics);
+	InitDrawCall(pComList);
+
+	UINT index = m_DrawDataBuffer.GetSRV().indexSV;
+	pComList->SetComputeRoot32BitConstant(0, index, 0);
+
+	UINT numDrawCalls = (UINT)m_ToRender.size();
+	pComList->SetComputeRoot32BitConstant(0, numDrawCalls, 1);
+	pComList->SetComputeRootConstantBufferView(1, m_AppDataBuffer.Get()->GetGPUVirtualAddress());
+	pComList->SetComputeRootConstantBufferView(2, m_DrawDataBuffer.Get()->GetGPUVirtualAddress());
+
+	if (m_GPStage.Execute(this, pComList, (UINT)totalQuadrics))
+	{
+		m_RStage.Execute(this, pComList);
+		m_MStage.Execute(this, pComList);
+	}
+	
 	m_ToRender.clear();
+
+	m_MappedData = (DrawData*)m_DrawDataBuffer.Map();
 
 	CopyToBackBuffer(pComList, pRenderTarget, pDepthBuffer);
 }
@@ -410,6 +414,11 @@ void QuadricRenderer::Render(QuadricGeometry* pGeo)
 void QuadricRenderer::Render(QuadricGeometry* pGeo, const DirectX::XMMATRIX& transform)
 {
 	m_ToRender.insert(pGeo);
+
+	m_MappedData[m_ToRender.size() - 1] = pGeo->GetDrawData();
+
 	auto tr = XMMatrixInverse(nullptr, XMMatrixTranspose(transform));
 	pGeo->m_Transforms.push_back(tr);
+
+
 }

@@ -29,7 +29,7 @@ DX12::DX12(Window* pWindow)
 	ThrowIfFailed(CreateDXGIFactory1(IID_PPV_ARGS(&factory)));
 
 	D3D_FEATURE_LEVEL desiredFeatureLevel = D3D_FEATURE_LEVEL_12_0;
-#if 0
+#if 1
 	// select adapter
 	IDXGIAdapter1* adapter;
 	int adapterIdx{};
@@ -79,14 +79,16 @@ DX12::DX12(Window* pWindow)
 
 		if (!SUCCEEDED(hr)) __debugbreak();
 	}
-#endif
+#else
 
 	HRESULT hr = D3D12CreateDevice(
 		nullptr,
 		desiredFeatureLevel,
 		IID_PPV_ARGS(&m_Device));
 
+
 	if (!SUCCEEDED(hr)) __debugbreak();
+#endif
 
 	//GRAPHICS
 	//********

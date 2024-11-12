@@ -19,9 +19,8 @@ void main( uint3 DTid : SV_DispatchThreadID )
     for (int dcall = 0; dcall < gDrawCall.numDrawCalls; dcall++)
     {
         DrawData data = drawDataIn[dcall];
-        quadrics += data.numQuadrics;
-        instances += data.numInstances;
-        if (DTid.x < quadrics) // my drawcall
+        quadrics += data.numQuadrics * data.numInstances;
+        if (DTid.x < quadrics)
         {
             myDrawcall = data;
             found = true;
@@ -31,14 +30,15 @@ void main( uint3 DTid : SV_DispatchThreadID )
     if (!found)
         return;
     
-    uint quadricId = DTid.x - (quadrics - myDrawcall.numQuadrics);
-    uint instanceId = DTid.z - (instances - myDrawcall.numInstances);
+    uint newDTid = DTid.x - (quadrics - (myDrawcall.numQuadrics * myDrawcall.numInstances));
+    
+    uint quadricId = newDTid % myDrawcall.numQuadrics;
+    uint instanceId = newDTid / myDrawcall.numQuadrics;
     
     //PROJECT
     StructuredBuffer<InQuadric> quadricsIn = ResourceDescriptorHeap[myDrawcall.quadricBufferIdx];
     OutQuadric projected = Project(myDrawcall, quadricsIn[quadricId], instanceId);
 
-    
     //FILL RASTERIZERS - REDISTRIBUTION to rasterizers: SORT MIDDLE
     uint2 numTiles = GetNrTiles(gAppData.windowDimensions, gAppData.tileDimensions);
     uint2 start = NDCToScreen(float2(projected.xRange.x, projected.yRange.y), gAppData.windowDimensions) / gAppData.tileDimensions;

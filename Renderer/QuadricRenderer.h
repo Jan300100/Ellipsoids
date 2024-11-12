@@ -58,6 +58,7 @@ private:
 
 	// DRAWS DATA BUFFER
 	GPUBuffer m_DrawDataBuffer;
+	DrawData* m_MappedData;
 
 	//RENDER STAGES
 	Stage::GeometryProcessing m_GPStage;
