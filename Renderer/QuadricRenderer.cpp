@@ -78,11 +78,11 @@ void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 	params.allowUAV = false;
 	params.heapType = D3D12_HEAP_TYPE_DEFAULT;
 	params.elementSize = sizeof(DrawData);
-	params.numElements = 128;
+	params.numElements = 100'000;
 	m_DrawDataBuffer = GPUBuffer{ m_pDevice, params };
 	m_MappedData = (DrawData*)m_DrawDataBuffer.Map();
 
-	SetRendererSettings(pComList, 512, {64,64}, 128);
+	SetRendererSettings(pComList, 1024, {96,96}, 256);
 }
 
 void QuadricRenderer::CopyToBackBuffer(ID3D12GraphicsCommandList* pComList, ID3D12Resource* pRenderTarget, ID3D12Resource*)

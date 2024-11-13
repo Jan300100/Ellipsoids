@@ -5,7 +5,7 @@
 #endif
 
 #ifndef SHOW_TILES
-#define SHOW_TILES 1
+#define SHOW_TILES 0
 #endif
 
 struct AppData
