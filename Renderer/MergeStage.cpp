@@ -71,7 +71,7 @@ void Stage::Merge::Init(QuadricRenderer* pRenderer)
 		L"-E",
 		L"main",
 		L"-T",
-		L"cs_6_8",
+		L"cs_6_6",
 		L"-I",
 		L"Shaders/",
 #if SHOW_TILES
