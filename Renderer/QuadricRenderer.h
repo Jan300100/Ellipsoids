@@ -56,6 +56,10 @@ private:
 	GPUBuffer m_ScreenTileBuffer; //uav buffer, flexible(resize when not big enough?)
 	GPUBuffer m_ScreenTileResetBuffer; //upload buffer to reset screenTiles
 
+	// DRAWS DATA BUFFER
+	GPUBuffer m_DrawDataBuffer;
+	DrawData* m_MappedData;
+
 	//RENDER STAGES
 	Stage::GeometryProcessing m_GPStage;
 	Stage::Rasterization m_RStage;

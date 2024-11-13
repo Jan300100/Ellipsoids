@@ -9,7 +9,7 @@ namespace Stage
 	{
 	public:
 		GeometryProcessing();
-		bool Execute(QuadricRenderer* pRenderer, ID3D12GraphicsCommandList* pComList, QuadricGeometry* pGeometry) const;
+		bool Execute(QuadricRenderer* pRenderer, ID3D12GraphicsCommandList* pComList, UINT numQuadrics) const;
 		virtual void Init(QuadricRenderer* pRenderer) override;
 	}; 
 }

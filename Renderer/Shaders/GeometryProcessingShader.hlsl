@@ -2,25 +2,60 @@
 
 
 
-OutQuadric Project(InQuadric q, uint instanceIdx);
+OutQuadric Project(DrawData myDrawcall, InQuadric q, uint instanceIdx);
 void AddQuadric(uint screenTileIdx, OutQuadric quadric);
 
 [numthreads(32, 1, 1)]
 void main( uint3 DTid : SV_DispatchThreadID )
 {
-    if (DTid.x >= gNumQuadrics)
-        return;
-    //PROJECT
-    StructuredBuffer<InQuadric> quadricsIn = ResourceDescriptorHeap[gDrawData.quadricBufferIdx];
-    OutQuadric projected = Project(quadricsIn[DTid.x], DTid.z);
+    //FIND DRAW DATA
+    // pass in numDraws
+    StructuredBuffer<DrawData> drawDataIn = ResourceDescriptorHeap[gDrawCall.drawDataBufferIdx];
 
+    uint quadrics = 0;
+    uint instances = 0;
+    DrawData myDrawcall;
+    bool found = false;
+    for (int dcall = 0; dcall < gDrawCall.numDrawCalls; dcall++)
+    {
+        DrawData data = drawDataIn[dcall];
+        quadrics += data.numQuadrics * data.numInstances;
+        if (DTid.x < quadrics)
+        {
+            myDrawcall = data;
+            found = true;
+            break;
+        }
+    }
+    if (!found)
+        return;
+    
+    uint newDTid = DTid.x - (quadrics - (myDrawcall.numQuadrics * myDrawcall.numInstances));
+    
+    uint quadricId = newDTid % myDrawcall.numQuadrics;
+    uint instanceId = newDTid / myDrawcall.numQuadrics;
+    
+    //PROJECT
+    StructuredBuffer<InQuadric> quadricsIn = ResourceDescriptorHeap[myDrawcall.quadricBufferIdx];
+    OutQuadric projected = Project(myDrawcall, quadricsIn[quadricId], instanceId);
+
+    // early out if outside the view
+    if (
+        projected.xRange.y < -1.0f 
+        || projected.yRange.y < -1.0f
+        || projected.xRange.x > 1.0f
+        || projected.yRange.x > 1.0f
+        || projected.xRange.x > projected.xRange.y
+        || projected.yRange.x > projected.yRange.y
+        )
+    {
+        return;
+    }
     
     //FILL RASTERIZERS - REDISTRIBUTION to rasterizers: SORT MIDDLE
     uint2 numTiles = GetNrTiles(gAppData.windowDimensions, gAppData.tileDimensions);
     uint2 start = NDCToScreen(float2(projected.xRange.x, projected.yRange.y), gAppData.windowDimensions) / gAppData.tileDimensions;
     uint2 end = NDCToScreen(float2(projected.xRange.y, projected.yRange.x), gAppData.windowDimensions) / gAppData.tileDimensions;
-    if (start.x >= numTiles.x || end.x < 0 || start.y >= numTiles.y || end.y < 0)
-        return;
     
     //-1 because these are indices
     start.x = clamp(start.x, 0, numTiles.x-1);
@@ -100,11 +135,11 @@ void AddQuadric(uint screenTileIdx, OutQuadric quadric)
 }
 
 
-OutQuadric Project(InQuadric input, uint instanceIdx)
+OutQuadric Project(DrawData myDrawcall, InQuadric input, uint instanceIdx)
 {
     OutQuadric output = (OutQuadric)0;
     
-    StructuredBuffer<float4x4> instances = ResourceDescriptorHeap[gDrawData.instanceBufferIdx];
+    StructuredBuffer<float4x4> instances = ResourceDescriptorHeap[myDrawcall.instanceBufferIdx];
     float4x4 transform = instances[instanceIdx];
     
     //put the quadric at its's world position

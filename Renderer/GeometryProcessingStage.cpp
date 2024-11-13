@@ -18,12 +18,10 @@ Stage::GeometryProcessing::GeometryProcessing()
 {
 }
 
-bool Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, ID3D12GraphicsCommandList* pComList, QuadricGeometry* pGeometry) const
+bool Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, ID3D12GraphicsCommandList* pComList, UINT numQuadrics) const
 {
 	PIXScopedEvent(pComList, 0, "Stage::GeometryProcessing");
 	if (!m_Initialized) throw L"GeometryProcessingStage not initialized";
-
-	if (pGeometry->QuadricsAmount() == 0) return false;
 
 	std::array< CD3DX12_RESOURCE_BARRIER, 3> barriers{};
 	barriers[0] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_RasterizerBuffer.Get());
@@ -31,11 +29,10 @@ bool Stage::GeometryProcessing::Execute(QuadricRenderer* pRenderer, ID3D12Graphi
 	barriers[2] = CD3DX12_RESOURCE_BARRIER::UAV(pRenderer->m_ScreenTileBuffer.Get());
 	pComList->ResourceBarrier((UINT)barriers.size(), barriers.data());
 	
-	pComList->SetComputeRoot32BitConstant(0, (UINT)pGeometry->QuadricsAmount(), 0);
-	pComList->SetComputeRootConstantBufferView(2, pGeometry->GetDrawData()->GetGPUVirtualAddress());
-
 	pComList->SetPipelineState(m_Pso.Get());
-	pComList->Dispatch((UINT)(pGeometry->QuadricsAmount() / 32) + ((pGeometry->QuadricsAmount() % 32) > 0), 1, (UINT)pGeometry->GetNumInstances());
+
+	UINT threadgroupsize = 32;
+	pComList->Dispatch((UINT)(numQuadrics / threadgroupsize) + ((numQuadrics % threadgroupsize) > 0), 1, 1);
 	return true;
 }
 
@@ -63,7 +60,7 @@ void Stage::GeometryProcessing::Init(QuadricRenderer* pRenderer)
 		L"-E",
 		L"main",
 		L"-T",
-		L"cs_6_6",
+		L"cs_6_8",
 		L"-I",
 		L"Shaders/",
 #if SHOW_TILES
@@ -81,6 +78,7 @@ void Stage::GeometryProcessing::Init(QuadricRenderer* pRenderer)
 #if defined(DEBUG) || defined(_DEBUG)  
 	compilationArguments.push_back(DXC_ARG_DEBUG);
 	compilationArguments.push_back(DXC_ARG_SKIP_OPTIMIZATIONS);
+	compilationArguments.push_back(DXC_ARG_OPTIMIZATION_LEVEL0);
 #else
 	compilationArguments.push_back(DXC_ARG_OPTIMIZATION_LEVEL3);
 #endif

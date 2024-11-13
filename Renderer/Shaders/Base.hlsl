@@ -32,6 +32,8 @@ struct AppData
 
 struct DrawData
 {
+    uint numQuadrics;
+    uint numInstances;
     uint instanceBufferIdx;
     uint quadricBufferIdx;
 };
@@ -65,9 +67,14 @@ struct Rasterizer
 };
 
 
-uint gNumQuadrics : register(b0);
+struct DrawCallData
+{
+    uint drawDataBufferIdx;
+    uint numDrawCalls;
+};
+
+DrawCallData gDrawCall : register(b0);
 ConstantBuffer<AppData> gAppData : register(b1);
-ConstantBuffer<DrawData> gDrawData : register(b2);
 
 uint NDCToScreen(float ndc, float dimension)
 {

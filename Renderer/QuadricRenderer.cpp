@@ -42,11 +42,11 @@ void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 	m_DepthBuffer.Get()->SetName(L"DepthBuffer");
 
 	//ROOT SIGNATURE
-	std::array<CD3DX12_ROOT_PARAMETER,3> rootParameters;
+	std::array<CD3DX12_ROOT_PARAMETER,2> rootParameters;
 
-	rootParameters[0].InitAsConstants(1,0);
+	rootParameters[0].InitAsConstants(2,0);
 	rootParameters[1].InitAsConstantBufferView(1);
-	rootParameters[2].InitAsConstantBufferView(2);
+
 
 	// A root signature is an array of root parameters.
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc((UINT)rootParameters.size(), rootParameters.data(),
@@ -75,8 +75,14 @@ void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 	transitions[1] = m_DepthBuffer.TransitionResource(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	pComList->ResourceBarrier((UINT)transitions.size(), transitions.data());
 
+	params.allowUAV = false;
+	params.heapType = D3D12_HEAP_TYPE_DEFAULT;
+	params.elementSize = sizeof(DrawData);
+	params.numElements = 100'000;
+	m_DrawDataBuffer = GPUBuffer{ m_pDevice, params };
+	m_MappedData = (DrawData*)m_DrawDataBuffer.Map();
 
-	SetRendererSettings(pComList, 512, {64,64}, 128);
+	SetRendererSettings(pComList, 1024, {96,96}, 256);
 }
 
 void QuadricRenderer::CopyToBackBuffer(ID3D12GraphicsCommandList* pComList, ID3D12Resource* pRenderTarget, ID3D12Resource*)
@@ -172,7 +178,6 @@ void QuadricRenderer::InitRendering(ID3D12GraphicsCommandList* pComList)
 
 	//set root sign and parameters
 	pComList->SetComputeRootSignature(m_RootSignature.Get());
-	pComList->SetComputeRootConstantBufferView(1,m_AppDataBuffer.Get()->GetGPUVirtualAddress());
 }
 
 Dimensions<UINT> QuadricRenderer::GetNrTiles() const
@@ -367,19 +372,35 @@ void QuadricRenderer::RenderFrame(ID3D12GraphicsCommandList* pComList, ID3D12Res
 	
 	DeferredDeleteQueue::Instance()->BeginFrame();
 
+	m_DrawDataBuffer.Unmap(pComList);
+
 	InitRendering(pComList);
 
+	size_t totalQuadrics = 0;
 	for (QuadricGeometry* pGeo : m_ToRender)
 	{
-		PIXScopedEvent(pComList, 0, "QuadricRenderer::DrawCall: %s", pGeo->GetName().c_str());
-		InitDrawCall(pComList);
-		if (m_GPStage.Execute(this, pComList, pGeo))
-		{
-			m_RStage.Execute(this, pComList);
-			m_MStage.Execute(this, pComList);
-		}
+		totalQuadrics += pGeo->GetNumInstances() * pGeo->QuadricsAmount();
 	}
+
+	PIXScopedEvent(pComList, 0, "QuadricRenderer::Running %d DrawCalls, totalling: %d quadrics", m_ToRender.size(), totalQuadrics);
+	InitDrawCall(pComList);
+
+	UINT index = m_DrawDataBuffer.GetSRV().indexSV;
+	pComList->SetComputeRoot32BitConstant(0, index, 0);
+
+	UINT numDrawCalls = (UINT)m_ToRender.size();
+	pComList->SetComputeRoot32BitConstant(0, numDrawCalls, 1);
+	pComList->SetComputeRootConstantBufferView(1, m_AppDataBuffer.Get()->GetGPUVirtualAddress());
+
+	if (m_GPStage.Execute(this, pComList, (UINT)totalQuadrics))
+	{
+		m_RStage.Execute(this, pComList);
+		m_MStage.Execute(this, pComList);
+	}
+	
 	m_ToRender.clear();
+
+	m_MappedData = (DrawData*)m_DrawDataBuffer.Map();
 
 	CopyToBackBuffer(pComList, pRenderTarget, pDepthBuffer);
 }
@@ -392,6 +413,11 @@ void QuadricRenderer::Render(QuadricGeometry* pGeo)
 void QuadricRenderer::Render(QuadricGeometry* pGeo, const DirectX::XMMATRIX& transform)
 {
 	m_ToRender.insert(pGeo);
+
+	m_MappedData[m_ToRender.size() - 1] = pGeo->GetDrawData();
+
 	auto tr = XMMatrixInverse(nullptr, XMMatrixTranspose(transform));
 	pGeo->m_Transforms.push_back(tr);
+
+
 }

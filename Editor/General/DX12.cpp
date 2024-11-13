@@ -7,6 +7,8 @@
 #endif
 #include <pix3.h>
 
+#include <iostream>
+
 using namespace Microsoft::WRL;
 
 
@@ -26,24 +28,67 @@ DX12::DX12(Window* pWindow)
 	ComPtr<IDXGIFactory4> factory;
 	ThrowIfFailed(CreateDXGIFactory1(IID_PPV_ARGS(&factory)));
 
-	//DEVICE
-		// Try to create hardware device.
-	HRESULT hardwareResult = D3D12CreateDevice(
-		nullptr,             // default adapter
-		D3D_FEATURE_LEVEL_11_0,
-		IID_PPV_ARGS(&m_Device));
-
-	// Fallback to WARP device.
-	if (FAILED(hardwareResult))
+	D3D_FEATURE_LEVEL desiredFeatureLevel = D3D_FEATURE_LEVEL_12_0;
+#if 1
+	// select adapter
+	IDXGIAdapter1* adapter;
+	int adapterIdx{};
+	while (factory->EnumAdapters1(adapterIdx, &adapter) != DXGI_ERROR_NOT_FOUND)
 	{
+		DXGI_ADAPTER_DESC1 desc;
+		adapter->GetDesc1(&desc);
+
+		//d3d12 compatible, // dont create yet
+		HRESULT hr = D3D12CreateDevice(adapter, desiredFeatureLevel, __uuidof(ID3D12Device), nullptr);
+		if (SUCCEEDED(hr))
+		{
+			std::wcout << adapterIdx << L": " << std::wstring(desc.Description).c_str() << std::endl;
+		}
+
+		adapterIdx++;
+	}
+
+	int chosenAdapter;
+	std::cin >> chosenAdapter;
+
+	bool warp = true;
+	if (chosenAdapter < adapterIdx)
+	{
+		factory->EnumAdapters1(chosenAdapter, &adapter);
+		HRESULT hr = D3D12CreateDevice(adapter, desiredFeatureLevel, __uuidof(ID3D12Device), nullptr);
+		warp = !SUCCEEDED(hr);
+	}
+
+	if (warp)
+	{
+		std::cout << "invalid choice, falling back to warp device\n";
 		ComPtr<IDXGIAdapter> pWarpAdapter;
 		ThrowIfFailed(factory->EnumWarpAdapter(IID_PPV_ARGS(&pWarpAdapter)));
 
 		ThrowIfFailed(D3D12CreateDevice(
 			pWarpAdapter.Get(),
-			D3D_FEATURE_LEVEL_11_0,
+			desiredFeatureLevel,
 			IID_PPV_ARGS(&m_Device)));
 	}
+	else
+	{
+		HRESULT hr = D3D12CreateDevice(
+			adapter,           
+			desiredFeatureLevel,
+			IID_PPV_ARGS(&m_Device));
+
+		if (!SUCCEEDED(hr)) __debugbreak();
+	}
+#else
+
+	HRESULT hr = D3D12CreateDevice(
+		nullptr,
+		desiredFeatureLevel,
+		IID_PPV_ARGS(&m_Device));
+
+
+	if (!SUCCEEDED(hr)) __debugbreak();
+#endif
 
 	//GRAPHICS
 	//********

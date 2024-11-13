@@ -29,7 +29,7 @@ void DescriptorManager::Initialize(ID3D12Device* pDevice)
 
 		m_pDevice = pDevice;
 		m_IncrementSize = m_pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		m_NumDescriptors = 128;
+		m_NumDescriptors = 1'000'000;
 
 		//DESCRIPTOR HEAP, todo: make more dynamic
 		D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};

@@ -249,6 +249,35 @@ void Editor::Initialize()
 	QuadricInstance* pInstance = new QuadricInstance{ ground.pGeometry };
 	pScene->AddElement(pInstance);
 
+	srand(300100);
+	auto GetRandomNormFloat = []()
+		{
+			return ((rand() % 200) / 200.0f);
+		};
+
+	for (size_t i = 0; i < 20; i++)
+	{
+		EditableGeometry orbGeom{ {}, new QuadricGeometry{"Orb" + std::to_string(i)}};
+		for (size_t j = 0; j < 1000; j++)
+		{
+			EditQuadric orb{};
+			orb.equation = DirectX::XMFLOAT4X4{
+							1,0,0,0,
+							0,1,0,0,
+							0,0,1,0,
+							0,0,0,-1 };
+			orb.color = { GetRandomNormFloat(),GetRandomNormFloat(),GetRandomNormFloat() };
+			orb.transform.SetScale({ 0.5f + GetRandomNormFloat(),0.5f + GetRandomNormFloat(),0.5f + GetRandomNormFloat() });
+			orb.transform.SetPosition({ GetRandomNormFloat() * 200,GetRandomNormFloat() * 200 + 5,GetRandomNormFloat() *200 });
+			orbGeom.quadrics.push_back(orb);
+		}
+
+		m_Geometry.emplace(orbGeom.pGeometry->GetName(), orbGeom);
+		QuadricInstance* pNewInstance = new QuadricInstance{ orbGeom.pGeometry };
+		pScene->AddElement(pNewInstance);
+		orbGeom.UpdateGeometry(&m_QRenderer, m_DX12.GetGraphicsInterface()->commandList.Get());
+	}
+
 	ground.UpdateGeometry(&m_QRenderer, m_DX12.GetGraphicsInterface()->commandList.Get());
 	person.UpdateGeometry(&m_QRenderer, m_DX12.GetGraphicsInterface()->commandList.Get());
 	//
@@ -303,9 +332,6 @@ void Editor::Update(float dt)
 
 	ImGui::Text(("FPS: " + std::to_string(fps) + "\t" + std::to_string(dt * 1000).substr(0 , 5) + " ms").c_str());
 	ImGui::End();
-	
-	m_QRenderer.ShowTiles(showTiles);
-	m_QRenderer.ReverseDepth(reverseDepth);
 
 	if (changed && tileDim[0] >= 32 && tileDim[0] <= 512 && tileDim[1] >= 32 && tileDim[1] <= 512 && numRasterizers <= 1000 && quadricsPerRasterizer <= 512)
 	{
