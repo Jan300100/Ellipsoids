@@ -5,7 +5,7 @@
 #endif
 
 #ifndef SHOW_TILES
-#define SHOW_TILES 0
+#define SHOW_TILES 1
 #endif
 
 struct AppData
@@ -75,7 +75,6 @@ struct DrawCallData
 
 DrawCallData gDrawCall : register(b0);
 ConstantBuffer<AppData> gAppData : register(b1);
-ConstantBuffer<DrawData> gDrawData : register(b2);
 
 uint NDCToScreen(float ndc, float dimension)
 {

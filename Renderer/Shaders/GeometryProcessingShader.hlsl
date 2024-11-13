@@ -39,12 +39,23 @@ void main( uint3 DTid : SV_DispatchThreadID )
     StructuredBuffer<InQuadric> quadricsIn = ResourceDescriptorHeap[myDrawcall.quadricBufferIdx];
     OutQuadric projected = Project(myDrawcall, quadricsIn[quadricId], instanceId);
 
+    // early out if outside the view
+    if (
+        projected.xRange.y < -1.0f 
+        || projected.yRange.y < -1.0f
+        || projected.xRange.x > 1.0f
+        || projected.yRange.x > 1.0f
+        || projected.xRange.x > projected.xRange.y
+        || projected.yRange.x > projected.yRange.y
+        )
+    {
+        return;
+    }
+    
     //FILL RASTERIZERS - REDISTRIBUTION to rasterizers: SORT MIDDLE
     uint2 numTiles = GetNrTiles(gAppData.windowDimensions, gAppData.tileDimensions);
     uint2 start = NDCToScreen(float2(projected.xRange.x, projected.yRange.y), gAppData.windowDimensions) / gAppData.tileDimensions;
     uint2 end = NDCToScreen(float2(projected.xRange.y, projected.yRange.x), gAppData.windowDimensions) / gAppData.tileDimensions;
-    if (start.x >= numTiles.x || end.x < 0 || start.y >= numTiles.y || end.y < 0)
-        return;
     
     //-1 because these are indices
     start.x = clamp(start.x, 0, numTiles.x-1);

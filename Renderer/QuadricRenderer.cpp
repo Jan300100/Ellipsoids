@@ -42,11 +42,11 @@ void QuadricRenderer::InitResources(ID3D12GraphicsCommandList* pComList)
 	m_DepthBuffer.Get()->SetName(L"DepthBuffer");
 
 	//ROOT SIGNATURE
-	std::array<CD3DX12_ROOT_PARAMETER,3> rootParameters;
+	std::array<CD3DX12_ROOT_PARAMETER,2> rootParameters;
 
 	rootParameters[0].InitAsConstants(2,0);
 	rootParameters[1].InitAsConstantBufferView(1);
-	rootParameters[2].InitAsConstantBufferView(2);
+
 
 	// A root signature is an array of root parameters.
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc((UINT)rootParameters.size(), rootParameters.data(),
@@ -391,7 +391,6 @@ void QuadricRenderer::RenderFrame(ID3D12GraphicsCommandList* pComList, ID3D12Res
 	UINT numDrawCalls = (UINT)m_ToRender.size();
 	pComList->SetComputeRoot32BitConstant(0, numDrawCalls, 1);
 	pComList->SetComputeRootConstantBufferView(1, m_AppDataBuffer.Get()->GetGPUVirtualAddress());
-	pComList->SetComputeRootConstantBufferView(2, m_DrawDataBuffer.Get()->GetGPUVirtualAddress());
 
 	if (m_GPStage.Execute(this, pComList, (UINT)totalQuadrics))
 	{

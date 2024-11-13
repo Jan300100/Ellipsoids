@@ -78,6 +78,7 @@ void Stage::GeometryProcessing::Init(QuadricRenderer* pRenderer)
 #if defined(DEBUG) || defined(_DEBUG)  
 	compilationArguments.push_back(DXC_ARG_DEBUG);
 	compilationArguments.push_back(DXC_ARG_SKIP_OPTIMIZATIONS);
+	compilationArguments.push_back(DXC_ARG_OPTIMIZATION_LEVEL0);
 #else
 	compilationArguments.push_back(DXC_ARG_OPTIMIZATION_LEVEL3);
 #endif
