@@ -90,6 +90,15 @@ DX12::DX12(Window* pWindow)
 	if (!SUCCEEDED(hr)) __debugbreak();
 #endif
 
+	D3D12_FEATURE_DATA_D3D12_OPTIONS21 options;
+	HRESULT hr = m_Device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS21, &options, sizeof(options));
+	if (!SUCCEEDED(hr)) __debugbreak();
+
+	if (options.WorkGraphsTier == D3D12_WORK_GRAPHS_TIER_NOT_SUPPORTED)
+	{
+		__debugbreak();
+	}
+
 	//GRAPHICS
 	//********
 	m_pGraphics = new Graphics{ m_Device.Get(),factory.Get(), m_pWindow };
